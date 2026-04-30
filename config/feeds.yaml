@@ -1,0 +1,23 @@
+# Feeds configuration for source ingestion
+
+feeds:
+  - id: arxiv_cs_ml
+    name: arXiv Computer Science - Machine Learning
+    url: https://rss.arxiv.org/rss/cs.LG
+    source: arxiv
+    category: paper
+    enabled: true
+
+  - id: arxiv_cs_ai
+    name: arXiv Computer Science - Artificial Intelligence
+    url: https://rss.arxiv.org/rss/cs.AI
+    source: arxiv
+    category: paper
+    enabled: true
+
+  - id: openai_blog
+    name: OpenAI Blog
+    url: https://openai.com/news/rss.xml
+    source: openai
+    category: news
+    enabled: true

@@ -1,3 +1,6 @@
-"""Source collectors and ingestion interfaces."""
+"""Collectors for fetching topics from various sources."""
 
-__all__ = []
+from .base import BaseCollector
+from .rss import RSSCollector
+
+__all__ = ["BaseCollector", "RSSCollector"]
