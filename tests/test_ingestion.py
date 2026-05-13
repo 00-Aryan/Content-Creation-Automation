@@ -1,5 +1,6 @@
 """Tests for ingestion components."""
 
+import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -8,25 +9,79 @@ from content_creation.ingestion import IngestionEngine
 from content_creation.models.topic import TopicItem
 
 
-def test_rss_collector_normalization():
-    """Test RSS record normalization."""
-    config = {"id": "test_feed", "source": "test_source", "category": "news"}
+def test_rss_collector_fetch_errors():
+    """Test RSSCollector error handling during fetch."""
+    config = {"id": "test_feed", "source": "test_source", "url": "https://example.com/feed"}
     collector = RSSCollector(config)
     
-    record = {
-        "link": "https://example.com/item1",
-        "title": "Item 1",
-        "published_parsed": (2026, 4, 30, 12, 0, 0, 3, 120, 0),
-        "author": "John Doe",
-        "summary": "This is a summary."
-    }
+    # Mock HTTP error
+    with patch("feedparser.parse") as mock_parse:
+        mock_result = MagicMock()
+        mock_result.get.return_value = 404
+        mock_parse.return_value = mock_result
+        with pytest.raises(ValueError, match="HTTP error 404"):
+            collector.fetch()
+            
+    # Mock bozo (diagnostic only)
+    with patch("feedparser.parse") as mock_parse:
+        mock_result = MagicMock(bozo=True, bozo_exception=Exception("test"), entries=[{"link": "http://x.com"}])
+        mock_result.get.return_value = 200
+        mock_parse.return_value = mock_result
+        result = collector.fetch()
+        assert result.bozo is True
+        assert len(result.entries) == 1
+
+    # Mock bozo with no entries (should fail)
+    with patch("feedparser.parse") as mock_parse:
+        mock_result = MagicMock(bozo=True, bozo_exception=Exception("fatal"), entries=[])
+        mock_result.get.return_value = 200
+        mock_parse.return_value = mock_result
+        with pytest.raises(ValueError, match="Feed parse failed with bozo error and no entries"):
+            collector.fetch()
+
+
+def test_rss_collector_missing_url():
+    """Test RSSCollector raises error for missing URLs."""
+    config = {"id": "test_feed", "source": "test_source"}
+    collector = RSSCollector(config)
     
+    # Missing both link and id
+    record = {"title": "No URL"}
+    with pytest.raises(ValueError, match="Record has no link or id"):
+        collector.normalize(record)
+
+
+def test_rss_collector_defensive_author():
+    """Test RSSCollector handles various author structures defensively."""
+    config = {"id": "test_feed", "source": "test_source"}
+    collector = RSSCollector(config)
+    
+    # Authors list with dict
+    record = {
+        "link": "http://x.com",
+        "authors": [{"name": "Author A"}]
+    }
     item = collector.normalize(record)
-    assert isinstance(item, TopicItem)
-    assert item.title == "Item 1"
-    assert item.author == "John Doe"
-    assert item.published_at == "2026-04-30T12:00:00"
-    assert item.source == "test_source"
+    assert item.author == "Author A"
+    
+    # Authors list with string
+    record = {
+        "link": "http://y.com",
+        "authors": ["Author B"]
+    }
+    item = collector.normalize(record)
+    assert item.author == "Author B"
+    
+    # Missing author
+    record = {"link": "http://z.com"}
+    item = collector.normalize(record)
+    assert item.author == "unknown"
+
+
+def test_rss_collector_source_validation():
+    """Test RSSCollector validates source name in config."""
+    with pytest.raises(ValueError, match="missing 'source' field"):
+        RSSCollector({"id": "test"})
 
 
 def test_ingestion_engine_filter():

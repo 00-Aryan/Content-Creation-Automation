@@ -7,9 +7,13 @@ from pathlib import Path
 
 from content_creation import __version__
 from content_creation.ingestion import IngestionEngine
+from content_creation.scoring.config import load_scoring_config
+from content_creation.scoring.engine import ScoringEngine
+from content_creation.scoring.validation import ValidationEngine
 from content_creation.storage.local import LocalStorage
 from content_creation.utils.config import load_yaml_config
 from content_creation.utils.logging import setup_logging
+
 
 
 def main() -> int:
@@ -52,6 +56,19 @@ def main() -> int:
 
     # Validate items command
     subparsers.add_parser("validate-items", help="Validate all staged items against schema")
+
+    # Score topics command
+    score_parser = subparsers.add_parser("score-topics", help="Score staged topics and run validation")
+    score_parser.add_argument("--limit", type=int, help="Limit number of items to score")
+
+    # Review scores command
+    review_parser = subparsers.add_parser("review-scores", help="Review scored topics and flags")
+    review_parser.add_argument("--flagged-only", action="store_true", help="Only show items with validation flags")
+    review_parser.add_argument("--min-score", type=float, help="Minimum total score to show")
+    review_parser.add_argument("--limit", type=int, default=10, help="Maximum number of topics to list")
+
+    # Scoring dashboard command
+    subparsers.add_parser("scoring-dashboard", help="Show aggregate scoring metrics and flag breakdown")
 
     args = None
     try:
@@ -112,6 +129,92 @@ def main() -> int:
             print(f"Validating {len(items)} items...")
             # Pydantic already validated them on load in list_staged()
             print("All items valid against TopicItem schema.")
+            return 0
+
+        elif args.command == "score-topics":
+            storage = LocalStorage(base_dir)
+            scoring_config_path = base_dir / "config" / "scoring.yaml"
+            config = load_scoring_config(scoring_config_path)
+            
+            items = storage.list_staged()
+            if args.limit:
+                items = items[:args.limit]
+            
+            if not items:
+                print("No staged items found to score.")
+                return 0
+            
+            print(f"Scoring {len(items)} items...")
+            scorer = ScoringEngine(config)
+            validator = ValidationEngine(config.validation)
+            
+            scored_count = 0
+            for item in items:
+                scored_item = scorer.score_item(item)
+                validated_item = validator.validate_item(scored_item)
+                storage.save_scored(validated_item)
+                scored_count += 1
+            
+            print(f"Successfully scored and validated {scored_count} items.")
+            return 0
+
+        elif args.command == "review-scores":
+            storage = LocalStorage(base_dir)
+            items = storage.list_scored()
+            
+            if args.flagged_only:
+                items = [item for item in items if item.validation_flags]
+            
+            if args.min_score:
+                items = [item for item in items if item.total_score >= args.min_score]
+            
+            items.sort(key=lambda x: x.total_score, reverse=True)
+            
+            print(f"\nScored Topics Review (showing {min(len(items), args.limit)} of {len(items)}):")
+            for item in items[:args.limit]:
+                flag_indicator = "[!]" if item.validation_flags else "[ ]"
+                print(f"{flag_indicator} {item.total_score:5.1f} | {item.title[:60]}... ({item.source})")
+                if item.validation_flags:
+                    for flag in item.validation_flags:
+                        print(f"    - {flag}")
+            return 0
+
+        elif args.command == "scoring-dashboard":
+            storage = LocalStorage(base_dir)
+            items = storage.list_scored()
+            
+            if not items:
+                print("No scored items found. Run 'score-topics' first.")
+                return 0
+            
+            avg_score = sum(item.total_score for item in items) / len(items)
+            flagged_items = [item for item in items if item.validation_flags]
+            
+            all_flags = []
+            for item in items:
+                all_flags.extend(item.validation_flags)
+            
+            flag_counts = {}
+            for flag in all_flags:
+                # Group by flag type (first part of message)
+                flag_type = flag.split(":")[0]
+                flag_counts[flag_type] = flag_counts.get(flag_type, 0) + 1
+            
+            print("\n=== Scoring Dashboard ===")
+            print(f"Total Scored Items:  {len(items)}")
+            print(f"Average Total Score: {avg_score:.2f}")
+            print(f"Flagged Items:       {len(flagged_items)} ({len(flagged_items)/len(items)*100:.1f}%)")
+            
+            if flag_counts:
+                print("\nFlag Breakdown:")
+                for ftype, count in sorted(flag_counts.items(), key=lambda x: x[1], reverse=True):
+                    print(f"  - {ftype}: {count}")
+            
+            items.sort(key=lambda x: x.total_score, reverse=True)
+            print("\nTop 5 Scored Items:")
+            for item in items[:5]:
+                print(f"  {item.total_score:5.1f} | {item.title[:50]}...")
+                
             return 0
 
         else:

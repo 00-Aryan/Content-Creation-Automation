@@ -68,9 +68,14 @@ class IngestionEngine:
                         continue
                     
                     # Save staged item
-                    self.storage.save_staged(item)
-                    all_new_items.append(item)
-                    new_count += 1
+                    try:
+                        self.storage.save_staged(item)
+                        all_new_items.append(item)
+                        new_count += 1
+                    except FileExistsError:
+                        logger.debug(f"Item {item.id} was saved by another process, skipping.")
+                        duplicate_count += 1
+                        continue
                 
                 logger.info(f"Completed {collector.source_id}: {new_count} new, {duplicate_count} duplicates.")
                 

@@ -16,6 +16,9 @@ class BaseCollector(ABC):
         self.config = source_config
         self.source_id = source_config.get("id")
         self.source_name = source_config.get("source")
+        
+        if not self.source_name:
+            raise ValueError(f"Source configuration missing 'source' field for {self.source_id}")
 
     @abstractmethod
     def fetch(self) -> Any:

@@ -1,9 +1,20 @@
 """Tests for local storage."""
 
+import pytest
 import json
 from pathlib import Path
+from unittest.mock import patch
 from content_creation.storage.local import LocalStorage
 from content_creation.models.topic import TopicItem, TopicCategory
+
+
+def test_local_storage_not_writeable(tmp_path):
+    """Test LocalStorage fails if base directory is not writeable."""
+    # We can simulate this by mocking 'open' to raise OSError for the write test file
+    with patch("builtins.open") as mock_file:
+        mock_file.side_effect = OSError("Read-only file system")
+        with pytest.raises(OSError, match="is not writeable"):
+            LocalStorage(tmp_path)
 
 
 def test_local_storage_save_and_load(tmp_path):

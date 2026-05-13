@@ -37,23 +37,25 @@ class TestCLI:
             result = main()
             assert result == 0
             captured = capsys.readouterr()
-            assert "Status: Setup Phase" in captured.out
+            assert "Status: Operational" in captured.out
 
-    def test_collect_command_stub(self, capsys):
-        """Test collect command stub."""
+    def test_collect_command_real(self, capsys):
+        """Test collect command calls real ingestion logic."""
         with patch.object(sys, "argv", ["content-creation", "collect", "--source", "arxiv"]):
-            result = main()
-            assert result == 0
-            captured = capsys.readouterr()
-            assert "STUB: Collecting from source: arxiv" in captured.out
+            with patch("content_creation.ingestion.IngestionEngine.run", return_value=[]):
+                result = main()
+                assert result == 0
+                captured = capsys.readouterr()
+                assert "Ingestion complete" in captured.out
 
     def test_collect_command_all(self, capsys):
         """Test collect command with --all flag."""
         with patch.object(sys, "argv", ["content-creation", "collect", "--all"]):
-            result = main()
-            assert result == 0
-            captured = capsys.readouterr()
-            assert "STUB: Collecting from source: all" in captured.out
+            with patch("content_creation.ingestion.IngestionEngine.run", return_value=[]):
+                result = main()
+                assert result == 0
+                captured = capsys.readouterr()
+                assert "Ingestion complete" in captured.out
 
     def test_no_command_shows_help(self, capsys):
         """Test that no command shows help."""

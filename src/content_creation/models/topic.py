@@ -67,3 +67,23 @@ class TopicItem(BaseModel):
         if v is None or (isinstance(v, str) and not v.strip()):
             return "unknown"
         return v
+
+
+class ScoredTopicItem(TopicItem):
+    """Extended TopicItem with scoring metadata for Week 2."""
+    total_score: float = Field(default=0.0, ge=0.0, le=100.0)
+    recency_score: float = Field(default=0.0, ge=0.0, le=100.0)
+    source_quality_score: float = Field(default=0.0, ge=0.0, le=100.0)
+    keyword_score: float = Field(default=0.0, ge=0.0, le=100.0)
+    quality_score: float = Field(default=0.0, ge=0.0, le=100.0)
+    scoring_timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
+    scoring_rules_fired: List[str] = Field(default_factory=list)
+    validation_flags: List[str] = Field(default_factory=list)
+
+    @field_validator("status")
+    @classmethod
+    def set_scored_status(cls, v: TopicStatus) -> TopicStatus:
+        """Ensure status is set to SCORED if it was RAW or STAGED."""
+        if v in (TopicStatus.RAW, TopicStatus.STAGED):
+            return TopicStatus.SCORED
+        return v
