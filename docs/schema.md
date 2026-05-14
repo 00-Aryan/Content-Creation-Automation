@@ -49,3 +49,21 @@ The following schemas will be formalized in Weeks 2 and 3:
 - **Brief Schema:** Summarization and educational framing.
 - **Script Schema:** Multi-format content drafts.
 - **Asset Schema:** Thumbnail prompts and metadata.
+
+## Brief Schema
+
+```json
+{
+  "topic_id": "string",
+  "why_it_matters": "string",
+  "plain_english_summary": ["string", "string", "string"],
+  "student_takeaway": "string",
+  "analogy": "string",
+  "limitation": "string",
+  "audience_fit": "string",
+  "recommended_formats": ["short_video", "carousel", "newsletter"],
+  "source_url": "string",
+  "review_status": "draft | needs_review",
+  "generated_at": "ISO-8601 string"
+}
+```

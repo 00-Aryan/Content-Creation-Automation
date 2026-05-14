@@ -2,10 +2,12 @@
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
 from content_creation import __version__
+from content_creation.generation.brief import generate_brief
 from content_creation.ingestion import IngestionEngine
 from content_creation.scoring.config import load_scoring_config
 from content_creation.scoring.engine import ScoringEngine
@@ -70,6 +72,10 @@ def main() -> int:
 
     # Scoring dashboard command
     subparsers.add_parser("scoring-dashboard", help="Show aggregate scoring metrics and flag breakdown")
+
+    # Generate briefs command
+    generate_parser = subparsers.add_parser("generate-briefs", help="Generate educational briefs using Gemini")
+    generate_parser.add_argument("--top", type=int, default=5, help="Number of top scored topics to process")
 
     args = None
     try:
@@ -234,6 +240,52 @@ def main() -> int:
             for item in items[:5]:
                 print(f"  {item.priority_score:5.1f} | {item.title[:50]}...")
                 
+            return 0
+
+        elif args.command == "generate-briefs":
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                print("Error: GEMINI_API_KEY not set in environment")
+                return 1
+            
+            storage = LocalStorage(base_dir)
+            scored_items = storage.list_scored()
+            
+            # Filter and sort
+            from content_creation.models.topic import TopicStatus
+            items_to_process = [item for item in scored_items if item.status == TopicStatus.SCORED]
+            items_to_process.sort(key=lambda x: x.priority_score, reverse=True)
+            items_to_process = items_to_process[:args.top]
+            
+            if not items_to_process:
+                print("No scored topics found to process.")
+                return 0
+            
+            print(f"Generating briefs for top {len(items_to_process)} topics...")
+            
+            prompt_path = base_dir / "prompts" / "summarize.md"
+            generated_count = 0
+            failed_count = 0
+            
+            from content_creation.models.brief import ReviewStatus
+            import time
+            
+            for item in items_to_process:
+                try:
+                    brief = generate_brief(item, prompt_path, api_key)
+                    storage.save_brief(brief)
+                    if brief.review_status == ReviewStatus.NEEDS_REVIEW:
+                        failed_count += 1
+                    else:
+                        generated_count += 1
+                except Exception as e:
+                    print(f"Error generating brief for {item.id}: {e}")
+                    failed_count += 1
+                
+                # Mandatory delay to respect free-tier RPM limits
+                time.sleep(5)
+            
+            print(f"Generated {generated_count} briefs, {failed_count} failed")
             return 0
 
         else:

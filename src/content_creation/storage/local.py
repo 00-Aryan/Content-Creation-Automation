@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from content_creation.models.brief import Brief
 from content_creation.models.topic import ScoredTopicItem, TopicItem
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ class LocalStorage:
         self.raw_dir = base_dir / "data" / "raw"
         self.staged_dir = base_dir / "data" / "staged"
         self.scored_dir = base_dir / "data" / "scored"
+        self.briefs_dir = base_dir / "data" / "briefs"
         
         self._verify_writeable()
         self._ensure_dirs()
@@ -39,6 +41,7 @@ class LocalStorage:
         self.raw_dir.mkdir(parents=True, exist_ok=True)
         self.staged_dir.mkdir(parents=True, exist_ok=True)
         self.scored_dir.mkdir(parents=True, exist_ok=True)
+        self.briefs_dir.mkdir(parents=True, exist_ok=True)
 
     def save_raw(self, source_id: str, data: Any):
         """Save raw payload to data/raw/."""
@@ -80,6 +83,17 @@ class LocalStorage:
         except Exception as e:
             logger.error(f"Failed to save scored item to {file_path}: {e}")
 
+    def save_brief(self, brief: Brief) -> Path:
+        """Save brief JSON to data/briefs/{topic_id}.json"""
+        file_path = self.briefs_dir / f"{brief.topic_id}.json"
+        try:
+            with open(file_path, "w") as f:
+                f.write(brief.model_dump_json(indent=2))
+            return file_path
+        except Exception as e:
+            logger.error(f"Failed to save brief to {file_path}: {e}")
+            raise
+
     def list_staged(self) -> List[TopicItem]:
         """List all staged items."""
         items = []
@@ -102,6 +116,18 @@ class LocalStorage:
                     items.append(ScoredTopicItem(**data))
             except Exception as e:
                 logger.warning(f"Failed to load scored item {file_path}: {e}")
+        return items
+
+    def list_briefs(self) -> List[Brief]:
+        """Load all briefs from data/briefs/"""
+        items = []
+        for file_path in self.briefs_dir.glob("*.json"):
+            try:
+                with open(file_path, "r") as f:
+                    data = json.load(f)
+                    items.append(Brief(**data))
+            except Exception as e:
+                logger.warning(f"Failed to load brief {file_path}: {e}")
         return items
 
     def get_staged(self, item_id: str) -> Optional[TopicItem]:
