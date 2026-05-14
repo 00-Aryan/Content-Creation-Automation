@@ -53,6 +53,7 @@ def main() -> int:
     # List topics command
     list_parser = subparsers.add_parser("list-topics", help="List staged topics")
     list_parser.add_argument("--limit", type=int, default=10, help="Maximum number of topics to list")
+    list_parser.add_argument("--status", type=str, help="Filter by status (raw, staged, scored, approved, rejected, review)")
 
     # Validate items command
     subparsers.add_parser("validate-items", help="Validate all staged items against schema")
@@ -116,6 +117,18 @@ def main() -> int:
         elif args.command == "list-topics":
             storage = LocalStorage(base_dir)
             items = storage.list_staged()
+            
+            if args.status:
+                from content_creation.models.topic import TopicStatus
+                try:
+                    # Validate status
+                    status_enum = TopicStatus(args.status)
+                    items = [item for item in items if item.status == status_enum]
+                except ValueError:
+                    valid_statuses = ", ".join([s.value for s in TopicStatus])
+                    print(f"Error: Invalid status '{args.status}'. Valid values: {valid_statuses}")
+                    return 1
+            
             items.sort(key=lambda x: x.published_at, reverse=True)
             
             print(f"\nLast {min(len(items), args.limit)} Staged Topics:")
@@ -148,14 +161,20 @@ def main() -> int:
             scorer = ScoringEngine(config)
             validator = ValidationEngine(config.validation)
             
-            scored_count = 0
-            for item in items:
-                scored_item = scorer.score_item(item)
-                validated_item = validator.validate_item(scored_item)
-                storage.save_scored(validated_item)
-                scored_count += 1
+            results = scorer.score_items(items)
+            scored_items = results["scored"]
+            rejected_items = results["rejected"]
             
-            print(f"Successfully scored and validated {scored_count} items.")
+            for item in scored_items:
+                validated_item = validator.validate_item(item)
+                storage.save_scored(validated_item)
+            
+            for item in rejected_items:
+                storage.save_scored(item)
+            
+            print(f"Successfully scored {len(scored_items)} items.")
+            if rejected_items:
+                print(f"Rejected {len(rejected_items)} items (check logs for reasons).")
             return 0
 
         elif args.command == "review-scores":
@@ -166,14 +185,14 @@ def main() -> int:
                 items = [item for item in items if item.validation_flags]
             
             if args.min_score:
-                items = [item for item in items if item.total_score >= args.min_score]
+                items = [item for item in items if item.priority_score >= args.min_score]
             
-            items.sort(key=lambda x: x.total_score, reverse=True)
+            items.sort(key=lambda x: x.priority_score, reverse=True)
             
             print(f"\nScored Topics Review (showing {min(len(items), args.limit)} of {len(items)}):")
             for item in items[:args.limit]:
                 flag_indicator = "[!]" if item.validation_flags else "[ ]"
-                print(f"{flag_indicator} {item.total_score:5.1f} | {item.title[:60]}... ({item.source})")
+                print(f"{flag_indicator} {item.priority_score:5.1f} | {item.title[:60]}... ({item.source})")
                 if item.validation_flags:
                     for flag in item.validation_flags:
                         print(f"    - {flag}")
@@ -187,7 +206,7 @@ def main() -> int:
                 print("No scored items found. Run 'score-topics' first.")
                 return 0
             
-            avg_score = sum(item.total_score for item in items) / len(items)
+            avg_score = sum(item.priority_score for item in items) / len(items)
             flagged_items = [item for item in items if item.validation_flags]
             
             all_flags = []
@@ -202,7 +221,7 @@ def main() -> int:
             
             print("\n=== Scoring Dashboard ===")
             print(f"Total Scored Items:  {len(items)}")
-            print(f"Average Total Score: {avg_score:.2f}")
+            print(f"Average Priority Score: {avg_score:.2f}")
             print(f"Flagged Items:       {len(flagged_items)} ({len(flagged_items)/len(items)*100:.1f}%)")
             
             if flag_counts:
@@ -210,10 +229,10 @@ def main() -> int:
                 for ftype, count in sorted(flag_counts.items(), key=lambda x: x[1], reverse=True):
                     print(f"  - {ftype}: {count}")
             
-            items.sort(key=lambda x: x.total_score, reverse=True)
+            items.sort(key=lambda x: x.priority_score, reverse=True)
             print("\nTop 5 Scored Items:")
             for item in items[:5]:
-                print(f"  {item.total_score:5.1f} | {item.title[:50]}...")
+                print(f"  {item.priority_score:5.1f} | {item.title[:50]}...")
                 
             return 0
 

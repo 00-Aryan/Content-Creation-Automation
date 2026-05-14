@@ -32,13 +32,14 @@ def mock_env(tmp_path):
         
     # Mock scoring.yaml
     scoring_config = {
-        "scoring": {
-            "recency": {"weight": 0.5, "enabled": True},
-            "source_quality": {"weight": 0.5, "enabled": True},
-            "keywords": {"weight": 0.0, "enabled": False},
-            "quality": {"weight": 0.0, "enabled": False}
-        }
+    "scoring_rules": {
+        "student_usefulness": {"weight": 0.30, "enabled": True},
+        "novelty": {"weight": 0.25, "enabled": True},
+        "credibility": {"weight": 0.20, "enabled": True},
+        "explainability": {"weight": 0.15, "enabled": True},
+        "hook_potential": {"weight": 0.10, "enabled": True}
     }
+}
     with open(config_dir / "scoring.yaml", "w") as f:
         yaml.dump(scoring_config, f)
         
@@ -56,7 +57,7 @@ def test_e2e_pipeline(mock_parse, mock_env):
             "link": "https://example.com/item1",
             "title": "Item 1",
             "published_parsed": (2026, 5, 1, 12, 0, 0, 4, 121, 0),
-            "summary": "Summary 1",
+            "summary": "This is a detailed summary of the research paper about machine learning techniques that provides enough content to pass the minimum text length filter for scoring.",
             "author": "Author 1"
         }
     ]
@@ -88,5 +89,5 @@ def test_e2e_pipeline(mock_parse, mock_env):
     
     with open(scored_files[0], "r") as f:
         scored_item = json.load(f)
-        assert "total_score" in scored_item
+        assert "priority_score" in scored_item
         assert scored_item["status"] == "scored"

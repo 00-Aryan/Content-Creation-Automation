@@ -1,0 +1,16 @@
+scoring_rules:
+  student_usefulness:
+    weight: 0.30
+    enabled: true
+  novelty:
+    weight: 0.25
+    enabled: true
+  credibility:
+    weight: 0.20
+    enabled: true
+  explainability:
+    weight: 0.15
+    enabled: true
+  hook_potential:
+    weight: 0.10
+    enabled: true

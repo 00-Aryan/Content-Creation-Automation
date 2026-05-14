@@ -15,6 +15,7 @@ class TopicStatus(str, Enum):
     SCORED = "scored"
     APPROVED = "approved"
     REJECTED = "rejected"
+    REVIEW = "review"
 
 
 class TopicCategory(str, Enum):
@@ -71,7 +72,16 @@ class TopicItem(BaseModel):
 
 class ScoredTopicItem(TopicItem):
     """Extended TopicItem with scoring metadata for Week 2."""
-    total_score: float = Field(default=0.0, ge=0.0, le=100.0)
+    priority_score: float = Field(default=0.0, ge=0.0, le=100.0)
+    
+    # Week 2 categories
+    student_usefulness_score: float = Field(default=0.0, ge=0.0, le=100.0)
+    novelty_score: float = Field(default=0.0, ge=0.0, le=100.0)
+    credibility_score: float = Field(default=0.0, ge=0.0, le=100.0)
+    explainability_score: float = Field(default=0.0, ge=0.0, le=100.0)
+    hook_potential_score: float = Field(default=0.0, ge=0.0, le=100.0)
+
+    # Legacy fields
     recency_score: float = Field(default=0.0, ge=0.0, le=100.0)
     source_quality_score: float = Field(default=0.0, ge=0.0, le=100.0)
     keyword_score: float = Field(default=0.0, ge=0.0, le=100.0)

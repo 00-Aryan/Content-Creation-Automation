@@ -89,10 +89,11 @@ def test_scorer_config_weight_validation(base_item):
     """Test that ScoringConfig prevents weights summing to > 1.0."""
     # Create a config where weights sum > 1.0
     config_dict = {
-        "recency": {"weight": 1.0},
-        "source_quality": {"weight": 1.0},
-        "keywords": {"weight": 1.0},
-        "quality": {"weight": 1.0}
-    }
+    "student_usefulness": {"weight": 1.0},
+    "novelty": {"weight": 1.0},
+    "credibility": {"weight": 1.0},
+    "explainability": {"weight": 1.0},
+    "hook_potential": {"weight": 1.0}
+}
     with pytest.raises(ValueError, match="Total enabled weights must sum to 1.0"):
         ScoringConfig(**config_dict)

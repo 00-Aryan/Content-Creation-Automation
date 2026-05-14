@@ -10,45 +10,10 @@ from pydantic import BaseModel, Field, field_validator, model_validator, Validat
 logger = logging.getLogger(__name__)
 
 
-class RecencyConfig(BaseModel):
-    """Configuration for recency scoring rule."""
+class RuleConfig(BaseModel):
+    """Generic configuration for a scoring rule."""
     enabled: bool = True
-    weight: float = Field(default=0.3, ge=0.0, le=1.0)
-    half_life_days: int = Field(default=30, gt=0)
-    max_age_days: int = Field(default=365, gt=0)
-
-    @field_validator("max_age_days")
-    @classmethod
-    def validate_age_bounds(cls, v: int, info: ValidationInfo) -> int:
-        """Ensure max_age_days >= half_life_days."""
-        if "half_life_days" in info.data and v < info.data["half_life_days"]:
-            raise ValueError("max_age_days must be >= half_life_days")
-        return v
-
-
-class SourceQualityConfig(BaseModel):
-    """Configuration for source quality scoring rule."""
-    enabled: bool = True
-    weight: float = Field(default=0.25, ge=0.0, le=1.0)
-    sources: Dict[str, float] = Field(default_factory=dict)
-    default: float = Field(default=50.0, ge=0.0, le=100.0)
-
-
-class KeywordConfig(BaseModel):
-    """Configuration for keyword relevance scoring rule."""
-    enabled: bool = True
-    weight: float = Field(default=0.25, ge=0.0, le=1.0)
-    topic_areas: Dict[str, List[str]] = Field(default_factory=dict)
-
-
-class QualityConfig(BaseModel):
-    """Configuration for quality heuristics scoring rule."""
-    enabled: bool = True
-    weight: float = Field(default=0.2, ge=0.0, le=1.0)
-    min_title_length: int = Field(default=10, gt=0)
-    max_title_length: int = Field(default=200, gt=0)
-    has_description_bonus: float = Field(default=10.0, ge=0.0)
-    has_tags_bonus: float = Field(default=5.0, ge=0.0)
+    weight: float = Field(..., ge=0.0, le=1.0)
 
 
 class ValidationConfig(BaseModel):
@@ -61,14 +26,15 @@ class ValidationConfig(BaseModel):
 
 
 class ScoringConfig(BaseModel):
-    """Main scoring configuration."""
-    recency: RecencyConfig = Field(default_factory=RecencyConfig)
-    source_quality: SourceQualityConfig = Field(default_factory=SourceQualityConfig)
-    keywords: KeywordConfig = Field(default_factory=KeywordConfig)
-    quality: QualityConfig = Field(default_factory=QualityConfig)
+    """Main scoring configuration matching scoring.yaml categories."""
+    student_usefulness: RuleConfig
+    novelty: RuleConfig
+    credibility: RuleConfig
+    explainability: RuleConfig
+    hook_potential: RuleConfig
     validation: ValidationConfig = Field(default_factory=ValidationConfig)
 
-    @field_validator("recency", "source_quality", "keywords", "quality", "validation", mode="before")
+    @field_validator("student_usefulness", "novelty", "credibility", "explainability", "hook_potential", "validation", mode="before")
     @classmethod
     def handle_none(cls, v: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         """Handle None values for sub-configs."""
@@ -85,14 +51,16 @@ class ScoringConfig(BaseModel):
     def get_total_weight(self) -> float:
         """Calculate total weight of all enabled rules."""
         total = 0.0
-        if self.recency.enabled:
-            total += self.recency.weight
-        if self.source_quality.enabled:
-            total += self.source_quality.weight
-        if self.keywords.enabled:
-            total += self.keywords.weight
-        if self.quality.enabled:
-            total += self.quality.weight
+        rules = [
+            self.student_usefulness,
+            self.novelty,
+            self.credibility,
+            self.explainability,
+            self.hook_potential,
+        ]
+        for rule in rules:
+            if rule.enabled:
+                total += rule.weight
         return total
 
 
@@ -110,13 +78,13 @@ def load_scoring_config(config_path: Path) -> ScoringConfig:
         ValueError: If config is invalid.
     """
     if not config_path.exists():
-        logger.warning(f"Scoring config not found at {config_path}, using defaults")
-        return ScoringConfig()
+        logger.error(f"Scoring config not found at {config_path}")
+        raise FileNotFoundError(f"Scoring config not found at {config_path}")
 
     try:
         from content_creation.utils.config import load_yaml_config
         data = load_yaml_config(config_path)
-        scoring_data = data.get("scoring", {})
+        scoring_data = data.get("scoring_rules", {})
         return ScoringConfig(**scoring_data)
     except Exception as e:
         logger.error(f"Failed to load scoring config from {config_path}: {e}")
