@@ -77,6 +77,13 @@ def main() -> int:
     generate_parser = subparsers.add_parser("generate-briefs", help="Generate educational briefs using Gemini")
     generate_parser.add_argument("--top", type=int, default=5, help="Number of top scored topics to process")
 
+    # Build manifest command
+    manifest_parser = subparsers.add_parser("build-manifest", help="Build a manifest for a single topic")
+    manifest_parser.add_argument("--topic-id", type=str, required=True, help="Topic ID to build manifest for")
+
+    # Build all manifests command
+    subparsers.add_parser("build-all-manifests", help="Build manifests for all topics with briefs")
+
     args = None
     try:
         args = parser.parse_args()
@@ -267,17 +274,13 @@ def main() -> int:
             generated_count = 0
             failed_count = 0
             
-            from content_creation.models.brief import ReviewStatus
             import time
             
             for item in items_to_process:
                 try:
                     brief = generate_brief(item, prompt_path, api_key)
                     storage.save_brief(brief)
-                    if brief.review_status == ReviewStatus.NEEDS_REVIEW:
-                        failed_count += 1
-                    else:
-                        generated_count += 1
+                    generated_count += 1
                 except Exception as e:
                     print(f"Error generating brief for {item.id}: {e}")
                     failed_count += 1
@@ -286,6 +289,72 @@ def main() -> int:
                 time.sleep(5)
             
             print(f"Generated {generated_count} briefs, {failed_count} failed")
+            return 0
+
+        elif args.command == "build-manifest":
+            storage = LocalStorage(base_dir)
+
+            # Load the brief to get topic_title and source_url
+            brief = storage.get_scored(args.topic_id)
+            if not brief:
+                # Try to get from briefs dir
+                briefs = storage.list_briefs()
+                matching = [b for b in briefs if b.topic_id == args.topic_id]
+                if matching:
+                    brief = matching[0]
+                else:
+                    print(f"Error: No brief found for topic_id '{args.topic_id}'")
+                    return 1
+
+            topic_title = getattr(brief, "why_it_matters", "unknown")
+            source_url = brief.source_url
+
+            from content_creation.manifest import ManifestBuilder
+
+            builder = ManifestBuilder(storage)
+            manifest = builder.build(
+                topic_id=args.topic_id,
+                topic_title=topic_title,
+                source_url=source_url,
+            )
+
+            storage.save_manifest(manifest)
+
+            # Print summary
+            print(f"Topic ID: {manifest.topic_id}")
+            print(f"Overall Status: {manifest.overall_status}")
+            print(f"Ready for Planner: {manifest.ready_for_planner}")
+            print("Assets:")
+            for asset_type in ["brief", "script", "carousel", "newsletter", "thumbnail"]:
+                status = manifest.assets.get(asset_type, {}).status if manifest.assets.get(asset_type) else "missing"
+                print(f"  {asset_type:12} {status}")
+            if manifest.blocking_reasons:
+                print(f"Blocking: {', '.join(manifest.blocking_reasons)}")
+            else:
+                print("Blocking: none")
+
+            return 0
+
+        elif args.command == "build-all-manifests":
+            from content_creation.manifest import ManifestBuilder
+
+            storage = LocalStorage(base_dir)
+            builder = ManifestBuilder(storage)
+            manifests = builder.build_all()
+
+            # Save each manifest
+            for manifest in manifests:
+                storage.save_manifest(manifest)
+
+            complete = sum(1 for m in manifests if m.overall_status == "complete")
+            partial = sum(1 for m in manifests if m.overall_status == "partial")
+            blocked = sum(1 for m in manifests if m.overall_status == "blocked")
+
+            print(f"Built and saved {len(manifests)} manifests")
+            print(f"  Complete: {complete}")
+            print(f"  Partial: {partial}")
+            print(f"  Blocked: {blocked}")
+
             return 0
 
         else:

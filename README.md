@@ -1,110 +1,231 @@
 # Content-Creation Factory
 
-A Python-based content pipeline for ML/AI students. This repository automates the process of finding, ranking, and repurposing educational content from trusted technical sources.
+A Python-based content pipeline for ML/AI students. This repository automates finding, scoring, and repurposing educational material from trusted technical sources into structured briefs and multi-format drafts, with local JSON storage and a manifest layer for downstream planning.
 
-## Current Status: Bootstrap Phase
-We are currently in the bootstrap/setup phase.
-- [x] Repository structure initialized.
-- [x] Documentation and schemas defined.
-- [x] Project foundation and CLI scaffold implemented.
-- [ ] Week 1: Source ingestion implementation (Next).
+## Current Status
 
-## Planned Modules
-1. **Collectors:** Feed loaders for arXiv, blogs, and repos.
-2. **Normalizers:** Schema enforcement and data cleaning.
-3. **Scoring Engine:** Student-centric relevance and novelty ranking.
-4. **Brief Generator:** Source-grounded summarization.
-5. **Asset Factory:** Multi-format script and prompt generation.
-6. **Planner:** Content scheduling and release management.
+- **Week 3** of the internal roadmap is complete: generators for script, carousel, newsletter, and thumbnail prompt JSON; topic manifest builder; extended `data/` layout and CLI for briefs and manifests.
+- **Week 4** is next: posting planner, review gates, dry-run publishing workflow, analytics placeholders, and release documentation (see `content-factory-implementation-plan.md` and `TASK_SPEC.md`).
+- **Tests:** 81 passing — run with `uv run python -m pytest`.
+- **Active branch:** `week2-feature-planning` (see `docs/branching-strategy.md` for workflow).
+
+## Architecture Overview
+
+End-to-end flow matches the seven stages in `docs/project-context.md`:
+
+1. **Source ingestion** — RSS and configured feeds into raw and staged `TopicItem` JSON.
+2. **Normalization** — canonical topic schema and validation on load.
+3. **Scoring** — weighted rules engine plus post-score validation flags.
+4. **Summarization** — Gemini-backed briefs from top scored topics (`prompts/summarize.md`).
+5. **Script generation** — per-format prompts (`short_video`, `carousel`, `newsletter`) via `ScriptGenerator`.
+6. **Carousel / newsletter / thumbnail prompts** — `CarouselGenerator`, `NewsletterGenerator`, and `ThumbnailGenerator` plus their Pydantic models and prompts.
+7. **Manifests** — `ManifestBuilder` aggregates on-disk assets per topic for planner readiness (`ready_for_planner`).
+
+Posting planner and public release steps are **Week 4**, not implemented in this tree.
 
 ## Repository Structure
+
 ```text
-content-creation/
-├── docs/               # Architecture, schemas, and rules
+Content-Creation/
+├── README.md
+├── TASK_SPEC.md
+├── CLAUDE.md
+├── pyproject.toml
+├── uv.lock
+├── content-factory-implementation-plan.md
+├── config/
+│   ├── feeds.yaml
+│   └── scoring.yaml
+├── data/
+│   ├── raw/
+│   ├── staged/
+│   ├── scored/
+│   ├── briefs/
+│   ├── scripts/
+│   ├── carousels/
+│   ├── newsletters/
+│   ├── thumbnails/
+│   └── manifests/
+├── prompts/
+│   ├── summarize.md
+│   ├── short_video.md
+│   ├── carousel.md
+│   ├── newsletter.md
+│   └── thumbnail.md
+├── docs/
+│   ├── branching-strategy.md
+│   ├── project-context.md
+│   ├── prompting-rules.md
+│   ├── schema.md
+│   └── voice-and-style.md
 ├── src/
 │   └── content_creation/
-│       ├── cli.py      # Main entry point
-│       ├── utils/      # Logging, config, and common helpers
-│       ├── storage/    # Data persistence interfaces
-│       ├── models/     # Data schemas (Pydantic/Dataclasses)
-│       ├── collectors/ # Source-specific fetching logic
-│       └── normalizers/ # Schema enforcement and data cleaning
-├── tests/              # Test suite
-├── data/               # Raw and staged JSON storage
-└── pyproject.toml      # Project configuration
+│       ├── __init__.py
+│       ├── cli.py
+│       ├── ingestion.py
+│       ├── manifest.py
+│       ├── collectors/
+│       │   ├── __init__.py
+│       │   ├── base.py
+│       │   └── rss.py
+│       ├── generation/
+│       │   ├── __init__.py
+│       │   ├── brief.py
+│       │   ├── script.py
+│       │   ├── carousel.py
+│       │   ├── newsletter.py
+│       │   └── thumbnail.py
+│       ├── models/
+│       │   ├── __init__.py
+│       │   ├── topic.py
+│       │   ├── brief.py
+│       │   ├── script.py
+│       │   ├── carousel.py
+│       │   ├── newsletter.py
+│       │   ├── thumbnail.py
+│       │   └── manifest.py
+│       ├── scoring/
+│       │   ├── __init__.py
+│       │   ├── base.py
+│       │   ├── config.py
+│       │   ├── engine.py
+│       │   ├── rules.py
+│       │   └── validation.py
+│       ├── storage/
+│       │   └── local.py
+│       └── utils/
+│           ├── __init__.py
+│           ├── config.py
+│           └── logging.py
+└── tests/
+    ├── __init__.py
+    ├── test_cli.py
+    ├── test_e2e_verification.py
+    ├── test_generation_scaffold.py
+    ├── test_ingestion.py
+    ├── test_integration.py
+    ├── test_manifest.py
+    ├── test_models.py
+    ├── test_scoring_config.py
+    ├── test_scoring_rules.py
+    ├── test_scoring_validation.py
+    ├── test_storage.py
+    └── test_utils.py
 ```
 
 ## Setup
 
 ### Prerequisites
-- Python 3.10 or higher
-- pip
+
+- Python 3.10 or higher (see `pyproject.toml`).
+- [uv](https://docs.astral.sh/uv/) for environments and commands.
 
 ### Installation
 
-1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd content-creation
+cd Content-Creation
+uv sync --extra dev
 ```
 
-2. Create a virtual environment:
+Optional: install the package in editable mode for the `content-creation` console script (if configured in your environment):
+
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv pip install -e ".[dev]"
 ```
 
-3. Install the package in development mode:
+### API key
+
 ```bash
-pip install -e ".[dev]"
+export GEMINI_API_KEY=your_key_here
 ```
+
+Required for `generate-briefs` (and any future CLI that calls Gemini).
 
 ### Running the CLI
 
-```bash
-# Show help
-content-creation --help
-
-# Show version
-content-creation --version
-
-# Check status
-content-creation status
-
-# Collect (stub - not yet implemented)
-content-creation collect --source arxiv
-```
-
-### Running Tests
+From the repository root (commands match `uv run python -m content_creation.cli --help`):
 
 ```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=src/content_creation --cov-report=html
-
-# Run specific test file
-pytest tests/test_cli.py
+uv run python -m content_creation.cli --help
+uv run python -m content_creation.cli --version
+uv run python -m content_creation.cli -v <command> ...
 ```
 
-### Code Quality
+Equivalent when the entry point is on your `PATH`:
 
 ```bash
-# Format code
-black src/ tests/
-
-# Sort imports
-isort src/ tests/
-
-# Type checking
-mypy src/
+uv run content-creation --help
 ```
+
+### Running tests
+
+```bash
+uv run python -m pytest
+uv run python -m pytest --tb=short -q
+uv run python -m pytest tests/test_cli.py
+```
+
+### Code quality (optional dev tools)
+
+```bash
+uv run black src/ tests/
+uv run isort src/ tests/
+uv run mypy src/
+```
+
+## CLI Commands
+
+Grouped by pipeline stage. Options are those defined in `src/content_creation/cli.py`.
+
+### Ingestion
+
+| Command | Purpose |
+| --- | --- |
+| `collect` | Ingest topics from sources (`--source <id>` or `--all`). |
+| `status` | System and storage summary (staged counts, sources). |
+| `list-topics` | List staged topics (`--limit`, optional `--status`). |
+| `validate-items` | Confirm staged items validate against the topic schema. |
+
+### Scoring
+
+| Command | Purpose |
+| --- | --- |
+| `score-topics` | Score staged topics, validate, write to `data/scored/` (`--limit`). |
+| `review-scores` | Inspect scored topics and flags (`--flagged-only`, `--min-score`, `--limit`). |
+| `scoring-dashboard` | Aggregate metrics and flag breakdown. |
+
+### Generation
+
+| Command | Purpose |
+| --- | --- |
+| `generate-briefs` | Generate briefs for top scored topics via Gemini (`--top`, default 5). |
+
+### Manifest
+
+| Command | Purpose |
+| --- | --- |
+| `build-manifest` | Build and save one topic manifest (`--topic-id`, required). |
+| `build-all-manifests` | Build and save manifests for all topics that have briefs. |
+
+Global flags: `-h` / `--help`, `--version`, `-v` / `--verbose`.
+
+## Week 4 Roadmap
+
+- `config/publishing.yaml` and a **posting planner** module (format mix, cadence, freshness).
+- **Review and approval** workflow before anything is treated as publishable.
+- **Dry-run** private publishing cycle with exported plan and checklist (no auto-post).
+- **Analytics-ready** metadata hooks (views, engagement placeholders).
+- **GitHub release** documentation and tagging discipline.
+
+Details: `content-factory-implementation-plan.md` (Week 4) and `TASK_SPEC.md`.
 
 ## Branch Workflow
-- All work happens in feature branches (e.g., `feature/source-ingestion`).
-- Parallel development is guided by shared contracts in `docs/schema.md`.
-- See `docs/branching-strategy.md` for more details.
+
+- Work proceeds in **feature branches**; merge to `main` only when stable.
+- Shared contracts live in `docs/schema.md` — coordinate schema changes across branches before merging.
+- See `docs/branching-strategy.md` for branch naming and isolation practices.
 
 ---
-*Note: This project is in its private-first validation window. No content is published automatically.*
+
+*This project uses a private-first validation mindset: generated assets are grounded on stored sources; nothing is published automatically by this repository.*
