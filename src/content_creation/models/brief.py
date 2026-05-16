@@ -6,6 +6,9 @@ from enum import Enum
 class ReviewStatus(str, Enum):
     DRAFT = "draft"
     NEEDS_REVIEW = "needs_review"
+    REVIEWED = "reviewed"
+    APPROVED = "approved"
+    REJECTED = "rejected"
 
 class Brief(BaseModel):
     topic_id: str

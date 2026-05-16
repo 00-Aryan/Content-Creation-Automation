@@ -4,7 +4,15 @@ from typing import Dict, List, Literal, Optional
 
 class AssetEntry(BaseModel):
     path: str
-    status: Literal["draft", "needs_review", "missing", "skipped"]
+    status: Literal[
+        "draft",
+        "needs_review",
+        "reviewed",
+        "approved",
+        "rejected",
+        "missing",
+        "skipped"
+    ]
     generated_at: Optional[str] = None
 
 

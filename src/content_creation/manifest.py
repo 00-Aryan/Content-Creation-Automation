@@ -66,9 +66,9 @@ class ManifestBuilder:
             asset.status for asset in assets.values() if asset.status != "skipped"
         ]
 
-        if "missing" in non_skipped_statuses:
+        if "missing" in non_skipped_statuses or "rejected" in non_skipped_statuses:
             overall_status = "blocked"
-        elif all(s == "draft" for s in non_skipped_statuses):
+        elif all(s == "approved" for s in non_skipped_statuses):
             overall_status = "complete"
         else:
             overall_status = "partial"
@@ -77,11 +77,13 @@ class ManifestBuilder:
         for asset_type, asset in assets.items():
             if asset.status == "missing":
                 blocking_reasons.append(f"{asset_type}: missing")
+            elif asset.status == "rejected":
+                blocking_reasons.append(f"{asset_type}: rejected")
             elif asset.status == "needs_review":
                 blocking_reasons.append(f"{asset_type}: needs_review")
 
         ready_for_planner = all(
-            asset.status == "draft"
+            asset.status == "approved"
             for asset in assets.values()
             if asset.status != "skipped"
         )

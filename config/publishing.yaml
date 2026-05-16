@@ -1,0 +1,15 @@
+weekly_targets:
+  short_video: 3
+  carousel: 2
+  newsletter: 1
+  thumbnail: 1
+
+scheduling_rules:
+  max_same_topic_per_week: 2
+  min_days_between_same_topic: 2
+  prioritize_freshness: true
+  formats_per_day: 1
+
+diversity_rules:
+  never_same_format_consecutive_days: true
+  never_same_topic_consecutive_days: true

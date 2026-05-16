@@ -316,7 +316,7 @@ class TestManifestBuilder:
         assert "test1" in topic_ids
         assert "test2" in topic_ids
 
-    def _write_brief(self, tmp_path, topic_id, recommended_formats=None):
+    def _write_brief(self, tmp_path, topic_id, recommended_formats=None, status="draft"):
         brief_data = {
             "topic_id": topic_id,
             "why_it_matters": "Test topic",
@@ -327,7 +327,7 @@ class TestManifestBuilder:
             "audience_fit": "audience",
             "recommended_formats": recommended_formats or ["short_video"],
             "source_url": "https://example.com",
-            "review_status": "draft",
+            "review_status": status,
             "generated_at": "2026-05-14T10:00:00Z",
         }
         with open(tmp_path / "data" / "briefs" / f"{topic_id}.json", "w") as f:
@@ -408,14 +408,14 @@ class TestManifestBuilder:
         assert manifest.assets["script"].status == "missing"
 
     def test_skipped_assets_do_not_affect_overall_status(self, tmp_path):
-        """brief=draft, script=draft, rest skipped → overall_status complete."""
+        """brief=approved, script=approved, rest skipped → overall_status complete."""
         from content_creation.storage.local import LocalStorage
         from content_creation.manifest import ManifestBuilder
 
         storage = LocalStorage(tmp_path)
-        self._write_brief(tmp_path, "test123", recommended_formats=["short_video"])
-        self._write_asset(tmp_path, "script", "test123", status="draft")
-        self._write_asset(tmp_path, "thumbnail", "test123", status="draft")
+        self._write_brief(tmp_path, "test123", recommended_formats=["short_video"], status="approved")
+        self._write_asset(tmp_path, "script", "test123", status="approved")
+        self._write_asset(tmp_path, "thumbnail", "test123", status="approved")
 
         builder = ManifestBuilder(storage)
         manifest = builder.build(
@@ -428,15 +428,15 @@ class TestManifestBuilder:
         assert manifest.assets["newsletter"].status == "skipped"
         assert manifest.overall_status == "complete"
 
-    def test_ready_for_planner_when_non_skipped_are_draft(self, tmp_path):
-        """ready_for_planner True when all non-skipped assets are draft."""
+    def test_ready_for_planner_when_non_skipped_are_approved(self, tmp_path):
+        """ready_for_planner True when all non-skipped assets are approved."""
         from content_creation.storage.local import LocalStorage
         from content_creation.manifest import ManifestBuilder
 
         storage = LocalStorage(tmp_path)
-        self._write_brief(tmp_path, "test123", recommended_formats=["short_video"])
-        self._write_asset(tmp_path, "script", "test123", status="draft")
-        self._write_asset(tmp_path, "thumbnail", "test123", status="draft")
+        self._write_brief(tmp_path, "test123", recommended_formats=["short_video"], status="approved")
+        self._write_asset(tmp_path, "script", "test123", status="approved")
+        self._write_asset(tmp_path, "thumbnail", "test123", status="approved")
 
         builder = ManifestBuilder(storage)
         manifest = builder.build(

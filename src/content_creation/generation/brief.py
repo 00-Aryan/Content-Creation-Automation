@@ -1,7 +1,7 @@
 import json
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List
 
@@ -34,7 +34,7 @@ def generate_brief(item: ScoredTopicItem, prompt_path: Path, api_key: str) -> Br
     # Configure and call Gemini API
     client = genai.Client(api_key=api_key)
     
-    generated_at = datetime.utcnow().isoformat()
+    generated_at = datetime.now(timezone.utc).isoformat()
     
     max_retries = 3
     base_delay = 15  # seconds

@@ -1,7 +1,7 @@
 import json
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from google import genai
@@ -73,7 +73,7 @@ class ScriptGenerator:
         prompt = prompt.replace("{{ brief.audience_fit }}", brief.audience_fit)
         prompt = prompt.replace("{{ brief.source_url }}", brief.source_url)
 
-        generated_at = datetime.utcnow().isoformat()
+        generated_at = datetime.now(timezone.utc).isoformat()
 
         max_retries = 3
         base_delay = 15

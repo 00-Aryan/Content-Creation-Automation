@@ -6,6 +6,9 @@ from .thumbnail import ThumbnailPrompt
 from .carousel import Carousel, CarouselSlide
 from .newsletter import Newsletter, NewsletterSection
 from .manifest import TopicManifest, AssetEntry
+from .calendar import ScheduledPost, WeeklyCalendar
+from .dryrun import AssetCheck, DryRunReport
+from .analytics import PostAnalytics, PerformanceSnapshot
 from .topic import ScoredTopicItem, TopicCategory, TopicItem, TopicStatus
 
 __all__ = [
@@ -19,6 +22,12 @@ __all__ = [
     "NewsletterSection",
     "TopicManifest",
     "AssetEntry",
+    "ScheduledPost",
+    "WeeklyCalendar",
+    "AssetCheck",
+    "DryRunReport",
+    "PostAnalytics",
+    "PerformanceSnapshot",
     "TopicItem",
     "TopicStatus",
     "TopicCategory",
