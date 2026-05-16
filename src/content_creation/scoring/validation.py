@@ -28,7 +28,7 @@ class ValidationRule(ABC):
 
 
 class ScoreConsistencyRule(ValidationRule):
-    """Ensures total_score matches the sum of individual rule scores."""
+    """Ensures priority_score matches the sum of individual rule scores."""
 
     def validate(self, item: ScoredTopicItem) -> Optional[str]:
         if not self.config.check_consistency:
@@ -37,15 +37,16 @@ class ScoreConsistencyRule(ValidationRule):
         # Calculate sum of individual scores
         # Note: We round to 2 decimal places to avoid floating point issues
         sum_scores = round(
-            item.recency_score + 
-            item.source_quality_score + 
-            item.keyword_score + 
-            item.quality_score, 
+            item.student_usefulness_score + 
+            item.novelty_score + 
+            item.credibility_score + 
+            item.explainability_score +
+            item.hook_potential_score, 
             2
         )
         
-        if abs(sum_scores - item.total_score) > 0.01:
-            return f"Score inconsistency: total_score ({item.total_score}) != sum of components ({sum_scores})"
+        if abs(sum_scores - item.priority_score) > 0.01:
+            return f"Score inconsistency: priority_score ({item.priority_score}) != sum of components ({sum_scores})"
         
         return None
 
@@ -54,11 +55,11 @@ class SuspiciousScoreRule(ValidationRule):
     """Flags items with extreme scores based on configuration."""
 
     def validate(self, item: ScoredTopicItem) -> Optional[str]:
-        if item.total_score >= self.config.suspiciously_high_score:
-            return f"Suspiciously high score: {item.total_score}"
+        if item.priority_score >= self.config.suspiciously_high_score:
+            return f"Suspiciously high score: {item.priority_score}"
         
-        if item.total_score <= self.config.suspiciously_low_score:
-            return f"Suspiciously low score: {item.total_score}"
+        if item.priority_score <= self.config.suspiciously_low_score:
+            return f"Suspiciously low score: {item.priority_score}"
         
         return None
 
@@ -68,7 +69,7 @@ class MetadataCompletenessRule(ValidationRule):
 
     def validate(self, item: ScoredTopicItem) -> Optional[str]:
         # Only check completeness for items that scored reasonably well
-        if item.total_score < 50.0:
+        if item.priority_score < 50.0:
             return None
 
         flags = []

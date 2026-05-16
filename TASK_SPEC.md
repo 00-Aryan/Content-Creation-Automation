@@ -1,34 +1,116 @@
-# TASK_SPEC: Merge-Blocking Fixes for Week 1 Stability
+# TASK_SPEC: Post–Week 4 Project State (v0.1.0 release)
 
 ## Status
-- **Approved Fixes implemented:** Scoring clamping, keyword regex, RSS validation, and concurrency handling are completed.
-- **Goal:** Finalize merge-blocking fixes to ensure the active branch is stable, testable, and ready for integration into `main`.
 
-## Implementation Items
-1.  **RSS bozo/status handling:** Update `RSSCollector.fetch` in `src/content_creation/collectors/rss.py` to log `bozo` errors as `WARNING` with exception details but proceed if `result.entries` is populated. Ensure HTTP status >= 400 remains a hard failure.
-2. **Scoring weight validation:** Modify `load_scoring_config` in `src/content_creation/scoring/config.py` to raise a `ValueError` if the total weights of enabled scoring rules do not sum to 1.0 within a small tolerance (for example using `math.isclose`).
-3. **Storage writeability sanity check:** Add a check in `LocalStorage.__init__` in `src/content_creation/storage/local.py` to verify that the `base_dir` is writeable using a safe write-attempt/EAFP-style check before proceeding with normal storage operations.
-4.  **Tests for fixes:**
-    - Add a test case for `RSSCollector` simulating a `bozo` feed with entries.
-    - Add a test case for `load_scoring_config` with weights summing to != 1.0.
-    - Add a test case for `LocalStorage` initialization in a read-only directory.
-5.  **End-to-end mocked integration run:** Perform a final verification by running the `collect --all` and `score-topics` commands against a mocked feed registry to confirm end-to-end Week 1 pipeline stability.
+- **Week 1:** Complete (ingestion, collectors, staged/scored storage, topic models).
+- **Week 2:** Complete (scoring engine and config, validation, brief generation via Gemini, scoring-related CLI).
+- **Week 3:** Complete (voice and style documentation, multi-format generators, manifest builder, extended storage and models).
+- **Week 4:** Complete.
+- **All 4 integrity fixes:** Applied.
+- **Current test count:** 125 passing (`uv run python -m pytest`).
+- **Deprecation warnings:** Fixed (`datetime.now(timezone.utc)` in `generation/brief.py` and `generation/script.py`).
+- **Current branch:** `week4-publishing` — ready for `v0.1.0` release tag.
 
-## Files Likely to Change
-- `src/content_creation/collectors/rss.py`
-- `src/content_creation/scoring/config.py`
-- `src/content_creation/storage/local.py`
-- `tests/test_ingestion.py`
-- `tests/test_scoring_validation.py`
-- `tests/test_storage.py`
+## Week 3 Deliverables (completed)
 
-## Test Expectations
-- **RSS:** `collector.fetch()` should return data for a malformed (bozo) feed if entries are present, but still raise for HTTP 404/500.
-- **Config:** `load_scoring_config()` must raise `ValueError` if total enabled weights are e.g., 0.8 or 1.2.
-- **Storage:** `LocalStorage()` should raise an informative error if the target filesystem is read-only.
+Source layout as implemented today (one line each):
 
-## Review Criteria
-- **Robustness:** Does the system handle malformed XML (bozo) gracefully when entries exist?
-- **Correctness:** Are scoring weights validated to prevent ranking bias from misconfiguration?
-- **Safety:** Is storage writeability verified at the earliest possible stage?
-- **Stability:** Does the end-to-end mocked run complete without unhandled exceptions?
+**Generation (`src/content_creation/generation/`)**
+
+- `brief.py` — `generate_brief()` for educational briefs from scored topics (Gemini, retries).
+- `script.py` — `ScriptGenerator`: short-video / carousel / newsletter prompt paths, Gemini, `Script` output.
+- `carousel.py` — `CarouselGenerator`: `carousel.md`, Gemini, `Carousel` / `CarouselSlide` output.
+- `newsletter.py` — `NewsletterGenerator`: `newsletter.md`, Gemini, `Newsletter` output.
+- `thumbnail.py` — `ThumbnailGenerator`: `thumbnail.md`, Gemini, `ThumbnailPrompt` output with fallback fields on failure.
+- `__init__.py` — exports `ScriptGenerator`, `ThumbnailGenerator`, `CarouselGenerator`, `NewsletterGenerator`.
+
+**Models (`src/content_creation/models/`)**
+
+- `brief.py` — `Brief`, `ReviewStatus`.
+- `script.py` — `Script` (format literals, review status).
+- `carousel.py` — `Carousel`, `CarouselSlide`.
+- `newsletter.py` — `Newsletter`, `NewsletterSection`.
+- `thumbnail.py` — `ThumbnailPrompt`.
+- `manifest.py` — `TopicManifest`, `AssetEntry`.
+- `topic.py` — `TopicItem`, `ScoredTopicItem`, enums (ingestion/scoring).
+- `__init__.py` — public model exports.
+
+**Manifest system**
+
+- `src/content_creation/manifest.py` — `ManifestBuilder.build()` / `build_all()`, asset presence and `review_status`, `ready_for_planner`.
+
+**Storage (`src/content_creation/storage/local.py`)**
+
+- Paths and save/load for `briefs`, `scripts`, `carousels`, `newsletters`, `thumbnails`, `manifests`; `list_briefs`, `get_scored`, `save_manifest`, etc., aligned with pipeline stages.
+
+**CLI (`src/content_creation/cli.py`)**
+
+- `generate-briefs`, `build-manifest`, `build-all-manifests` wired to storage and `ManifestBuilder`.
+
+**Prompts (`prompts/`)**
+
+- `summarize.md`, `short_video.md`, `carousel.md`, `newsletter.md`, `thumbnail.md` — templates for brief and asset generators.
+
+**Docs**
+
+- `docs/voice-and-style.md` — voice and style rules for generated copy (referenced by contributors and agents).
+
+**Config**
+
+- `config/scoring.yaml`, `config/feeds.yaml` — scoring weights and feed ingestion (unchanged layout; Week 4 adds publishing config).
+
+## Week 4 Deliverables (completed)
+
+**Config**
+
+- `config/publishing.yaml` — weekly format targets, scheduling rules, diversity rules for the posting planner.
+
+**Planning (`src/content_creation/planning/`)**
+
+- `planner.py` — `PostingPlanner`: builds `WeeklyCalendar` from manifests with cadence and diversity constraints.
+- `dryrun.py` — `DryRunValidator`: validates a calendar before publish; produces `DryRunReport` with asset checks and recommended actions.
+- `__init__.py` — exports `PostingPlanner`, `DryRunValidator`.
+
+**Models (`src/content_creation/models/`)**
+
+- `calendar.py` — `ScheduledPost`, `WeeklyCalendar`.
+- `dryrun.py` — `AssetCheck`, `DryRunReport`.
+- `analytics.py` — `PostAnalytics`, `PerformanceSnapshot`.
+
+**Storage (`src/content_creation/storage/local.py`)**
+
+- Calendar, dry-run report, and analytics JSON paths; save/load helpers for planner and analytics workflows.
+
+**CLI (`src/content_creation/cli.py`)**
+
+- `plan-week`, `dry-run`, `init-analytics`, `update-analytics`, `review-assets`.
+
+**Tests**
+
+- `tests/test_planner.py`, `tests/test_dryrun.py`, `tests/test_analytics.py`, `tests/test_review.py` — planner, dry-run, analytics, and review state machine coverage.
+
+**Release docs**
+
+- `CLAUDE.md`, `TASK_SPEC.md` updated for v0.1.0; tag `v0.1.0` when ready.
+
+## Future Work
+
+1. Web dashboard
+2. Multi-language support
+3. Performance feedback loop
+4. Image generation
+5. Platform API auto-posting
+6. RAG semantic deduplication
+
+## Known Technical Debt
+
+- RAG-style enhancements (semantic deduplication, analogy reuse tracking) — see Future Work.
+- Full image-generation API integration deferred; Gemini free tier is the documented direction when thumbnail visuals are implemented beyond prompt JSON.
+
+## Critical Rules (carry forward)
+
+- Never invoke bare `python` for project work — always `uv run python`.
+- Never use `gemini-2.0-flash` — always `gemini-2.5-flash` for generation calls.
+- Never change `docs/schema.md` without updating all dependent Pydantic models and tests.
+- When using Claude Code, paste file contents upfront for accuracy.
+- Split Claude Code prompts by file — target at most 2–3 files per prompt to reduce context errors.

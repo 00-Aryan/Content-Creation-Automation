@@ -105,7 +105,7 @@ class Scorer(ABC):
         # Create ScoredTopicItem
         scored_item = ScoredTopicItem(
             **item.model_dump(),
-            total_score=round(min(total_score, 100.0), 2),
+            priority_score=round(min(total_score, 100.0), 2),
             scoring_timestamp=datetime.now().isoformat(),
             scoring_rules_fired=rules_fired,
         )
@@ -117,16 +117,16 @@ class Scorer(ABC):
         logger.info(f"Scored item {item.id}: total={total_score:.2f}, rules={rules_fired}")
         return scored_item
 
-    def score_items(self, items: List[TopicItem]) -> List[ScoredTopicItem]:
+    def score_items(self, items: List[TopicItem]) -> Dict[str, List[ScoredTopicItem]]:
         """Score multiple TopicItems.
 
         Args:
             items: List of TopicItems to score.
 
         Returns:
-            List of ScoredTopicItems.
+            Dictionary with ``scored`` and ``rejected`` lists of ``ScoredTopicItem``.
         """
         logger.info(f"Scoring {len(items)} items...")
         scored_items = [self.score_item(item) for item in items]
         logger.info(f"Completed scoring {len(scored_items)} items")
-        return scored_items
+        return {"scored": scored_items, "rejected": []}

@@ -1,110 +1,166 @@
-# Content-Creation Factory
+# Content Creation Automation
 
-A Python-based content pipeline for ML/AI students. This repository automates the process of finding, ranking, and repurposing educational content from trusted technical sources.
+![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)
+![Tests](https://img.shields.io/badge/tests-125%20passing-success.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Status](https://img.shields.io/badge/status-v0.1.0-orange.svg)
 
-## Current Status: Bootstrap Phase
-We are currently in the bootstrap/setup phase.
-- [x] Repository structure initialized.
-- [x] Documentation and schemas defined.
-- [x] Project foundation and CLI scaffold implemented.
-- [ ] Week 1: Source ingestion implementation (Next).
+A source-grounded, AI-powered content pipeline that automatically finds, ranks, and repurposes ML/AI research into educational content assets.
 
-## Planned Modules
-1. **Collectors:** Feed loaders for arXiv, blogs, and repos.
-2. **Normalizers:** Schema enforcement and data cleaning.
-3. **Scoring Engine:** Student-centric relevance and novelty ranking.
-4. **Brief Generator:** Source-grounded summarization.
-5. **Asset Factory:** Multi-format script and prompt generation.
-6. **Planner:** Content scheduling and release management.
+## The Problem
 
-## Repository Structure
+Instead of bouncing between RSS feeds, Twitter, and paper aggregators every morning, Aryan built a pipeline that does it automatically — and turns what it finds into ready-to-publish educational content for ML/AI students. The problem with existing AI content generators is they prioritize volume over accuracy and often hallucinate technical details. The insight here was that a single, highly constrained pipeline with a strict "grounded-or-nothing" rule beats a dozen noisy feeds. The result is a robust, transparent engine that takes raw XML and arXiv papers and transforms them into validated, ready-to-review educational assets.
+
+## What It Does
+
+1. **Collects** → from arXiv, blogs, RSS feeds
+2. **Scores** → student usefulness, novelty, credibility
+3. **Summarizes** → source-grounded educational briefs
+4. **Generates** → scripts, carousels, newsletters, thumbnails
+5. **Reviews** → human approval state machine
+6. **Plans** → 7-day content calendar with diversity rules
+7. **Validates** → dry-run publishing workflow with checklists
+
+## Why This Architecture
+
+**Staged pipeline over monolithic generator**
+Reason: By decoupling ingestion, scoring, and generation, each stage is independently testable and replaceable. If an API fails or a prompt drifts, the failure is isolated.
+
+**Schema-first development with Pydantic**
+Reason: Parallel branch development requires frozen contracts. Pydantic ensures that data structures like `TopicItem` and `Brief` remain strictly typed and validated across all pipeline stages.
+
+**Config-driven scoring (scoring.yaml)**
+Reason: Content strategy changes frequently. By moving scoring weights (e.g., student_usefulness, explainability) to a YAML file, we can tune the pipeline's behavior without touching core code.
+
+**Grounded generation with anti-hallucination rules**
+Reason: Educational content cannot afford fabricated claims. The system strictly separates raw extraction from interpretation and marks missing data as `unknown` to prevent the model from guessing.
+
+**Hybrid manifest builder**
+Reason: Tracking the state of multiple asset types per topic requires a single source of truth. The manifest aggregates on-disk assets without coupling the specific generators to the tracking logic.
+
+**Soft-warn dry-run before publishing**
+Reason: A planner needs to see the full picture, including non-ready assets, before committing to a schedule. The dry-run provides a checklist of warnings and blocks rather than auto-failing.
+
+## Architecture Flow Diagram
+
+```mermaid
+flowchart TD
+    Feeds[RSS/arXiv Feeds] --> C[Collector]
+    C -->|data/raw/| N[Normalizer]
+    N -->|data/staged/ TopicItem schema| S[Scoring Engine]
+    S -->|data/scored/ priority_score| B[Brief Generator]
+    B -->|data/briefs/ Gemini API| A[Asset Generators]
+    A -->|data/scripts/| R[Review CLI]
+    A -->|data/carousels/| R
+    A -->|data/newsletters/| R
+    A -->|data/thumbnails/| R
+    R -->|approval state machine| M[Manifest Builder]
+    M -->|data/manifests/| P[Posting Planner]
+    P -->|data/calendars/| D[Dry-Run Validator]
+    D -->|data/dryruns/| AL[Analytics Layer]
+    AL -->|data/analytics/| End([End])
+```
+
+## Tech Stack
+
+| Layer | Technology |
+| --- | --- |
+| **Language** | Python 3.12 |
+| **Data Validation** | Pydantic v2 |
+| **LLM Provider** | Gemini API (gemini-2.5-flash) |
+| **Ingestion** | feedparser |
+| **Environment** | uv |
+| **Testing** | pytest |
+| **CLI Framework** | argparse |
+| **Configuration** | PyYAML |
+
+## Project Structure
+
 ```text
-content-creation/
-├── docs/               # Architecture, schemas, and rules
+Content-Creation/
+├── README.md                 # Project overview and setup
+├── pyproject.toml            # Dependencies and project metadata
+├── config/                   # YAML configurations
+│   ├── feeds.yaml            # Source definitions
+│   ├── publishing.yaml       # Planner and cadence rules
+│   └── scoring.yaml          # Priority weights
+├── data/                     # Local JSON storage (git-ignored)
+│   ├── raw/                  # Original XML/HTML
+│   ├── staged/               # Validated TopicItems
+│   ├── scored/               # Topics with priority scores
+│   ├── briefs/               # Summarized context
+│   ├── scripts/              # Video drafts
+│   ├── carousels/            # Slide drafts
+│   ├── newsletters/          # Email drafts
+│   ├── thumbnails/           # Prompt drafts
+│   └── manifests/            # Aggregated topic states
+├── docs/                     # Internal documentation
+│   ├── project-context.md    # Architecture and goals
+│   ├── schema.md             # Shared data contracts
+│   └── voice-and-style.md    # Editorial constraints
+├── prompts/                  # Markdown system prompts
+│   ├── carousel.md
+│   └── short_video.md        # Asset-specific generation rules
 ├── src/
 │   └── content_creation/
-│       ├── cli.py      # Main entry point
-│       ├── utils/      # Logging, config, and common helpers
-│       ├── storage/    # Data persistence interfaces
-│       ├── models/     # Data schemas (Pydantic/Dataclasses)
-│       ├── collectors/ # Source-specific fetching logic
-│       └── normalizers/ # Schema enforcement and data cleaning
-├── tests/              # Test suite
-├── data/               # Raw and staged JSON storage
-└── pyproject.toml      # Project configuration
+│       ├── cli.py            # Main argparse entry point
+│       ├── collectors/       # RSS/Atom fetchers
+│       ├── generation/       # Gemini API wrappers
+│       ├── models/           # Pydantic schema definitions
+│       ├── planning/         # Calendar and dry-run logic
+│       ├── scoring/          # Rules engine and flags
+│       └── storage/          # Local JSON file handlers
+└── tests/                    # pytest suite (125 tests)
 ```
 
 ## Setup
 
 ### Prerequisites
-- Python 3.10 or higher
-- pip
+- Python 3.10+
+- uv package manager
+- Gemini API key (free tier sufficient for development)
 
 ### Installation
-
-1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd content-creation
+git clone https://github.com/00-Aryan/Content-Creation-Automation
+cd Content-Creation-Automation
+uv sync
+export GEMINI_API_KEY=your_key_here
+uv run python -m pytest --tb=short -q  # verify 125 tests pass
 ```
 
-2. Create a virtual environment:
+### Running the Pipeline (end to end)
 ```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv run python -m content_creation.cli collect --all
+uv run python -m content_creation.cli score-topics
+uv run python -m content_creation.cli generate-briefs
+uv run python -m content_creation.cli build-all-manifests
+uv run python -m content_creation.cli review-assets --topic-id <topic_id>
+uv run python -m content_creation.cli plan-week
+uv run python -m content_creation.cli dry-run
+uv run python -m content_creation.cli init-analytics
 ```
 
-3. Install the package in development mode:
-```bash
-pip install -e ".[dev]"
-```
+## Key Design Constraints
 
-### Running the CLI
+- **Never invent facts — grounded or nothing:** If a source does not state a detail, the model cannot infer it. Missing data is explicitly marked as `unknown`.
+- **Every asset traceable to source URL:** Generation is mathematically tied to its origin. All content retains a deterministic ID pointing back to the raw material.
+- **Human review required before scheduling:** Nothing is published automatically. Every generated asset must pass through an explicit human approval state machine.
+- **Config-driven, not hardcoded:** Weights, freshness thresholds, and format schedules are managed via YAML, keeping the execution logic pure.
 
-```bash
-# Show help
-content-creation --help
+## Future Roadmap
 
-# Show version
-content-creation --version
+1. **Web dashboard for review and approval workflow:** Upgrades the CLI state machine to a visual interface to reduce friction during editorial reviews.
+2. **Multi-language content support:** Localizes generation prompts to support international ML/AI students without duplicating ingestion logic.
+3. **Performance feedback loop into scoring weights:** Uses historical engagement data from the analytics layer to dynamically adjust novelty and usefulness priority scores.
+4. **Image generation integration (Gemini free tier):** Transforms text-based thumbnail prompts into actual synthesized imagery directly within the pipeline.
+5. **Platform API integration for auto-posting:** Bridges the gap between the dry-run checklist and production endpoints for approved calendars.
+6. **RAG for semantic deduplication and analogy reuse tracking:** Prevents the pipeline from repeatedly covering identical technical concepts or exhausting its library of pedagogical metaphors.
 
-# Check status
-content-creation status
+## Author
 
-# Collect (stub - not yet implemented)
-content-creation collect --source arxiv
-```
-
-### Running Tests
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=src/content_creation --cov-report=html
-
-# Run specific test file
-pytest tests/test_cli.py
-```
-
-### Code Quality
-
-```bash
-# Format code
-black src/ tests/
-
-# Sort imports
-isort src/ tests/
-
-# Type checking
-mypy src/
-```
-
-## Branch Workflow
-- All work happens in feature branches (e.g., `feature/source-ingestion`).
-- Parallel development is guided by shared contracts in `docs/schema.md`.
-- See `docs/branching-strategy.md` for more details.
+Aryan Kumar  
+GitHub: https://github.com/00-Aryan  
 
 ---
-*Note: This project is in its private-first validation window. No content is published automatically.*
+Built as a portfolio project to demonstrate end-to-end ML/AI systems thinking, LLM pipeline engineering, and educational content strategy.
