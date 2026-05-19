@@ -39,6 +39,7 @@ class LocalStorage:
         self.calendars_dir = base_dir / "data" / "calendars"
         self.dryruns_dir = base_dir / "data" / "dryruns"
         self.analytics_dir = base_dir / "data" / "analytics"
+        self.logs_dir = base_dir / "data" / "logs"
 
         self._verify_writeable()
         self._ensure_dirs()
@@ -68,6 +69,7 @@ class LocalStorage:
         self.calendars_dir.mkdir(parents=True, exist_ok=True)
         self.dryruns_dir.mkdir(parents=True, exist_ok=True)
         self.analytics_dir.mkdir(parents=True, exist_ok=True)
+        self.logs_dir.mkdir(parents=True, exist_ok=True)
 
     def save_raw(self, source_id: str, data: Any):
         """Save raw payload to data/raw/."""

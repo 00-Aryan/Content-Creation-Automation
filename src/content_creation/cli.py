@@ -4,7 +4,7 @@ import argparse
 import logging
 import os
 import sys
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from content_creation import __version__
@@ -16,6 +16,8 @@ from content_creation.scoring.validation import ValidationEngine
 from content_creation.storage.local import LocalStorage
 from content_creation.utils.config import load_yaml_config
 from content_creation.utils.logging import setup_logging
+from dotenv import load_dotenv
+load_dotenv()
 
 
 
@@ -77,6 +79,22 @@ def main() -> int:
     # Generate briefs command
     generate_parser = subparsers.add_parser("generate-briefs", help="Generate educational briefs using Gemini")
     generate_parser.add_argument("--top", type=int, default=5, help="Number of top scored topics to process")
+
+    # Generate assets command
+    gen_assets_parser = subparsers.add_parser("generate-assets", help="Generate missing assets (thumbnails, scripts, carousels, newsletters)")
+    gen_assets_parser.add_argument("--top", type=int, default=5, help="Number of briefs to process")
+
+    # Batch approve command
+    batch_approve_parser = subparsers.add_parser("batch-approve", help="Batch approve assets across all topics")
+    batch_approve_parser.add_argument("--asset-type", type=str, default="all", help="Asset type to approve (brief/script/carousel/newsletter/thumbnail/all)")
+    batch_approve_parser.add_argument("--all", action="store_true", required=True, help="Confirm approving all matching assets")
+    batch_approve_parser.add_argument("--exclude-incomplete", action="store_true", help="Skip assets where any field is 'needs_review'")
+
+    # Run pipeline command
+    run_pipeline_parser = subparsers.add_parser("run-pipeline", help="Run the full pipeline end-to-end")
+    run_pipeline_parser.add_argument("--auto-approve", action="store_true", help="Auto-approve all assets (skips human review)")
+    run_pipeline_parser.add_argument("--top", type=int, default=5, help="Number of topics to process through generation")
+    run_pipeline_parser.add_argument("--source", type=str, help="Specific source to collect from")
 
     # Build manifest command
     manifest_parser = subparsers.add_parser("build-manifest", help="Build a manifest for a single topic")
@@ -327,6 +345,433 @@ def main() -> int:
                 time.sleep(5)
             
             print(f"Generated {generated_count} briefs, {failed_count} failed")
+            return 0
+
+        elif args.command == "generate-assets":
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                print("Error: GEMINI_API_KEY not set in environment")
+                return 1
+
+            storage = LocalStorage(base_dir)
+            briefs = storage.list_briefs()
+            briefs.sort(key=lambda b: b.generated_at, reverse=True)
+            briefs = briefs[:args.top]
+
+            if not briefs:
+                print("No briefs found. Run 'generate-briefs' first.")
+                return 0
+
+            from content_creation.generation.thumbnail import ThumbnailGenerator
+            from content_creation.generation.script import ScriptGenerator
+            from content_creation.generation.carousel import CarouselGenerator
+            from content_creation.generation.newsletter import NewsletterGenerator
+            from content_creation.manifest import FREETEXT_TO_FORMAT, FORMAT_TO_ASSET
+
+            prompt_dir = base_dir / "prompts"
+            thumb_gen = ThumbnailGenerator(api_key, prompt_dir)
+            script_gen = ScriptGenerator(api_key, prompt_dir)
+            carousel_gen = CarouselGenerator(api_key, prompt_dir)
+            newsletter_gen = NewsletterGenerator(api_key, prompt_dir)
+
+            counts = {"thumbnail": 0, "script": 0, "carousel": 0, "newsletter": 0}
+            failures = 0
+
+            import time
+
+            print(f"Generating assets for {len(briefs)} briefs...")
+
+            for brief in briefs:
+                # Thumbnail (always required)
+                if not (storage.thumbnails_dir / f"{brief.topic_id}.json").exists():
+                    try:
+                        thumb = thumb_gen.generate(brief)
+                        storage.save_thumbnail(thumb)
+                        counts["thumbnail"] += 1
+                        time.sleep(5)
+                    except Exception as e:
+                        print(f"  ✗ Thumbnail failed for {brief.topic_id[:12]}: {e}")
+                        failures += 1
+
+                # Format-specific assets
+                mapped_formats = set()
+                for fmt in brief.recommended_formats:
+                    if fmt in FORMAT_TO_ASSET:
+                        mapped_formats.add(fmt)
+                    else:
+                        mapped = FREETEXT_TO_FORMAT.get(fmt.lower())
+                        if mapped:
+                            mapped_formats.add(mapped)
+                        else:
+                            mapped_formats.add("short_video")
+
+                for fmt in mapped_formats:
+                    asset_type = FORMAT_TO_ASSET.get(fmt)
+                    if not asset_type:
+                        continue
+                    asset_dir = getattr(storage, f"{asset_type}s_dir")
+                    if (asset_dir / f"{brief.topic_id}.json").exists():
+                        continue
+                    try:
+                        if fmt == "short_video":
+                            asset = script_gen.generate(brief, "short_video")
+                            storage.save_script(asset)
+                        elif fmt == "carousel":
+                            asset = carousel_gen.generate(brief)
+                            storage.save_carousel(asset)
+                        elif fmt == "newsletter":
+                            asset = newsletter_gen.generate(brief)
+                            storage.save_newsletter(asset)
+                        counts[asset_type] += 1
+                        time.sleep(5)
+                    except Exception as e:
+                        print(f"  ✗ {asset_type} failed for {brief.topic_id[:12]}: {e}")
+                        failures += 1
+
+            print(f"\nGenerated: {counts}")
+            print(f"Failures: {failures}")
+            return 0
+
+        elif args.command == "batch-approve":
+            from content_creation.models.brief import ReviewStatus
+            from content_creation.manifest import ManifestBuilder
+
+            storage = LocalStorage(base_dir)
+
+            asset_types = ["brief", "script", "carousel", "newsletter", "thumbnail"]
+            if args.asset_type != "all":
+                if args.asset_type not in asset_types:
+                    print(f"Error: Invalid asset type '{args.asset_type}'. Valid: {asset_types + ['all']}")
+                    return 1
+                asset_types = [args.asset_type]
+
+            asset_dirs = {
+                "brief": storage.briefs_dir,
+                "script": storage.scripts_dir,
+                "carousel": storage.carousels_dir,
+                "newsletter": storage.newsletters_dir,
+                "thumbnail": storage.thumbnails_dir,
+            }
+
+            import json as json_mod
+            approved_count = 0
+            skipped_count = 0
+
+            for asset_type in asset_types:
+                dir_path = asset_dirs[asset_type]
+                for file_path in dir_path.glob("*.json"):
+                    try:
+                        with open(file_path, "r") as f:
+                            data = json_mod.load(f)
+                    except Exception:
+                        continue
+
+                    status = data.get("review_status")
+                    if status in ("approved", "rejected"):
+                        continue
+
+                    if args.exclude_incomplete:
+                        has_incomplete = any(
+                            v == "needs_review"
+                            for k, v in data.items()
+                            if k != "review_status" and isinstance(v, str)
+                        )
+                        if has_incomplete:
+                            skipped_count += 1
+                            continue
+
+                    topic_id = file_path.stem
+                    storage.update_asset_status(asset_type, topic_id, ReviewStatus.APPROVED)
+                    approved_count += 1
+
+            # Rebuild manifests
+            builder = ManifestBuilder(storage)
+            manifests = builder.build_all()
+            for m in manifests:
+                storage.save_manifest(m)
+
+            print(f"Approved: {approved_count} assets")
+            if skipped_count:
+                print(f"Skipped (incomplete): {skipped_count}")
+            complete = sum(1 for m in manifests if m.overall_status == "complete")
+            print(f"Manifests rebuilt: {len(manifests)} ({complete} complete)")
+            return 0
+
+        elif args.command == "run-pipeline":
+            from content_creation.utils.logging import PipelineLogger
+
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                print("Error: GEMINI_API_KEY not set in environment")
+                return 1
+
+            if args.auto_approve:
+                print("⚠ Auto-approve enabled — assets will be marked approved without human inspection.")
+
+            storage = LocalStorage(base_dir)
+            log_path = storage.logs_dir / f"pipeline_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jsonl"
+            pl = PipelineLogger(log_path)
+
+            print(f"Pipeline log: {log_path}\n")
+
+            # Stage 1: Collect
+            with pl.stage("collect") as ctx:
+                try:
+                    config = load_yaml_config(config_path)
+                    engine = IngestionEngine(config, storage)
+                    source = args.source if args.source else None
+                    new_items = engine.run(source_filter=source)
+                    ctx["items"] = len(new_items)
+                    print(f"[collect] {len(new_items)} new items")
+                except Exception as e:
+                    ctx["status"] = "error"
+                    ctx["error"] = str(e)
+                    print(f"[collect] ERROR: {e}")
+
+            # Stage 2: Score
+            with pl.stage("score") as ctx:
+                try:
+                    scoring_config_path = base_dir / "config" / "scoring.yaml"
+                    sc = load_scoring_config(scoring_config_path)
+                    items = storage.list_staged()
+                    scorer = ScoringEngine(sc)
+                    results = scorer.score_items(items)
+                    for item in results["scored"]:
+                        storage.save_scored(item)
+                    for item in results["rejected"]:
+                        storage.save_scored(item)
+                    ctx["items"] = len(results["scored"])
+                    print(f"[score] {len(results['scored'])} scored, {len(results['rejected'])} rejected")
+                except Exception as e:
+                    ctx["status"] = "error"
+                    ctx["error"] = str(e)
+                    print(f"[score] ERROR: {e}")
+
+            # Stage 3: Generate briefs
+            with pl.stage("generate-briefs") as ctx:
+                try:
+                    from content_creation.models.topic import TopicStatus
+                    scored_items = storage.list_scored()
+                    to_process = [i for i in scored_items if i.status == TopicStatus.SCORED]
+                    to_process.sort(key=lambda x: x.priority_score, reverse=True)
+                    to_process = to_process[:args.top]
+
+                    import time
+                    prompt_path = base_dir / "prompts" / "summarize.md"
+                    gen_count = 0
+                    for item in to_process:
+                        if (storage.briefs_dir / f"{item.id}.json").exists():
+                            continue
+                        brief = generate_brief(item, prompt_path, api_key)
+                        storage.save_brief(brief)
+                        gen_count += 1
+                        time.sleep(5)
+                    ctx["items"] = gen_count
+                    print(f"[generate-briefs] {gen_count} generated")
+                except Exception as e:
+                    ctx["status"] = "error"
+                    ctx["error"] = str(e)
+                    print(f"[generate-briefs] ERROR: {e}")
+
+            # Stage 4: Generate assets
+            with pl.stage("generate-assets") as ctx:
+                try:
+                    from content_creation.generation.thumbnail import ThumbnailGenerator
+                    from content_creation.generation.script import ScriptGenerator
+                    from content_creation.generation.carousel import CarouselGenerator
+                    from content_creation.generation.newsletter import NewsletterGenerator
+                    from content_creation.manifest import FREETEXT_TO_FORMAT, FORMAT_TO_ASSET
+
+                    prompt_dir = base_dir / "prompts"
+                    thumb_gen = ThumbnailGenerator(api_key, prompt_dir)
+                    script_gen = ScriptGenerator(api_key, prompt_dir)
+                    carousel_gen = CarouselGenerator(api_key, prompt_dir)
+                    newsletter_gen = NewsletterGenerator(api_key, prompt_dir)
+
+                    briefs = storage.list_briefs()
+                    briefs.sort(key=lambda b: b.generated_at, reverse=True)
+                    briefs = briefs[:args.top]
+                    asset_count = 0
+
+                    for brief in briefs:
+                        if not (storage.thumbnails_dir / f"{brief.topic_id}.json").exists():
+                            try:
+                                storage.save_thumbnail(thumb_gen.generate(brief))
+                                asset_count += 1
+                                time.sleep(5)
+                            except Exception:
+                                pass
+
+                        mapped_formats = set()
+                        for fmt in brief.recommended_formats:
+                            if fmt in FORMAT_TO_ASSET:
+                                mapped_formats.add(fmt)
+                            else:
+                                m = FREETEXT_TO_FORMAT.get(fmt.lower())
+                                mapped_formats.add(m if m else "short_video")
+
+                        for fmt in mapped_formats:
+                            at = FORMAT_TO_ASSET.get(fmt)
+                            if not at:
+                                continue
+                            if (getattr(storage, f"{at}s_dir") / f"{brief.topic_id}.json").exists():
+                                continue
+                            try:
+                                if fmt == "short_video":
+                                    storage.save_script(script_gen.generate(brief, "short_video"))
+                                elif fmt == "carousel":
+                                    storage.save_carousel(carousel_gen.generate(brief))
+                                elif fmt == "newsletter":
+                                    storage.save_newsletter(newsletter_gen.generate(brief))
+                                asset_count += 1
+                                time.sleep(5)
+                            except Exception:
+                                pass
+
+                    ctx["items"] = asset_count
+                    print(f"[generate-assets] {asset_count} generated")
+                except Exception as e:
+                    ctx["status"] = "error"
+                    ctx["error"] = str(e)
+                    print(f"[generate-assets] ERROR: {e}")
+
+            # Stage 5: Build manifests
+            with pl.stage("build-manifests") as ctx:
+                try:
+                    from content_creation.manifest import ManifestBuilder
+                    builder = ManifestBuilder(storage)
+                    manifests = builder.build_all()
+                    for m in manifests:
+                        storage.save_manifest(m)
+                    ctx["items"] = len(manifests)
+                    print(f"[build-manifests] {len(manifests)} built")
+                except Exception as e:
+                    ctx["status"] = "error"
+                    ctx["error"] = str(e)
+                    print(f"[build-manifests] ERROR: {e}")
+
+            # Stage 6: Batch approve (optional)
+            if args.auto_approve:
+                with pl.stage("batch-approve") as ctx:
+                    try:
+                        from content_creation.models.brief import ReviewStatus
+                        import json as json_mod
+                        asset_dirs = {
+                            "brief": storage.briefs_dir,
+                            "script": storage.scripts_dir,
+                            "carousel": storage.carousels_dir,
+                            "newsletter": storage.newsletters_dir,
+                            "thumbnail": storage.thumbnails_dir,
+                        }
+                        count = 0
+                        for atype, adir in asset_dirs.items():
+                            for fp in adir.glob("*.json"):
+                                try:
+                                    with open(fp, "r") as f:
+                                        data = json_mod.load(f)
+                                    if data.get("review_status") in ("approved", "rejected"):
+                                        continue
+                                    storage.update_asset_status(atype, fp.stem, ReviewStatus.APPROVED)
+                                    count += 1
+                                except Exception:
+                                    pass
+                        # Rebuild manifests
+                        manifests = builder.build_all()
+                        for m in manifests:
+                            storage.save_manifest(m)
+                        ctx["items"] = count
+                        print(f"[batch-approve] {count} approved")
+                    except Exception as e:
+                        ctx["status"] = "error"
+                        ctx["error"] = str(e)
+                        print(f"[batch-approve] ERROR: {e}")
+
+            # Stage 7: Plan week
+            with pl.stage("plan-week") as ctx:
+                try:
+                    from content_creation.planning.planner import PostingPlanner
+                    publishing_config_path = base_dir / "config" / "publishing.yaml"
+                    today = datetime.now().date()
+                    days_until_monday = (7 - today.weekday()) % 7
+                    if days_until_monday == 0:
+                        days_until_monday = 7
+                    week_start_date = today + timedelta(days=days_until_monday)
+                    planner = PostingPlanner(storage, publishing_config_path)
+                    calendar = planner.plan_week(week_start_date)
+                    storage.save_calendar(calendar)
+                    ctx["items"] = calendar.total_posts
+                    print(f"[plan-week] {calendar.total_posts} posts scheduled")
+                except Exception as e:
+                    ctx["status"] = "error"
+                    ctx["error"] = str(e)
+                    print(f"[plan-week] ERROR: {e}")
+
+            # Stage 8: Dry run
+            with pl.stage("dry-run") as ctx:
+                try:
+                    from content_creation.planning.dryrun import DryRunValidator
+                    publishing_config_path = base_dir / "config" / "publishing.yaml"
+                    calendars = storage.list_calendars()
+                    if calendars:
+                        latest_cal = max(calendars, key=lambda c: c.week_start)
+                        validator = DryRunValidator(storage, publishing_config_path)
+                        report = validator.run(latest_cal)
+                        storage.save_dryrun(report)
+                        ctx["items"] = report.ready_count
+                        print(f"[dry-run] ✓ {report.ready_count} ready, ⚠ {report.warning_count} warnings, ✗ {report.blocked_count} blocked")
+                    else:
+                        ctx["items"] = 0
+                        print("[dry-run] No calendar found")
+                except Exception as e:
+                    ctx["status"] = "error"
+                    ctx["error"] = str(e)
+                    print(f"[dry-run] ERROR: {e}")
+
+            # Stage 9: Init analytics
+            with pl.stage("init-analytics") as ctx:
+                try:
+                    from content_creation.models.analytics import PostAnalytics, PerformanceSnapshot
+                    calendars = storage.list_calendars()
+                    if calendars:
+                        latest_cal = max(calendars, key=lambda c: c.week_start)
+                        count = 0
+                        for post in latest_cal.posts:
+                            post_id = f"{post.topic_id}_{post.format}_{latest_cal.week_start}"
+                            if storage.get_analytics(post_id) is not None:
+                                continue
+                            analytics = PostAnalytics(
+                                post_id=post_id,
+                                topic_id=post.topic_id,
+                                topic_title=post.topic_title,
+                                format=post.format,
+                                asset_path=post.asset_path,
+                                source_url=post.source_url,
+                                week_start=latest_cal.week_start,
+                                last_updated=datetime.now(timezone.utc).isoformat(),
+                            )
+                            storage.save_analytics(analytics)
+                            count += 1
+                        ctx["items"] = count
+                        print(f"[init-analytics] {count} records created")
+                    else:
+                        ctx["items"] = 0
+                        print("[init-analytics] No calendar found")
+                except Exception as e:
+                    ctx["status"] = "error"
+                    ctx["error"] = str(e)
+                    print(f"[init-analytics] ERROR: {e}")
+
+            # Summary
+            print("\n" + "=" * 50)
+            print(f"{'Stage':<20} {'Status':<10} {'Duration':<10} {'Items'}")
+            print("-" * 50)
+            for stage_name, info in pl.summary().items():
+                status = info["status"]
+                dur = f"{info['duration_s']:.1f}s" if info["duration_s"] else "-"
+                items = info["details"].get("items", "-")
+                print(f"{stage_name:<20} {status:<10} {dur:<10} {items}")
+            print("=" * 50)
+            print(f"Log saved: {log_path}")
             return 0
 
         elif args.command == "build-manifest":

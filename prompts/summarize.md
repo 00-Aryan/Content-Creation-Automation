@@ -18,6 +18,7 @@ Raw Text:
 4. Output valid JSON only. No explanation, no markdown, no preamble.
 5. If grounding is weak on any field, set review_status to "needs_review".
    Otherwise set review_status to "draft".
+6. recommended_formats must ONLY contain values from this exact list: ["short_video", "carousel", "newsletter"]. Do not use any other format names.
 
 # Output Schema
 {
@@ -27,6 +28,6 @@ Raw Text:
   "analogy": "string",
   "limitation": "string",
   "audience_fit": "string",
-  "recommended_formats": ["string"],
+  "recommended_formats": ["short_video | carousel | newsletter"],
   "review_status": "draft | needs_review"
 }
