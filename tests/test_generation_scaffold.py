@@ -69,15 +69,21 @@ def malformed_response():
     return "This is not JSON at all"
 
 
+def _make_inference_result(text, success=True):
+    """Helper to create a mock InferenceResult."""
+    from content_creation.inference.providers.base import InferenceResult
+    return InferenceResult(
+        text=text, provider="gemini", model="gemini-2.5-flash",
+        retries=0, duration_seconds=1.0, success=success, error=None if success else "error",
+    )
+
+
 def test_generate_script_success(sample_brief, valid_script_response, prompt_dir):
     """Test successful script generation with valid Gemini response."""
-    mock_response = MagicMock()
-    mock_response.text = valid_script_response
-
-    with patch("content_creation.generation.script.genai.Client") as mock_client_class:
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-        mock_client.models.generate_content.return_value = mock_response
+    with patch("content_creation.generation.script.InferenceManager") as mock_mgr_class:
+        mock_mgr = MagicMock()
+        mock_mgr_class.return_value = mock_mgr
+        mock_mgr.generate.return_value = _make_inference_result(valid_script_response)
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
         script = generator.generate(sample_brief, format="short_video")
@@ -96,14 +102,11 @@ def test_generate_script_success(sample_brief, valid_script_response, prompt_dir
 def test_generate_script_malformed_json_fallback(
     sample_brief, malformed_response, prompt_dir
 ):
-    """Test fallback behavior when Gemini returns malformed JSON."""
-    mock_response = MagicMock()
-    mock_response.text = malformed_response
-
-    with patch("content_creation.generation.script.genai.Client") as mock_client_class:
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-        mock_client.models.generate_content.return_value = mock_response
+    """Test fallback behavior when inference returns malformed JSON."""
+    with patch("content_creation.generation.script.InferenceManager") as mock_mgr_class:
+        mock_mgr = MagicMock()
+        mock_mgr_class.return_value = mock_mgr
+        mock_mgr.generate.return_value = _make_inference_result(malformed_response)
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
         script = generator.generate(sample_brief, format="carousel")
@@ -121,28 +124,23 @@ def test_generate_script_malformed_json_fallback(
 
 
 def test_generate_script_429_retry(sample_brief, valid_script_response, prompt_dir):
-    """Test that 429 rate limit triggers retry logic."""
-    from google.genai import errors as genai_errors
+    """Test that retry is handled by inference layer and result still works."""
+    from content_creation.inference.providers.base import InferenceResult
 
-    error_429 = genai_errors.ClientError(code=429, response_json={})
+    result_with_retries = InferenceResult(
+        text=valid_script_response, provider="gemini", model="gemini-2.5-flash",
+        retries=1, duration_seconds=16.0, success=True,
+    )
 
-    mock_response = MagicMock()
-    mock_response.text = valid_script_response
-
-    with patch("content_creation.generation.script.genai.Client") as mock_client_class:
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-        mock_client.models.generate_content.side_effect = [
-            error_429,
-            mock_response,
-        ]
+    with patch("content_creation.generation.script.InferenceManager") as mock_mgr_class:
+        mock_mgr = MagicMock()
+        mock_mgr_class.return_value = mock_mgr
+        mock_mgr.generate.return_value = result_with_retries
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
+        script = generator.generate(sample_brief, format="short_video")
 
-        with patch("time.sleep"):
-            script = generator.generate(sample_brief, format="short_video")
-
-    assert mock_client.models.generate_content.call_count == 2
+    assert mock_mgr.generate.call_count == 1
     assert script.review_status == ScriptReviewStatus.DRAFT
 
 
@@ -150,13 +148,10 @@ def test_generate_script_format_passed_through(
     sample_brief, valid_script_response, prompt_dir
 ):
     """Test that format is correctly passed to Script.format field."""
-    mock_response = MagicMock()
-    mock_response.text = valid_script_response
-
-    with patch("content_creation.generation.script.genai.Client") as mock_client_class:
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-        mock_client.models.generate_content.return_value = mock_response
+    with patch("content_creation.generation.script.InferenceManager") as mock_mgr_class:
+        mock_mgr = MagicMock()
+        mock_mgr_class.return_value = mock_mgr
+        mock_mgr.generate.return_value = _make_inference_result(valid_script_response)
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
         script = generator.generate(sample_brief, format="newsletter")
@@ -168,13 +163,10 @@ def test_generate_script_source_url_injected(
     sample_brief, valid_script_response, prompt_dir
 ):
     """Test that source_url from brief is injected into source_links."""
-    mock_response = MagicMock()
-    mock_response.text = valid_script_response
-
-    with patch("content_creation.generation.script.genai.Client") as mock_client_class:
-        mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-        mock_client.models.generate_content.return_value = mock_response
+    with patch("content_creation.generation.script.InferenceManager") as mock_mgr_class:
+        mock_mgr = MagicMock()
+        mock_mgr_class.return_value = mock_mgr
+        mock_mgr.generate.return_value = _make_inference_result(valid_script_response)
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
         script = generator.generate(sample_brief, format="short_video")
