@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
 
+from content_creation.inference.models import ProviderError
+
 
 @dataclass
 class InferenceResult:
@@ -16,6 +18,7 @@ class InferenceResult:
     duration_seconds: float
     success: bool
     error: Optional[str] = None
+    provider_error: Optional[ProviderError] = None
 
 
 class BaseProvider(ABC):
