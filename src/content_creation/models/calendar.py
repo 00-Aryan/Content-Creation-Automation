@@ -1,11 +1,13 @@
 from pydantic import BaseModel
 from typing import Dict, List, Literal
 
+from content_creation.shared.types import TopicId
+
 
 class ScheduledPost(BaseModel):
     day: int  # 1-7
     date: str  # ISO-8601 date string
-    topic_id: str
+    topic_id: TopicId
     topic_title: str
     format: Literal[
         "short_video",

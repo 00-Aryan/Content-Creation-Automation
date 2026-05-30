@@ -1,17 +1,12 @@
 from pydantic import BaseModel, field_validator
 from datetime import datetime
 from typing import List
-from enum import Enum
 
-class ReviewStatus(str, Enum):
-    DRAFT = "draft"
-    NEEDS_REVIEW = "needs_review"
-    REVIEWED = "reviewed"
-    APPROVED = "approved"
-    REJECTED = "rejected"
+from content_creation.shared.enums import ReviewStatus  # noqa: F401 — re-exported for backward compat
+from content_creation.shared.types import TopicId
 
 class Brief(BaseModel):
-    topic_id: str
+    topic_id: TopicId
     why_it_matters: str
     plain_english_summary: List[str]
     student_takeaway: str

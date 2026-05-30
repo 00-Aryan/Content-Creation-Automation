@@ -93,14 +93,21 @@ Content-Creation/
 │   ├── carousels/            # Slide drafts
 │   ├── newsletters/          # Email drafts
 │   ├── thumbnails/           # Prompt drafts
-│   └── manifests/            # Aggregated topic states
+│   ├── manifests/            # Aggregated topic states
+│   ├── calendars/            # Weekly content schedules
+│   ├── dryruns/              # Pre-publish validation reports
+│   ├── analytics/            # Post performance tracking
+│   └── logs/                 # Structured pipeline run logs
 ├── docs/                     # Internal documentation
 │   ├── project-context.md    # Architecture and goals
 │   ├── schema.md             # Shared data contracts
-│   └── voice-and-style.md    # Editorial constraints
+│   └── voice-and-style.md   # Editorial constraints
 ├── prompts/                  # Markdown system prompts
-│   ├── carousel.md
-│   └── short_video.md        # Asset-specific generation rules
+│   ├── summarize.md          # Brief generation prompt
+│   ├── short_video.md        # Video script generation
+│   ├── carousel.md           # Carousel slide generation
+│   ├── newsletter.md         # Newsletter generation
+│   └── thumbnail.md          # Thumbnail prompt generation
 ├── src/
 │   └── content_creation/
 │       ├── cli.py            # Main argparse entry point
@@ -109,7 +116,8 @@ Content-Creation/
 │       ├── models/           # Pydantic schema definitions
 │       ├── planning/         # Calendar and dry-run logic
 │       ├── scoring/          # Rules engine and flags
-│       └── storage/          # Local JSON file handlers
+│       ├── storage/          # Local JSON file handlers
+│       └── utils/            # Logging and config utilities
 └── tests/                    # pytest suite (125 tests)
 ```
 
@@ -130,12 +138,26 @@ uv run python -m pytest --tb=short -q  # verify 125 tests pass
 ```
 
 ### Running the Pipeline (end to end)
+
+#### Single Command (recommended)
+```bash
+uv run python -m content_creation.cli run-pipeline --top 5
+```
+
+#### With auto-approve (development/testing only)
+```bash
+uv run python -m content_creation.cli run-pipeline --top 5 --auto-approve
+```
+
+#### Step by Step
 ```bash
 uv run python -m content_creation.cli collect --all
 uv run python -m content_creation.cli score-topics
-uv run python -m content_creation.cli generate-briefs
+uv run python -m content_creation.cli generate-briefs --top 5
+uv run python -m content_creation.cli generate-assets --top 5
 uv run python -m content_creation.cli build-all-manifests
 uv run python -m content_creation.cli review-assets --topic-id <topic_id>
+uv run python -m content_creation.cli batch-approve --asset-type all --all
 uv run python -m content_creation.cli plan-week
 uv run python -m content_creation.cli dry-run
 uv run python -m content_creation.cli init-analytics

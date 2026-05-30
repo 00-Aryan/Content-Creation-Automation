@@ -1,9 +1,13 @@
 """Logging configuration and utilities."""
 
+import json
 import logging
 import sys
+import time
+from contextlib import contextmanager
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 
 def setup_logging(
@@ -59,3 +63,52 @@ def get_logger(name: str) -> logging.Logger:
         A logger instance.
     """
     return logging.getLogger(name)
+
+
+class PipelineLogger:
+    """Structured JSON-line logger for pipeline runs."""
+
+    def __init__(self, log_path: Path):
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        self.log_path = log_path
+        self.entries: list = []
+
+    def log(self, stage: str, event: str, details: Optional[Dict[str, Any]] = None, duration_s: Optional[float] = None):
+        entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "stage": stage,
+            "event": event,
+            "duration_s": duration_s,
+            "details": details or {},
+        }
+        self.entries.append(entry)
+        with open(self.log_path, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+
+    @contextmanager
+    def stage(self, stage_name: str):
+        """Context manager that auto-logs start/end/duration and catches errors."""
+        self.log(stage_name, "start")
+        start = time.time()
+        result: Dict[str, Any] = {"status": "success", "error": None}
+        try:
+            yield result
+        except Exception as e:
+            result["status"] = "error"
+            result["error"] = str(e)
+            raise
+        finally:
+            duration = time.time() - start
+            self.log(stage_name, "end", details=result, duration_s=round(duration, 2))
+
+    def summary(self) -> Dict[str, Dict[str, Any]]:
+        """Return stage summaries for printing."""
+        stages: Dict[str, Dict[str, Any]] = {}
+        for entry in self.entries:
+            if entry["event"] == "end":
+                stages[entry["stage"]] = {
+                    "status": entry["details"].get("status", "unknown"),
+                    "duration_s": entry["duration_s"],
+                    "details": entry["details"],
+                }
+        return stages

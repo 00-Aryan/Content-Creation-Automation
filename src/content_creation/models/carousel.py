@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List
-from .brief import ReviewStatus
+from content_creation.shared.enums import ReviewStatus
+from content_creation.shared.types import TopicId
 
 
 class CarouselSlide(BaseModel):
@@ -11,7 +12,7 @@ class CarouselSlide(BaseModel):
 
 
 class Carousel(BaseModel):
-    topic_id: str
+    topic_id: TopicId
     slides: List[CarouselSlide]
     cta_slide: str
     claims_used: List[str]

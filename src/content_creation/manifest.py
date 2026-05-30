@@ -14,6 +14,19 @@ FORMAT_TO_ASSET: Dict[str, str] = {
     "newsletter": "newsletter",
 }
 
+FREETEXT_TO_FORMAT: Dict[str, str] = {
+    "lecture": "short_video",
+    "video": "short_video",
+    "short video": "short_video",
+    "technical deep dive": "short_video",
+    "case study": "carousel",
+    "infographic": "carousel",
+    "visual guide": "carousel",
+    "email": "newsletter",
+    "blog": "newsletter",
+    "research project": "newsletter",
+}
+
 OPTIONAL_ASSET_TYPES = frozenset({"script", "carousel", "newsletter"})
 ALWAYS_REQUIRED_ASSET_TYPES = frozenset({"brief", "thumbnail"})
 
@@ -160,9 +173,26 @@ class ManifestBuilder:
 
         data = self._load_json(brief_file)
         formats = data.get("recommended_formats", [])
+
+        mapped_formats: Set[str] = set()
+        for fmt in formats:
+            if fmt in FORMAT_TO_ASSET:
+                mapped_formats.add(fmt)
+            else:
+                mapped = FREETEXT_TO_FORMAT.get(fmt.lower())
+                if mapped:
+                    logger.info("Mapped format '%s' → '%s' for topic %s", fmt, mapped, topic_id)
+                    mapped_formats.add(mapped)
+                else:
+                    logger.warning("Unknown format '%s' for topic %s, defaulting to short_video", fmt, topic_id)
+                    mapped_formats.add("short_video")
+
+        if not mapped_formats:
+            mapped_formats = {"short_video"}
+
         return {
             FORMAT_TO_ASSET[fmt]
-            for fmt in formats
+            for fmt in mapped_formats
             if fmt in FORMAT_TO_ASSET
         }
 
