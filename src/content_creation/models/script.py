@@ -1,10 +1,11 @@
 from pydantic import BaseModel
 from typing import List, Literal
-from .brief import ReviewStatus
+from content_creation.shared.enums import ReviewStatus
+from content_creation.shared.types import TopicId
 
 
 class Script(BaseModel):
-    topic_id: str
+    topic_id: TopicId
     format: Literal["short_video", "carousel", "newsletter"]
     hook: str
     script_sections: List[str]

@@ -326,7 +326,8 @@ def main() -> int:
             
             print(f"Generating briefs for top {len(items_to_process)} topics...")
             
-            prompt_path = base_dir / "prompts" / "summarize.md"
+            from content_creation.prompts import PromptRegistry
+            registry = PromptRegistry(base_dir)
             generated_count = 0
             failed_count = 0
             
@@ -334,7 +335,7 @@ def main() -> int:
             
             for item in items_to_process:
                 try:
-                    brief = generate_brief(item, prompt_path, api_key)
+                    brief = generate_brief(item, registry, api_key)
                     storage.save_brief(brief)
                     generated_count += 1
                 except Exception as e:
@@ -367,14 +368,18 @@ def main() -> int:
             from content_creation.generation.carousel import CarouselGenerator
             from content_creation.generation.newsletter import NewsletterGenerator
             from content_creation.manifest import FREETEXT_TO_FORMAT, FORMAT_TO_ASSET
+            from content_creation.workflow import WorkflowStateManager
+            from content_creation.prompts import PromptRegistry
 
-            prompt_dir = base_dir / "prompts"
-            thumb_gen = ThumbnailGenerator(api_key, prompt_dir)
-            script_gen = ScriptGenerator(api_key, prompt_dir)
-            carousel_gen = CarouselGenerator(api_key, prompt_dir)
-            newsletter_gen = NewsletterGenerator(api_key, prompt_dir)
+            registry = PromptRegistry(base_dir)
+            thumb_gen = ThumbnailGenerator(api_key, registry)
+            script_gen = ScriptGenerator(api_key, registry)
+            carousel_gen = CarouselGenerator(api_key, registry)
+            newsletter_gen = NewsletterGenerator(api_key, registry)
+            wf = WorkflowStateManager(base_dir / "data" / "workflow_state")
 
             counts = {"thumbnail": 0, "script": 0, "carousel": 0, "newsletter": 0}
+            skipped = 0
             failures = 0
 
             import time
@@ -383,13 +388,17 @@ def main() -> int:
 
             for brief in briefs:
                 # Thumbnail (always required)
-                if not (storage.thumbnails_dir / f"{brief.topic_id}.json").exists():
+                if wf.stage_completed(brief.topic_id, "thumbnail"):
+                    skipped += 1
+                elif not (storage.thumbnails_dir / f"{brief.topic_id}.json").exists():
                     try:
                         thumb = thumb_gen.generate(brief)
                         storage.save_thumbnail(thumb)
+                        wf.mark_completed(brief.topic_id, "thumbnail", artifact_path=str(storage.thumbnails_dir / f"{brief.topic_id}.json"))
                         counts["thumbnail"] += 1
                         time.sleep(5)
                     except Exception as e:
+                        wf.mark_failed(brief.topic_id, "thumbnail")
                         print(f"  ✗ Thumbnail failed for {brief.topic_id[:12]}: {e}")
                         failures += 1
 
@@ -409,6 +418,9 @@ def main() -> int:
                     asset_type = FORMAT_TO_ASSET.get(fmt)
                     if not asset_type:
                         continue
+                    if wf.stage_completed(brief.topic_id, asset_type):
+                        skipped += 1
+                        continue
                     asset_dir = getattr(storage, f"{asset_type}s_dir")
                     if (asset_dir / f"{brief.topic_id}.json").exists():
                         continue
@@ -422,18 +434,22 @@ def main() -> int:
                         elif fmt == "newsletter":
                             asset = newsletter_gen.generate(brief)
                             storage.save_newsletter(asset)
+                        wf.mark_completed(brief.topic_id, asset_type, artifact_path=str(asset_dir / f"{brief.topic_id}.json"))
                         counts[asset_type] += 1
                         time.sleep(5)
                     except Exception as e:
+                        wf.mark_failed(brief.topic_id, asset_type)
                         print(f"  ✗ {asset_type} failed for {brief.topic_id[:12]}: {e}")
                         failures += 1
 
             print(f"\nGenerated: {counts}")
+            if skipped:
+                print(f"Skipped (already completed): {skipped}")
             print(f"Failures: {failures}")
             return 0
 
         elif args.command == "batch-approve":
-            from content_creation.models.brief import ReviewStatus
+            from content_creation.shared.enums import ReviewStatus
             from content_creation.manifest import ManifestBuilder
 
             storage = LocalStorage(base_dir)
@@ -557,12 +573,13 @@ def main() -> int:
                     to_process = to_process[:args.top]
 
                     import time
-                    prompt_path = base_dir / "prompts" / "summarize.md"
+                    from content_creation.prompts import PromptRegistry
+                    registry = PromptRegistry(base_dir)
                     gen_count = 0
                     for item in to_process:
                         if (storage.briefs_dir / f"{item.id}.json").exists():
                             continue
-                        brief = generate_brief(item, prompt_path, api_key)
+                        brief = generate_brief(item, registry, api_key)
                         storage.save_brief(brief)
                         gen_count += 1
                         time.sleep(5)
@@ -581,12 +598,14 @@ def main() -> int:
                     from content_creation.generation.carousel import CarouselGenerator
                     from content_creation.generation.newsletter import NewsletterGenerator
                     from content_creation.manifest import FREETEXT_TO_FORMAT, FORMAT_TO_ASSET
+                    from content_creation.workflow import WorkflowStateManager
 
-                    prompt_dir = base_dir / "prompts"
-                    thumb_gen = ThumbnailGenerator(api_key, prompt_dir)
-                    script_gen = ScriptGenerator(api_key, prompt_dir)
-                    carousel_gen = CarouselGenerator(api_key, prompt_dir)
-                    newsletter_gen = NewsletterGenerator(api_key, prompt_dir)
+                    registry = PromptRegistry(base_dir)
+                    thumb_gen = ThumbnailGenerator(api_key, registry)
+                    script_gen = ScriptGenerator(api_key, registry)
+                    carousel_gen = CarouselGenerator(api_key, registry)
+                    newsletter_gen = NewsletterGenerator(api_key, registry)
+                    wf = WorkflowStateManager(base_dir / "data" / "workflow_state")
 
                     briefs = storage.list_briefs()
                     briefs.sort(key=lambda b: b.generated_at, reverse=True)
@@ -594,13 +613,15 @@ def main() -> int:
                     asset_count = 0
 
                     for brief in briefs:
-                        if not (storage.thumbnails_dir / f"{brief.topic_id}.json").exists():
-                            try:
-                                storage.save_thumbnail(thumb_gen.generate(brief))
-                                asset_count += 1
-                                time.sleep(5)
-                            except Exception:
-                                pass
+                        if not wf.stage_completed(brief.topic_id, "thumbnail"):
+                            if not (storage.thumbnails_dir / f"{brief.topic_id}.json").exists():
+                                try:
+                                    storage.save_thumbnail(thumb_gen.generate(brief))
+                                    wf.mark_completed(brief.topic_id, "thumbnail", artifact_path=str(storage.thumbnails_dir / f"{brief.topic_id}.json"))
+                                    asset_count += 1
+                                    time.sleep(5)
+                                except Exception:
+                                    wf.mark_failed(brief.topic_id, "thumbnail")
 
                         mapped_formats = set()
                         for fmt in brief.recommended_formats:
@@ -614,6 +635,8 @@ def main() -> int:
                             at = FORMAT_TO_ASSET.get(fmt)
                             if not at:
                                 continue
+                            if wf.stage_completed(brief.topic_id, at):
+                                continue
                             if (getattr(storage, f"{at}s_dir") / f"{brief.topic_id}.json").exists():
                                 continue
                             try:
@@ -623,10 +646,11 @@ def main() -> int:
                                     storage.save_carousel(carousel_gen.generate(brief))
                                 elif fmt == "newsletter":
                                     storage.save_newsletter(newsletter_gen.generate(brief))
+                                wf.mark_completed(brief.topic_id, at, artifact_path=str(getattr(storage, f"{at}s_dir") / f"{brief.topic_id}.json"))
                                 asset_count += 1
                                 time.sleep(5)
                             except Exception:
-                                pass
+                                wf.mark_failed(brief.topic_id, at)
 
                     ctx["items"] = asset_count
                     print(f"[generate-assets] {asset_count} generated")
@@ -654,7 +678,7 @@ def main() -> int:
             if args.auto_approve:
                 with pl.stage("batch-approve") as ctx:
                     try:
-                        from content_creation.models.brief import ReviewStatus
+                        from content_creation.shared.enums import ReviewStatus
                         import json as json_mod
                         asset_dirs = {
                             "brief": storage.briefs_dir,
@@ -1155,7 +1179,7 @@ Generated: {generated_at}
             return 0
 
         elif args.command == "review-assets":
-            from content_creation.models.brief import ReviewStatus
+            from content_creation.shared.enums import ReviewStatus
             from content_creation.manifest import ManifestBuilder
 
             storage = LocalStorage(base_dir)

@@ -18,6 +18,12 @@ from content_creation.models.calendar import WeeklyCalendar
 from content_creation.models.dryrun import DryRunReport
 from content_creation.models.analytics import PostAnalytics
 from content_creation.models.topic import ScoredTopicItem, TopicItem
+from content_creation.platform.storage.local_backend import LocalBackend
+from content_creation.domains.brief.repository import BriefRepository
+from content_creation.domains.script.repository import ScriptRepository
+from content_creation.domains.carousel.repository import CarouselRepository
+from content_creation.domains.newsletter.repository import NewsletterRepository
+from content_creation.domains.thumbnail.repository import ThumbnailRepository
 
 logger = logging.getLogger(__name__)
 
@@ -41,49 +47,34 @@ class LocalStorage:
         self.analytics_dir = base_dir / "data" / "analytics"
         self.logs_dir = base_dir / "data" / "logs"
 
-        self._verify_writeable()
-        self._ensure_dirs()
+        self._backend = LocalBackend(
+            base_dir=base_dir,
+            directories=[
+                self.raw_dir, self.staged_dir, self.scored_dir,
+                self.briefs_dir, self.scripts_dir, self.carousels_dir,
+                self.newsletters_dir, self.thumbnails_dir, self.manifests_dir,
+                self.calendars_dir, self.dryruns_dir, self.analytics_dir,
+                self.logs_dir,
+            ],
+        )
 
-    def _verify_writeable(self):
-        """Perform a robust writeability check using EAFP."""
-        self.base_dir.mkdir(parents=True, exist_ok=True)
-        test_file = self.base_dir / f".write_test_{datetime.now().timestamp()}"
-        try:
-            with open(test_file, "w") as f:
-                f.write("test")
-            test_file.unlink()
-        except (OSError, IOError) as e:
-            raise OSError(f"Storage base directory {self.base_dir} is not writeable: {e}")
-
-    def _ensure_dirs(self):
-        """Ensure that storage directories exist."""
-        self.raw_dir.mkdir(parents=True, exist_ok=True)
-        self.staged_dir.mkdir(parents=True, exist_ok=True)
-        self.scored_dir.mkdir(parents=True, exist_ok=True)
-        self.briefs_dir.mkdir(parents=True, exist_ok=True)
-        self.scripts_dir.mkdir(parents=True, exist_ok=True)
-        self.carousels_dir.mkdir(parents=True, exist_ok=True)
-        self.newsletters_dir.mkdir(parents=True, exist_ok=True)
-        self.thumbnails_dir.mkdir(parents=True, exist_ok=True)
-        self.manifests_dir.mkdir(parents=True, exist_ok=True)
-        self.calendars_dir.mkdir(parents=True, exist_ok=True)
-        self.dryruns_dir.mkdir(parents=True, exist_ok=True)
-        self.analytics_dir.mkdir(parents=True, exist_ok=True)
-        self.logs_dir.mkdir(parents=True, exist_ok=True)
+        self._brief_repo = BriefRepository(directory=self.briefs_dir)
+        self._script_repo = ScriptRepository(directory=self.scripts_dir)
+        self._carousel_repo = CarouselRepository(directory=self.carousels_dir)
+        self._newsletter_repo = NewsletterRepository(directory=self.newsletters_dir)
+        self._thumbnail_repo = ThumbnailRepository(directory=self.thumbnails_dir)
 
     def save_raw(self, source_id: str, data: Any):
         """Save raw payload to data/raw/."""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_path = self.raw_dir / f"{source_id}_{timestamp}.json"
-        
-        try:
-            with open(file_path, "w") as f:
-                if isinstance(data, (dict, list)):
-                    json.dump(data, f, indent=2)
-                else:
-                    f.write(str(data))
-        except Exception as e:
-            logger.error(f"Failed to save raw data to {file_path}: {e}")
+        self._backend.save_raw(self.raw_dir, source_id, data)
+
+    def exists(self, item_id: str) -> bool:
+        """Check if an item already exists in staged storage."""
+        return self._backend.exists(self.staged_dir, item_id)
+
+    def scored_exists(self, item_id: str) -> bool:
+        """Check if a scored item already exists in scored storage."""
+        return self._backend.exists(self.scored_dir, item_id)
 
     def save_staged(self, item: TopicItem):
         """Save a normalized TopicItem to data/staged/.
@@ -113,14 +104,7 @@ class LocalStorage:
 
     def save_brief(self, brief: Brief) -> Path:
         """Save brief JSON to data/briefs/{topic_id}.json"""
-        file_path = self.briefs_dir / f"{brief.topic_id}.json"
-        try:
-            with open(file_path, "w") as f:
-                f.write(brief.model_dump_json(indent=2))
-            return file_path
-        except Exception as e:
-            logger.error(f"Failed to save brief to {file_path}: {e}")
-            raise
+        return self._brief_repo.save(brief)
 
     def list_staged(self) -> List[TopicItem]:
         """List all staged items."""
@@ -148,107 +132,39 @@ class LocalStorage:
 
     def list_briefs(self) -> List[Brief]:
         """Load all briefs from data/briefs/"""
-        items = []
-        for file_path in self.briefs_dir.glob("*.json"):
-            try:
-                with open(file_path, "r") as f:
-                    data = json.load(f)
-                    items.append(Brief(**data))
-            except (ValidationError, json.JSONDecodeError) as e:
-                logger.warning("Failed to load brief %s: %s", file_path.name, e)
-        return items
+        return self._brief_repo.list_all()
 
     def save_script(self, script: Script) -> Path:
         """Save script JSON to data/scripts/{topic_id}.json"""
-        file_path = self.scripts_dir / f"{script.topic_id}.json"
-        try:
-            with open(file_path, "w") as f:
-                f.write(script.model_dump_json(indent=2))
-            return file_path
-        except Exception as e:
-            logger.error(f"Failed to save script to {file_path}: {e}")
-            raise
+        return self._script_repo.save(script)
 
     def list_scripts(self) -> List[Script]:
         """Load all scripts from data/scripts/"""
-        items = []
-        for file_path in self.scripts_dir.glob("*.json"):
-            try:
-                with open(file_path, "r") as f:
-                    data = json.load(f)
-                    items.append(Script(**data))
-            except (ValidationError, json.JSONDecodeError) as e:
-                logger.warning("Failed to load script %s: %s", file_path.name, e)
-        return items
+        return self._script_repo.list_all()
 
     def save_carousel(self, carousel: Carousel) -> Path:
         """Save carousel JSON to data/carousels/{topic_id}.json"""
-        file_path = self.carousels_dir / f"{carousel.topic_id}.json"
-        try:
-            with open(file_path, "w") as f:
-                f.write(carousel.model_dump_json(indent=2))
-            return file_path
-        except Exception as e:
-            logger.error(f"Failed to save carousel to {file_path}: {e}")
-            raise
+        return self._carousel_repo.save(carousel)
 
     def list_carousels(self) -> List[Carousel]:
         """Load all carousels from data/carousels/"""
-        items = []
-        for file_path in self.carousels_dir.glob("*.json"):
-            try:
-                with open(file_path, "r") as f:
-                    data = json.load(f)
-                    items.append(Carousel(**data))
-            except (ValidationError, json.JSONDecodeError) as e:
-                logger.warning("Failed to load carousel %s: %s", file_path.name, e)
-        return items
+        return self._carousel_repo.list_all()
 
     def save_newsletter(self, newsletter: Newsletter) -> Path:
         """Save newsletter JSON to data/newsletters/{topic_id}.json"""
-        file_path = self.newsletters_dir / f"{newsletter.topic_id}.json"
-        try:
-            with open(file_path, "w") as f:
-                f.write(newsletter.model_dump_json(indent=2))
-            return file_path
-        except Exception as e:
-            logger.error(f"Failed to save newsletter to {file_path}: {e}")
-            raise
+        return self._newsletter_repo.save(newsletter)
 
     def list_newsletters(self) -> List[Newsletter]:
         """Load all newsletters from data/newsletters/"""
-        items = []
-        for file_path in self.newsletters_dir.glob("*.json"):
-            try:
-                with open(file_path, "r") as f:
-                    data = json.load(f)
-                    items.append(Newsletter(**data))
-            except (ValidationError, json.JSONDecodeError) as e:
-                logger.warning("Failed to load newsletter %s: %s", file_path.name, e)
-        return items
+        return self._newsletter_repo.list_all()
 
     def save_thumbnail(self, thumbnail: ThumbnailPrompt) -> Path:
         """Save thumbnail JSON to data/thumbnails/{topic_id}.json"""
-        file_path = self.thumbnails_dir / f"{thumbnail.topic_id}.json"
-        try:
-            with open(file_path, "w") as f:
-                f.write(thumbnail.model_dump_json(indent=2))
-            return file_path
-        except Exception as e:
-            logger.error(f"Failed to save thumbnail to {file_path}: {e}")
-            raise
+        return self._thumbnail_repo.save(thumbnail)
 
     def list_thumbnails(self) -> List[ThumbnailPrompt]:
         """Load all thumbnails from data/thumbnails/"""
-        items = []
-        for file_path in self.thumbnails_dir.glob("*.json"):
-            try:
-                with open(file_path, "r") as f:
-                    data = json.load(f)
-                    items.append(ThumbnailPrompt(**data))
-            except (ValidationError, json.JSONDecodeError) as e:
-                logger.warning("Failed to load thumbnail %s: %s", file_path.name, e)
-        return items
+        return self._thumbnail_repo.list_all()
 
     def save_manifest(self, manifest: TopicManifest) -> Path:
         """Save manifest JSON to data/manifests/{topic_id}.json"""
@@ -384,14 +300,6 @@ class LocalStorage:
             logger.error(f"Failed to load scored item {file_path}: {e}")
             return None
 
-    def exists(self, item_id: str) -> bool:
-        """Check if an item already exists in staged storage."""
-        return (self.staged_dir / f"{item_id}.json").exists()
-
-    def scored_exists(self, item_id: str) -> bool:
-        """Check if a scored item already exists in scored storage."""
-        return (self.scored_dir / f"{item_id}.json").exists()
-
     def update_asset_status(
         self,
         asset_type: str,
@@ -411,7 +319,7 @@ class LocalStorage:
         Raises:
             ValueError: If asset_type is not recognized
         """
-        from content_creation.models.brief import ReviewStatus
+        from content_creation.shared.enums import ReviewStatus
 
         asset_dirs = {
             "brief": self.briefs_dir,

@@ -1,6 +1,8 @@
 from pydantic import BaseModel
 from typing import Literal, Optional
 
+from content_creation.shared.types import TopicId
+
 
 class PerformanceSnapshot(BaseModel):
     views_24h: Optional[int] = None
@@ -18,7 +20,7 @@ class PerformanceSnapshot(BaseModel):
 
 class PostAnalytics(BaseModel):
     post_id: str  # {topic_id}_{format}_{week_start}
-    topic_id: str
+    topic_id: TopicId
     topic_title: str
     format: Literal[
         "short_video",

@@ -2,15 +2,18 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Union
 
 from content_creation.inference import InferenceManager
-from content_creation.models.brief import Brief, ReviewStatus
+from content_creation.models.brief import Brief
+from content_creation.prompts import PromptRegistry
+from content_creation.shared.enums import ReviewStatus
 from content_creation.models.topic import ScoredTopicItem
 
 logger = logging.getLogger(__name__)
 
 
-def generate_brief(item: ScoredTopicItem, prompt_path: Path, api_key: str) -> Brief:
+def generate_brief(item: ScoredTopicItem, prompt_path: Union[Path, PromptRegistry], api_key: str) -> Brief:
     """Generate a brief for a scored topic using the inference manager."""
 
     if not item.raw_text or len(item.raw_text) < 100:
@@ -22,8 +25,11 @@ def generate_brief(item: ScoredTopicItem, prompt_path: Path, api_key: str) -> Br
     truncated_text = item.raw_text[:15000]
 
     # Read prompt template
-    with open(prompt_path, "r") as f:
-        template = f.read()
+    if isinstance(prompt_path, PromptRegistry):
+        template = prompt_path.get("brief", "summarize")
+    else:
+        with open(prompt_path, "r") as f:
+            template = f.read()
 
     # Replace placeholders
     prompt = template.replace("{{ topic.title }}", item.title)

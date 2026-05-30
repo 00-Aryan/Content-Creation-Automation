@@ -1,9 +1,11 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
+from content_creation.shared.types import TopicId
+
 
 class AssetCheck(BaseModel):
-    topic_id: str
+    topic_id: TopicId
     topic_title: str
     format: str
     asset_path: str

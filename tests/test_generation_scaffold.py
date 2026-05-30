@@ -7,8 +7,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from content_creation.generation.script import ScriptGenerator
-from content_creation.models.brief import Brief, ReviewStatus
-from content_creation.models.script import Script, ReviewStatus as ScriptReviewStatus
+from content_creation.models.brief import Brief
+from content_creation.models.script import Script
+from content_creation.shared.enums import ReviewStatus
+ScriptReviewStatus = ReviewStatus
 
 
 @pytest.fixture

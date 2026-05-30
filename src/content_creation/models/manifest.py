@@ -1,6 +1,8 @@
 from pydantic import BaseModel
 from typing import Dict, List, Literal, Optional
 
+from content_creation.shared.types import TopicId
+
 
 class AssetEntry(BaseModel):
     path: str
@@ -17,7 +19,7 @@ class AssetEntry(BaseModel):
 
 
 class TopicManifest(BaseModel):
-    topic_id: str
+    topic_id: TopicId
     topic_title: str
     source_url: str
     assets: Dict[str, AssetEntry]

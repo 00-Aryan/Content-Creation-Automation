@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from content_creation.models.brief import ReviewStatus
+from content_creation.shared.enums import ReviewStatus
 from content_creation.manifest import ManifestBuilder
 from content_creation.storage.local import LocalStorage
 

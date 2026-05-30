@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from content_creation.models.manifest import AssetEntry, TopicManifest
-from content_creation.models.brief import ReviewStatus
+from content_creation.shared.enums import ReviewStatus
 
 
 class TestAssetEntry:

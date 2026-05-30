@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from content_creation.shared.types import TopicId
+
 
 class TopicStatus(str, Enum):
     """Possible statuses for a TopicItem."""
@@ -31,7 +33,7 @@ class TopicCategory(str, Enum):
 
 class TopicItem(BaseModel):
     """Canonical TopicItem schema for Week 1."""
-    id: str
+    id: TopicId
     title: str
     url: str
     source: str
