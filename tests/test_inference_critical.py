@@ -9,6 +9,14 @@ from content_creation.inference.models import ProviderError, ErrorCategory
 from content_creation.inference.providers.gemini import GeminiProvider
 from content_creation.inference.providers.openrouter import OpenRouterProvider
 
+@pytest.fixture(autouse=True)
+def clear_env_fallback():
+    import os
+    with patch.dict(os.environ):
+        if "OPENROUTER_API_KEY" in os.environ:
+            del os.environ["OPENROUTER_API_KEY"]
+        yield
+
 # --- T-01 RetryManager.execute ---
 
 @pytest.fixture
