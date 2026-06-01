@@ -35,6 +35,13 @@ class InferenceManager:
         cache_dir: Optional[Path] = None,
         enable_cache: bool = True,
     ):
+        import os
+        if fallback is None:
+            openrouter_key = os.environ.get("OPENROUTER_API_KEY")
+            if openrouter_key:
+                fallback = "openrouter"
+                fallback_api_key = openrouter_key
+
         self._provider = self._build_provider(provider, api_key, model)
         self._fallback: Optional[BaseProvider] = None
         if fallback:
