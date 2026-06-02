@@ -21,12 +21,46 @@ class ThumbnailGenerator:
         self._registry = prompt_dir if isinstance(prompt_dir, PromptRegistry) else None
         self.prompt_dir = prompt_dir if isinstance(prompt_dir, Path) else None
 
-    def generate(self, brief: Brief, storyboard=None) -> ThumbnailPrompt:
-        """Generate a thumbnail prompt for ``brief``.
+    def generate(
+        self,
+        *args,
+        **kwargs,
+    ) -> ThumbnailPrompt:
+        """Generate a thumbnail prompt.
 
-        When *storyboard* is provided, title_text, style, and visual_metaphor
-        are overridden with Storyboard-owned values.
+        Supports:
+          - generate(storyboard, brief)
+          - generate(brief)
+          - generate(brief, storyboard=storyboard)
+          - generate(storyboard=storyboard, brief=brief)
         """
+        from content_creation.domains.storyboard.model import Storyboard as StoryboardModel
+
+        # Default values
+        actual_brief = None
+        actual_storyboard = None
+
+        # Positional arguments parsing
+        pos_args = list(args)
+        if pos_args:
+            if isinstance(pos_args[0], Brief):
+                actual_brief = pos_args[0]
+                if len(pos_args) > 1 and isinstance(pos_args[1], StoryboardModel):
+                    actual_storyboard = pos_args[1]
+            elif isinstance(pos_args[0], StoryboardModel):
+                actual_storyboard = pos_args[0]
+                if len(pos_args) > 1 and isinstance(pos_args[1], Brief):
+                    actual_brief = pos_args[1]
+
+        # Fetch from kwargs if not resolved positionally
+        if actual_brief is None:
+            actual_brief = kwargs.get("brief")
+        if actual_storyboard is None:
+            actual_storyboard = kwargs.get("storyboard")
+
+        if actual_brief is None:
+            raise ValueError("Supporting brief context is required")
+
         if self._registry:
             template = self._registry.get("thumbnail", "thumbnail")
         else:
@@ -36,17 +70,23 @@ class ThumbnailGenerator:
             with open(prompt_path, "r") as f:
                 template = f.read()
 
-        prompt = template.replace("{{ brief.topic_id }}", brief.topic_id)
-        prompt = prompt.replace("{{ brief.why_it_matters }}", brief.why_it_matters)
+        prompt = template.replace("{{ brief.topic_id }}", actual_brief.topic_id)
+        prompt = prompt.replace("{{ brief.why_it_matters }}", actual_brief.why_it_matters)
 
-        summary_bullets = "\n".join([f"- {s}" for s in brief.plain_english_summary])
+        summary_bullets = "\n".join([f"- {s}" for s in actual_brief.plain_english_summary])
         prompt = prompt.replace("{{ brief.plain_english_summary }}", summary_bullets)
 
-        prompt = prompt.replace("{{ brief.student_takeaway }}", brief.student_takeaway)
-        prompt = prompt.replace("{{ brief.analogy }}", brief.analogy)
-        prompt = prompt.replace("{{ brief.limitation }}", brief.limitation)
-        prompt = prompt.replace("{{ brief.audience_fit }}", brief.audience_fit)
-        prompt = prompt.replace("{{ brief.source_url }}", brief.source_url)
+        prompt = prompt.replace("{{ brief.student_takeaway }}", actual_brief.student_takeaway)
+
+        # Map analogy to storyboard's visual metaphor under new flow
+        if actual_storyboard is not None and isinstance(actual_storyboard, StoryboardModel):
+            prompt = prompt.replace("{{ brief.analogy }}", actual_storyboard.visual_metaphor)
+        else:
+            prompt = prompt.replace("{{ brief.analogy }}", actual_brief.analogy)
+
+        prompt = prompt.replace("{{ brief.limitation }}", actual_brief.limitation)
+        prompt = prompt.replace("{{ brief.audience_fit }}", actual_brief.audience_fit)
+        prompt = prompt.replace("{{ brief.source_url }}", actual_brief.source_url)
 
         generated_at = datetime.now(timezone.utc).isoformat()
 
@@ -59,41 +99,41 @@ class ThumbnailGenerator:
                     data["review_status"] = ReviewStatus(data["review_status"])
 
                 thumb = ThumbnailPrompt(
-                    topic_id=brief.topic_id,
+                    topic_id=actual_brief.topic_id,
                     generated_at=generated_at,
                     **data,
                 )
 
                 # Storyboard override: authoritative values for owned fields
-                if storyboard is not None:
+                if actual_storyboard is not None and isinstance(actual_storyboard, StoryboardModel):
                     thumb = thumb.model_copy(update={
-                        "title_text": storyboard.thumbnail_hook,
-                        "style": storyboard.visual_style,
-                        "visual_metaphor": storyboard.visual_metaphor,
+                        "title_text": actual_storyboard.thumbnail_hook,
+                        "style": actual_storyboard.visual_style,
+                        "visual_metaphor": actual_storyboard.visual_metaphor,
                     })
 
                 return thumb
             except Exception as e:
                 logger.warning(
                     "Failed to parse thumbnail for topic %s: %s",
-                    brief.topic_id,
+                    actual_brief.topic_id,
                     e,
                 )
         else:
             logger.warning(
                 "Inference failed for topic %s: %s",
-                brief.topic_id,
+                actual_brief.topic_id,
                 result.error,
             )
 
         # Fallback — use Storyboard values if available, else defaults
-        if storyboard is not None:
+        if actual_storyboard is not None and isinstance(actual_storyboard, StoryboardModel):
             return ThumbnailPrompt(
-                topic_id=brief.topic_id,
-                title_text=storyboard.thumbnail_hook,
+                topic_id=actual_brief.topic_id,
+                title_text=actual_storyboard.thumbnail_hook,
                 supporting_text="needs_review",
-                visual_metaphor=storyboard.visual_metaphor,
-                style=storyboard.visual_style,
+                visual_metaphor=actual_storyboard.visual_metaphor,
+                style=actual_storyboard.visual_style,
                 negative_prompt=["needs_review"],
                 readability_notes="needs_review",
                 review_status=ReviewStatus.NEEDS_REVIEW,
@@ -101,7 +141,7 @@ class ThumbnailGenerator:
             )
 
         return ThumbnailPrompt(
-            topic_id=brief.topic_id,
+            topic_id=actual_brief.topic_id,
             title_text="needs_review",
             supporting_text="needs_review",
             visual_metaphor="needs_review",

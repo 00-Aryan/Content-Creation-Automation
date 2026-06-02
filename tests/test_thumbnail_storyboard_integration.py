@@ -178,3 +178,48 @@ class TestThumbnailStoryboardMode:
         # Thumbnail-owned fields fall back to needs_review
         assert thumb.supporting_text == "needs_review"
         assert thumb.review_status == ReviewStatus.NEEDS_REVIEW
+
+
+class TestThumbnailMigration:
+    """Focus tests for Phase 5A ThumbnailGenerator interface migration."""
+
+    def test_new_signature_success(self, brief, storyboard, valid_thumb_response, thumb_registry):
+        """Verify calling with (storyboard, brief) works and returns overridden fields."""
+        with patch("content_creation.generation.thumbnail.InferenceManager") as mock_cls:
+            mock_mgr = MagicMock()
+            mock_cls.return_value = mock_mgr
+            mock_mgr.generate.return_value = _make_result(valid_thumb_response)
+
+            gen = ThumbnailGenerator(api_key="test", prompt_dir=thumb_registry)
+            thumb = gen.generate(storyboard, brief)
+
+        assert isinstance(thumb, ThumbnailPrompt)
+        assert thumb.title_text == "Attention Replaced Recurrence Forever"
+        assert thumb.style == "diagram_overlay"
+        assert thumb.visual_metaphor == "A librarian scanning all books at once"
+
+    def test_missing_brief_raises_value_error(self, storyboard, thumb_registry):
+        """Verify that calling generate with storyboard but no brief raises ValueError."""
+        gen = ThumbnailGenerator(api_key="test", prompt_dir=thumb_registry)
+        with pytest.raises(ValueError, match="Supporting brief context is required"):
+            gen.generate(storyboard)
+
+    def test_prompt_field_mapping(self, brief, storyboard, valid_thumb_response, tmp_path):
+        """Verify that {{ brief.analogy }} is replaced with storyboard.visual_metaphor in the prompt."""
+        # Setup specific template
+        prompt_dir = tmp_path / "custom_prompts"
+        prompt_dir.mkdir(exist_ok=True)
+        (prompt_dir / "thumbnail.md").write_text("Metaphor: {{ brief.analogy }}")
+
+        with patch("content_creation.generation.thumbnail.InferenceManager") as mock_cls:
+            mock_mgr = MagicMock()
+            mock_cls.return_value = mock_mgr
+            mock_mgr.generate.return_value = _make_result(valid_thumb_response)
+
+            gen = ThumbnailGenerator(api_key="test", prompt_dir=prompt_dir)
+            gen.generate(storyboard, brief)
+
+            # Assert generator called with updated prompt containing storyboard visual metaphor
+            called_prompt = mock_mgr.generate.call_args[1]["prompt"]
+            assert called_prompt == "Metaphor: A librarian scanning all books at once"
+
