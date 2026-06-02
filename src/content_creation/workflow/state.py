@@ -32,6 +32,25 @@ class WorkflowState:
     topic_id: str
     stages: dict[str, ArtifactState] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        # Pre-initialize target workflow stages to pending status
+        target_stages = [
+            "brief",
+            "content_intelligence",
+            "storyboard",
+            "thumbnail",
+            "script",
+            "carousel",
+            "newsletter",
+        ]
+        for stage in target_stages:
+            if stage not in self.stages:
+                self.stages[stage] = ArtifactState(
+                    topic_id=self.topic_id,
+                    stage=stage,
+                    status="pending",
+                )
+
 
 class WorkflowStateManager:
     """File-based workflow state persistence."""
