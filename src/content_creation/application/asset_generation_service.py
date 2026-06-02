@@ -67,7 +67,8 @@ class AssetGenerationService:
                 skipped += 1
             elif not (ctx.storage.thumbnails_dir / f"{brief.topic_id}.json").exists():
                 try:
-                    thumb = thumb_gen.generate(brief)
+                    storyboard = ctx.storage.get_storyboard(brief.topic_id)
+                    thumb = thumb_gen.generate(storyboard, brief)
                     ctx.storage.save_thumbnail(thumb)
                     ctx.workflow.mark_completed(
                         brief.topic_id,
@@ -117,7 +118,8 @@ class AssetGenerationService:
                         asset = script_gen.generate(brief, "short_video")
                         ctx.storage.save_script(asset)
                     elif fmt == "carousel":
-                        asset = carousel_gen.generate(brief)
+                        storyboard = ctx.storage.get_storyboard(brief.topic_id)
+                        asset = carousel_gen.generate(storyboard, brief)
                         ctx.storage.save_carousel(asset)
                     elif fmt == "newsletter":
                         asset = newsletter_gen.generate(brief)

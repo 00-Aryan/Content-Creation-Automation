@@ -233,7 +233,7 @@ def test_generate_carousel_success(sample_brief, valid_carousel_response, carous
         mock_mgr.generate.return_value = _make_carousel_result(valid_carousel_response)
 
         generator = CarouselGenerator(api_key="test_api_key", prompt_dir=carousel_prompt_dir)
-        carousel = generator.generate(sample_brief)
+        carousel = generator.generate(None, sample_brief)
 
     assert isinstance(carousel, Carousel)
     assert carousel.topic_id == sample_brief.topic_id
@@ -252,7 +252,7 @@ def test_generate_carousel_malformed_json_fallback(sample_brief, malformed_respo
         mock_mgr.generate.return_value = _make_carousel_result(malformed_response)
 
         generator = CarouselGenerator(api_key="test_api_key", prompt_dir=carousel_prompt_dir)
-        carousel = generator.generate(sample_brief)
+        carousel = generator.generate(None, sample_brief)
 
     assert carousel.slides[0].title == "needs_review"
     assert carousel.cta_slide == "needs_review"
@@ -275,7 +275,7 @@ def test_generate_carousel_429_retry(sample_brief, valid_carousel_response, caro
         mock_mgr.generate.return_value = result_with_retries
 
         generator = CarouselGenerator(api_key="test_api_key", prompt_dir=carousel_prompt_dir)
-        carousel = generator.generate(sample_brief)
+        carousel = generator.generate(None, sample_brief)
 
     assert mock_mgr.generate.call_count == 1
     assert carousel.review_status == ScriptReviewStatus.DRAFT
@@ -289,7 +289,7 @@ def test_generate_carousel_slides_parsed_correctly(sample_brief, valid_carousel_
         mock_mgr.generate.return_value = _make_carousel_result(valid_carousel_response)
 
         generator = CarouselGenerator(api_key="test_api_key", prompt_dir=carousel_prompt_dir)
-        carousel = generator.generate(sample_brief)
+        carousel = generator.generate(None, sample_brief)
 
     assert isinstance(carousel.slides[0], CarouselSlide)
     assert carousel.slides[0].slide_number == 1
@@ -472,7 +472,7 @@ def test_generate_thumbnail_success(sample_brief, valid_thumbnail_response, thum
         mock_mgr.generate.return_value = _make_thumbnail_result(valid_thumbnail_response)
 
         generator = ThumbnailGenerator(api_key="test_api_key", prompt_dir=thumbnail_prompt_dir)
-        thumbnail = generator.generate(sample_brief)
+        thumbnail = generator.generate(None, sample_brief)
 
     assert isinstance(thumbnail, ThumbnailPrompt)
     assert thumbnail.topic_id == sample_brief.topic_id
@@ -494,7 +494,7 @@ def test_generate_thumbnail_malformed_json_fallback(sample_brief, malformed_resp
         mock_mgr.generate.return_value = _make_thumbnail_result(malformed_response)
 
         generator = ThumbnailGenerator(api_key="test_api_key", prompt_dir=thumbnail_prompt_dir)
-        thumbnail = generator.generate(sample_brief)
+        thumbnail = generator.generate(None, sample_brief)
 
     assert thumbnail.title_text == "needs_review"
     assert thumbnail.supporting_text == "needs_review"
@@ -521,7 +521,7 @@ def test_generate_thumbnail_429_retry(sample_brief, valid_thumbnail_response, th
         mock_mgr.generate.return_value = result_with_retries
 
         generator = ThumbnailGenerator(api_key="test_api_key", prompt_dir=thumbnail_prompt_dir)
-        thumbnail = generator.generate(sample_brief)
+        thumbnail = generator.generate(None, sample_brief)
 
     assert mock_mgr.generate.call_count == 1
     assert thumbnail.review_status == ScriptReviewStatus.DRAFT
@@ -535,7 +535,7 @@ def test_generate_thumbnail_negative_prompt_as_list(sample_brief, valid_thumbnai
         mock_mgr.generate.return_value = _make_thumbnail_result(valid_thumbnail_response)
 
         generator = ThumbnailGenerator(api_key="test_api_key", prompt_dir=thumbnail_prompt_dir)
-        thumbnail = generator.generate(sample_brief)
+        thumbnail = generator.generate(None, sample_brief)
 
     assert isinstance(thumbnail.negative_prompt, list)
     assert all(isinstance(item, str) for item in thumbnail.negative_prompt)

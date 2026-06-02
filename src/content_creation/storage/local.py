@@ -141,6 +141,10 @@ class LocalStorage:
         """Load all briefs from data/briefs/"""
         return self._brief_repo.list_all()
 
+    def get_brief(self, topic_id: str) -> Optional[Brief]:
+        """Get a specific brief by topic ID."""
+        return self._brief_repo.get(topic_id)
+
     def save_content_intelligence(self, ci: ContentIntelligence) -> Path:
         """Save content intelligence JSON to data/content_intelligence/{topic_id}.json"""
         return self._content_intelligence_repo.save(ci)
@@ -152,6 +156,10 @@ class LocalStorage:
     def save_storyboard(self, storyboard: Storyboard) -> Path:
         """Save storyboard JSON to data/storyboards/{topic_id}.json"""
         return self._storyboard_repo.save(storyboard)
+
+    def get_storyboard(self, topic_id: str) -> Optional[Storyboard]:
+        """Get a specific storyboard by topic ID."""
+        return self._storyboard_repo.get(topic_id)
 
     def list_storyboards(self) -> List[Storyboard]:
         """Load all storyboards from data/storyboards/"""

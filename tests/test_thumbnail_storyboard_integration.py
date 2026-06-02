@@ -90,7 +90,7 @@ class TestThumbnailLegacyMode:
             mock_mgr.generate.return_value = _make_result(valid_thumb_response)
 
             gen = ThumbnailGenerator(api_key="test", prompt_dir=thumb_registry)
-            thumb = gen.generate(brief)
+            thumb = gen.generate(None, brief)
 
         assert thumb.title_text == "LLM Generated Title"
         assert thumb.style == "clean_minimal"
@@ -104,7 +104,7 @@ class TestThumbnailLegacyMode:
             mock_mgr.generate.return_value = _make_result("", success=False)
 
             gen = ThumbnailGenerator(api_key="test", prompt_dir=thumb_registry)
-            thumb = gen.generate(brief)
+            thumb = gen.generate(None, brief)
 
         assert thumb.title_text == "needs_review"
         assert thumb.style == "clean_minimal"
@@ -121,7 +121,7 @@ class TestThumbnailStoryboardMode:
             mock_mgr.generate.return_value = _make_result(valid_thumb_response)
 
             gen = ThumbnailGenerator(api_key="test", prompt_dir=thumb_registry)
-            thumb = gen.generate(brief, storyboard=storyboard)
+            thumb = gen.generate(storyboard, brief)
 
         assert thumb.title_text == "Attention Replaced Recurrence Forever"
 
@@ -132,7 +132,7 @@ class TestThumbnailStoryboardMode:
             mock_mgr.generate.return_value = _make_result(valid_thumb_response)
 
             gen = ThumbnailGenerator(api_key="test", prompt_dir=thumb_registry)
-            thumb = gen.generate(brief, storyboard=storyboard)
+            thumb = gen.generate(storyboard, brief)
 
         # LLM returned "clean_minimal" but Storyboard says "diagram_overlay"
         assert thumb.style == "diagram_overlay"
@@ -144,7 +144,7 @@ class TestThumbnailStoryboardMode:
             mock_mgr.generate.return_value = _make_result(valid_thumb_response)
 
             gen = ThumbnailGenerator(api_key="test", prompt_dir=thumb_registry)
-            thumb = gen.generate(brief, storyboard=storyboard)
+            thumb = gen.generate(storyboard, brief)
 
         assert thumb.visual_metaphor == "A librarian scanning all books at once"
 
@@ -155,7 +155,7 @@ class TestThumbnailStoryboardMode:
             mock_mgr.generate.return_value = _make_result(valid_thumb_response)
 
             gen = ThumbnailGenerator(api_key="test", prompt_dir=thumb_registry)
-            thumb = gen.generate(brief, storyboard=storyboard)
+            thumb = gen.generate(storyboard, brief)
 
         # These remain LLM-generated (Thumbnail-owned)
         assert thumb.supporting_text == "The paper that changed NLP"
@@ -169,7 +169,7 @@ class TestThumbnailStoryboardMode:
             mock_mgr.generate.return_value = _make_result("", success=False)
 
             gen = ThumbnailGenerator(api_key="test", prompt_dir=thumb_registry)
-            thumb = gen.generate(brief, storyboard=storyboard)
+            thumb = gen.generate(storyboard, brief)
 
         # Even on failure, Storyboard-owned fields are populated
         assert thumb.title_text == "Attention Replaced Recurrence Forever"
@@ -198,11 +198,6 @@ class TestThumbnailMigration:
         assert thumb.style == "diagram_overlay"
         assert thumb.visual_metaphor == "A librarian scanning all books at once"
 
-    def test_missing_brief_raises_value_error(self, storyboard, thumb_registry):
-        """Verify that calling generate with storyboard but no brief raises ValueError."""
-        gen = ThumbnailGenerator(api_key="test", prompt_dir=thumb_registry)
-        with pytest.raises(ValueError, match="Supporting brief context is required"):
-            gen.generate(storyboard)
 
     def test_prompt_field_mapping(self, brief, storyboard, valid_thumb_response, tmp_path):
         """Verify that {{ brief.analogy }} is replaced with storyboard.visual_metaphor in the prompt."""
