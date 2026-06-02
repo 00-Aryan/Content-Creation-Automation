@@ -122,7 +122,8 @@ class AssetGenerationService:
                         asset = carousel_gen.generate(storyboard, brief)
                         ctx.storage.save_carousel(asset)
                     elif fmt == "newsletter":
-                        asset = newsletter_gen.generate(brief)
+                        storyboard = ctx.storage.get_storyboard(brief.topic_id)
+                        asset = newsletter_gen.generate(storyboard, brief)
                         ctx.storage.save_newsletter(asset)
 
                     ctx.workflow.mark_completed(

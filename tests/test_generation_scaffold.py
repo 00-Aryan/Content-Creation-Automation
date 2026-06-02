@@ -354,7 +354,7 @@ def test_generate_newsletter_success(sample_brief, valid_newsletter_response, ne
         mock_mgr.generate.return_value = _make_newsletter_result(valid_newsletter_response)
 
         generator = NewsletterGenerator(api_key="test_api_key", prompt_dir=newsletter_prompt_dir)
-        newsletter = generator.generate(sample_brief)
+        newsletter = generator.generate(None, sample_brief)
 
     assert isinstance(newsletter, Newsletter)
     assert newsletter.topic_id == sample_brief.topic_id
@@ -374,7 +374,7 @@ def test_generate_newsletter_malformed_json_fallback(sample_brief, malformed_res
         mock_mgr.generate.return_value = _make_newsletter_result(malformed_response)
 
         generator = NewsletterGenerator(api_key="test_api_key", prompt_dir=newsletter_prompt_dir)
-        newsletter = generator.generate(sample_brief)
+        newsletter = generator.generate(None, sample_brief)
 
     assert newsletter.subject_line == "needs_review"
     assert len(newsletter.sections) == 3
@@ -398,7 +398,7 @@ def test_generate_newsletter_429_retry(sample_brief, valid_newsletter_response, 
         mock_mgr.generate.return_value = result_with_retries
 
         generator = NewsletterGenerator(api_key="test_api_key", prompt_dir=newsletter_prompt_dir)
-        newsletter = generator.generate(sample_brief)
+        newsletter = generator.generate(None, sample_brief)
 
     assert mock_mgr.generate.call_count == 1
     assert newsletter.review_status == ScriptReviewStatus.DRAFT
@@ -412,7 +412,7 @@ def test_generate_newsletter_sections_parsed_correctly(sample_brief, valid_newsl
         mock_mgr.generate.return_value = _make_newsletter_result(valid_newsletter_response)
 
         generator = NewsletterGenerator(api_key="test_api_key", prompt_dir=newsletter_prompt_dir)
-        newsletter = generator.generate(sample_brief)
+        newsletter = generator.generate(None, sample_brief)
 
     assert isinstance(newsletter.sections[0], NewsletterSection)
     assert newsletter.sections[0].section_name == "what_happened"
