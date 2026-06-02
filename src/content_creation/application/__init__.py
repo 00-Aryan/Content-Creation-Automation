@@ -14,6 +14,11 @@ from content_creation.application.brief_generation_service import (
     BriefGenerationResult,
     BriefGenerationService,
 )
+from content_creation.application.content_intelligence_service import (
+    ContentIntelligenceFailure,
+    ContentIntelligenceGenerationResult,
+    ContentIntelligenceService,
+)
 from content_creation.application.asset_generation_service import (
     AssetGenerationResult,
     AssetGenerationService,
@@ -38,6 +43,9 @@ __all__ = [
     "BriefFailure",
     "BriefGenerationResult",
     "BriefGenerationService",
+    "ContentIntelligenceFailure",
+    "ContentIntelligenceGenerationResult",
+    "ContentIntelligenceService",
     "AssetGenerationResult",
     "AssetGenerationService",
     "AssetDecision",
