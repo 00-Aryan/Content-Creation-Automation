@@ -26,7 +26,7 @@ def sample_brief():
     return Brief(
         topic_id="test-topic-1",
         why_it_matters="Matters because test",
-        plain_english_summary=["Summary 1", "Summary 2"],
+        plain_english_summary=["Summary 1", "Summary 2", "Summary 3"],
         student_takeaway="Takeaway",
         analogy="Analogy",
         limitation="Limit",
@@ -46,6 +46,7 @@ def sample_scored_item():
         url="https://example.com/topic-1",
         source="arxiv",
         published_at="2026-06-02T12:00:00Z",
+        category=TopicCategory.PAPER,
         author="John Doe",
         raw_text="Canonical topic content representation.",
         status="scored",
@@ -249,7 +250,7 @@ def test_content_intelligence_service_prioritization_and_limit(tmp_path, mock_ci
         Brief(
             topic_id="topic-low",
             why_it_matters="Matters low",
-            plain_english_summary=[],
+            plain_english_summary=["Summary 1", "Summary 2", "Summary 3"],
             student_takeaway="",
             analogy="",
             limitation="",
@@ -262,7 +263,7 @@ def test_content_intelligence_service_prioritization_and_limit(tmp_path, mock_ci
         Brief(
             topic_id="topic-high",
             why_it_matters="Matters high",
-            plain_english_summary=[],
+            plain_english_summary=["Summary 1", "Summary 2", "Summary 3"],
             student_takeaway="",
             analogy="",
             limitation="",
