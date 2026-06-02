@@ -595,8 +595,8 @@ def main() -> int:
                     print(f"Error: No brief found for topic_id '{args.topic_id}'")
                     return 1
 
-            topic_title = getattr(brief, "why_it_matters", "unknown")
-            source_url = brief.source_url
+            topic_title = getattr(brief, "title", getattr(brief, "why_it_matters", "unknown"))
+            source_url = getattr(brief, "url", getattr(brief, "source_url", "unknown"))
 
             from content_creation.manifest import ManifestBuilder
 
@@ -647,8 +647,6 @@ def main() -> int:
             return 0
 
         elif args.command == "plan-week":
-            from datetime import timedelta
-
             storage = LocalStorage(base_dir)
             publishing_config_path = base_dir / "config" / "publishing.yaml"
 
@@ -724,8 +722,6 @@ Generated: {generated_at}
             return 0
 
         elif args.command == "dry-run":
-            from datetime import timedelta
-
             storage = LocalStorage(base_dir)
             publishing_config_path = base_dir / "config" / "publishing.yaml"
 
@@ -792,7 +788,6 @@ Generated: {generated_at}
             return 0
 
         elif args.command == "init-analytics":
-            from datetime import timedelta
             from content_creation.models.analytics import PostAnalytics, PerformanceSnapshot
 
             storage = LocalStorage(base_dir)
