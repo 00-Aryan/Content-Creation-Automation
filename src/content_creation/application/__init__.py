@@ -19,6 +19,11 @@ from content_creation.application.content_intelligence_service import (
     ContentIntelligenceGenerationResult,
     ContentIntelligenceService,
 )
+from content_creation.application.storyboard_service import (
+    StoryboardFailure,
+    StoryboardGenerationResult,
+    StoryboardService,
+)
 from content_creation.application.asset_generation_service import (
     AssetGenerationResult,
     AssetGenerationService,
@@ -46,6 +51,9 @@ __all__ = [
     "ContentIntelligenceFailure",
     "ContentIntelligenceGenerationResult",
     "ContentIntelligenceService",
+    "StoryboardFailure",
+    "StoryboardGenerationResult",
+    "StoryboardService",
     "AssetGenerationResult",
     "AssetGenerationService",
     "AssetDecision",
