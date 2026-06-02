@@ -36,3 +36,13 @@ class ApplicationContext:
             feeds_config_path=feeds_config_path,
             scoring_config_path=scoring_config_path,
         )
+
+    @property
+    def content_intelligence_dir(self) -> Path:
+        """Directory path for content intelligence files."""
+        return self.storage.content_intelligence_dir
+
+    @property
+    def storyboards_dir(self) -> Path:
+        """Directory path for storyboard files."""
+        return self.storage.storyboards_dir

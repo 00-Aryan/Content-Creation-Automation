@@ -24,6 +24,8 @@ from content_creation.domains.script.repository import ScriptRepository
 from content_creation.domains.carousel.repository import CarouselRepository
 from content_creation.domains.newsletter.repository import NewsletterRepository
 from content_creation.domains.thumbnail.repository import ThumbnailRepository
+from content_creation.domains.content_intelligence import ContentIntelligence, ContentIntelligenceRepository
+from content_creation.domains.storyboard import Storyboard, StoryboardRepository
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +47,8 @@ class LocalStorage:
         self.calendars_dir = base_dir / "data" / "calendars"
         self.dryruns_dir = base_dir / "data" / "dryruns"
         self.analytics_dir = base_dir / "data" / "analytics"
+        self.content_intelligence_dir = base_dir / "data" / "content_intelligence"
+        self.storyboards_dir = base_dir / "data" / "storyboards"
         self.logs_dir = base_dir / "data" / "logs"
 
         self._backend = LocalBackend(
@@ -54,6 +58,7 @@ class LocalStorage:
                 self.briefs_dir, self.scripts_dir, self.carousels_dir,
                 self.newsletters_dir, self.thumbnails_dir, self.manifests_dir,
                 self.calendars_dir, self.dryruns_dir, self.analytics_dir,
+                self.content_intelligence_dir, self.storyboards_dir,
                 self.logs_dir,
             ],
         )
@@ -63,6 +68,8 @@ class LocalStorage:
         self._carousel_repo = CarouselRepository(directory=self.carousels_dir)
         self._newsletter_repo = NewsletterRepository(directory=self.newsletters_dir)
         self._thumbnail_repo = ThumbnailRepository(directory=self.thumbnails_dir)
+        self._content_intelligence_repo = ContentIntelligenceRepository(directory=self.content_intelligence_dir)
+        self._storyboard_repo = StoryboardRepository(directory=self.storyboards_dir)
 
     def save_raw(self, source_id: str, data: Any):
         """Save raw payload to data/raw/."""
@@ -133,6 +140,22 @@ class LocalStorage:
     def list_briefs(self) -> List[Brief]:
         """Load all briefs from data/briefs/"""
         return self._brief_repo.list_all()
+
+    def save_content_intelligence(self, ci: ContentIntelligence) -> Path:
+        """Save content intelligence JSON to data/content_intelligence/{topic_id}.json"""
+        return self._content_intelligence_repo.save(ci)
+
+    def list_content_intelligence(self) -> List[ContentIntelligence]:
+        """Load all content intelligence artifacts from data/content_intelligence/"""
+        return self._content_intelligence_repo.list_all()
+
+    def save_storyboard(self, storyboard: Storyboard) -> Path:
+        """Save storyboard JSON to data/storyboards/{topic_id}.json"""
+        return self._storyboard_repo.save(storyboard)
+
+    def list_storyboards(self) -> List[Storyboard]:
+        """Load all storyboards from data/storyboards/"""
+        return self._storyboard_repo.list_all()
 
     def save_script(self, script: Script) -> Path:
         """Save script JSON to data/scripts/{topic_id}.json"""
