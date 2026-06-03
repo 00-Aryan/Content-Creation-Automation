@@ -149,6 +149,8 @@ def test_storyboard_service_success(tmp_path, sample_brief, sample_scored_item, 
 def test_storyboard_service_skip_workflow(tmp_path, sample_scored_item, sample_ci):
     """Test that the service skips generation if workflow marks it completed."""
     service = StoryboardService()
+    sb_file = tmp_path / "test-topic-1.json"
+    sb_file.write_text("{}")
 
     with patch(
         "content_creation.application.storyboard_service.StoryboardGenerator"

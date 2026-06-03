@@ -106,14 +106,19 @@ class ContentIntelligenceService:
             brief = candidate["brief"]
             topic_id = brief.topic_id
 
-            # 1. Skip if workflow stage is completed
-            if ctx.workflow.stage_completed(topic_id, "content_intelligence"):
+            ci_file = ctx.storage.content_intelligence_dir / f"{topic_id}.json"
+            ci_completed = ctx.workflow.stage_completed(topic_id, "content_intelligence")
+
+            if ci_completed and ci_file.exists():
                 skipped_count += 1
                 continue
 
-            # 2. Skip if file already exists in storage
-            ci_file = ctx.storage.content_intelligence_dir / f"{topic_id}.json"
-            if ci_file.exists():
+            if ci_completed and not ci_file.exists():
+                logger.warning(
+                    f"Divergence detected: stage content_intelligence completed but artifact {ci_file} is missing. Regenerating."
+                )
+
+            if not ci_completed and ci_file.exists():
                 skipped_count += 1
                 continue
 

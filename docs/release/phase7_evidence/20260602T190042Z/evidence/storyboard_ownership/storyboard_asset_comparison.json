@@ -1,0 +1,14 @@
+{
+  "thumbnail_title": true,
+  "thumbnail_visual_metaphor": true,
+  "script_hook": true,
+  "script_claims": true,
+  "script_cta": true,
+  "carousel_title": true,
+  "carousel_claims": true,
+  "carousel_cta": true,
+  "newsletter_subject": true,
+  "newsletter_claims": true,
+  "newsletter_cta": true,
+  "brief_sentinels_absent": true
+}

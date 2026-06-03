@@ -1,0 +1,14 @@
+{"timestamp": "2026-06-02T19:00:42.411324+00:00", "stage": "collect", "event": "start", "duration_s": null, "details": {}}
+{"timestamp": "2026-06-02T19:00:42.411687+00:00", "stage": "collect", "event": "end", "duration_s": 0.0, "details": {"status": "success", "error": null, "items": 0}}
+{"timestamp": "2026-06-02T19:00:42.411800+00:00", "stage": "score", "event": "start", "duration_s": null, "details": {}}
+{"timestamp": "2026-06-02T19:00:42.411879+00:00", "stage": "score", "event": "end", "duration_s": 0.0, "details": {"status": "success", "error": null, "items": 0}}
+{"timestamp": "2026-06-02T19:00:42.411940+00:00", "stage": "generate-briefs", "event": "start", "duration_s": null, "details": {}}
+{"timestamp": "2026-06-02T19:00:42.412093+00:00", "stage": "generate-briefs", "event": "end", "duration_s": 0.0, "details": {"status": "success", "error": null, "items": 0}}
+{"timestamp": "2026-06-02T19:00:42.412159+00:00", "stage": "generate-content-intelligence", "event": "start", "duration_s": null, "details": {}}
+{"timestamp": "2026-06-02T19:00:42.412278+00:00", "stage": "generate-content-intelligence", "event": "end", "duration_s": 0.0, "details": {"status": "success", "error": null, "items": 0}}
+{"timestamp": "2026-06-02T19:00:42.412343+00:00", "stage": "generate-storyboards", "event": "start", "duration_s": null, "details": {}}
+{"timestamp": "2026-06-02T19:00:42.412457+00:00", "stage": "generate-storyboards", "event": "end", "duration_s": 0.0, "details": {"status": "success", "error": null, "items": 0}}
+{"timestamp": "2026-06-02T19:00:42.412519+00:00", "stage": "generate-assets", "event": "start", "duration_s": null, "details": {}}
+{"timestamp": "2026-06-02T19:00:42.412629+00:00", "stage": "generate-assets", "event": "end", "duration_s": 0.0, "details": {"status": "success", "error": null, "items": 0}}
+{"timestamp": "2026-06-02T19:00:42.412690+00:00", "stage": "build-manifests", "event": "start", "duration_s": null, "details": {}}
+{"timestamp": "2026-06-02T19:00:42.412976+00:00", "stage": "build-manifests", "event": "end", "duration_s": 0.0, "details": {"status": "success", "error": null, "items": 0}}

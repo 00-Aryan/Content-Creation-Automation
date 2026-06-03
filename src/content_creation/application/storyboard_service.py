@@ -90,14 +90,19 @@ class StoryboardService:
             ci = candidate["ci"]
             topic_id = ci.topic_id
 
-            # 1. Skip if workflow stage is completed
-            if ctx.workflow.stage_completed(topic_id, "storyboard"):
+            sb_file = ctx.storage.storyboards_dir / f"{topic_id}.json"
+            sb_completed = ctx.workflow.stage_completed(topic_id, "storyboard")
+
+            if sb_completed and sb_file.exists():
                 skipped_count += 1
                 continue
 
-            # 2. Skip if file already exists in storage
-            sb_file = ctx.storage.storyboards_dir / f"{topic_id}.json"
-            if sb_file.exists():
+            if sb_completed and not sb_file.exists():
+                logger.warning(
+                    f"Divergence detected: stage storyboard completed but artifact {sb_file} is missing. Regenerating."
+                )
+
+            if not sb_completed and sb_file.exists():
                 skipped_count += 1
                 continue
 

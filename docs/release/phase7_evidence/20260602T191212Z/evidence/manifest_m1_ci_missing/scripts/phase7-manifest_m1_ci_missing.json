@@ -1,0 +1,18 @@
+{
+  "topic_id": "phase7-manifest_m1_ci_missing",
+  "format": "short_video",
+  "hook": "STORYBOARD_SCRIPT_HOOK_USED",
+  "script_sections": [
+    "section 1",
+    "section 2"
+  ],
+  "cta": "STORYBOARD_SCRIPT_CTA_USED",
+  "claims_used": [
+    "STORYBOARD_SCRIPT_CLAIM_USED"
+  ],
+  "source_links": [
+    "https://example.com/phase7-manifest_m1_ci_missing"
+  ],
+  "review_status": "approved",
+  "generated_at": "2026-06-02T19:12:12.334171+00:00"
+}

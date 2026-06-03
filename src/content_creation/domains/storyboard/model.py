@@ -1,6 +1,6 @@
 """Storyboard v1 model — flat schema, frozen."""
 
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel
 
@@ -19,6 +19,7 @@ class Storyboard(BaseModel):
     topic_id: TopicId
     generated_at: str
     review_status: ReviewStatus = ReviewStatus.DRAFT
+    review_notes: Optional[str] = None
     formats_planned: List[str]
     # Hooks
     script_hook: str

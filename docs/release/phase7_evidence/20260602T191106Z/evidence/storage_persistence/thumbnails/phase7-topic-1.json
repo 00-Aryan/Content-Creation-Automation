@@ -1,0 +1,13 @@
+{
+  "topic_id": "phase7-topic-1",
+  "title_text": "STORYBOARD_THUMBNAIL_HOOK_USED",
+  "supporting_text": "supporting text",
+  "visual_metaphor": "STORYBOARD_VISUAL_METAPHOR_USED",
+  "style": "diagram_overlay",
+  "negative_prompt": [
+    "none"
+  ],
+  "readability_notes": "readable",
+  "review_status": "needs_review",
+  "generated_at": "2026-06-02T19:11:06.720096+00:00"
+}

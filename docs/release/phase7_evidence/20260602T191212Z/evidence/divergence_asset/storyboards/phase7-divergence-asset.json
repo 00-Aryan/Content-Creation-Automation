@@ -1,0 +1,28 @@
+{
+  "topic_id": "phase7-divergence-asset",
+  "generated_at": "2026-06-02T19:12:12.371316+00:00",
+  "review_status": "needs_review",
+  "formats_planned": [
+    "short_video",
+    "carousel",
+    "newsletter"
+  ],
+  "script_hook": "STORYBOARD_SCRIPT_HOOK_USED",
+  "carousel_hook": "STORYBOARD_CAROUSEL_HOOK_USED",
+  "newsletter_hook": "STORYBOARD_NEWSLETTER_HOOK_USED",
+  "thumbnail_hook": "STORYBOARD_THUMBNAIL_HOOK_USED",
+  "script_cta": "STORYBOARD_SCRIPT_CTA_USED",
+  "carousel_cta": "STORYBOARD_CAROUSEL_CTA_USED",
+  "newsletter_cta": "STORYBOARD_NEWSLETTER_CTA_USED",
+  "script_claims": [
+    "STORYBOARD_SCRIPT_CLAIM_USED"
+  ],
+  "carousel_claims": [
+    "STORYBOARD_CAROUSEL_CLAIM_USED"
+  ],
+  "newsletter_claims": [
+    "STORYBOARD_NEWSLETTER_CLAIM_USED"
+  ],
+  "visual_style": "diagram_overlay",
+  "visual_metaphor": "STORYBOARD_VISUAL_METAPHOR_USED"
+}

@@ -88,7 +88,7 @@ def test_generate_script_success(sample_brief, valid_script_response, prompt_dir
         mock_mgr.generate.return_value = _make_inference_result(valid_script_response)
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
-        script = generator.generate(sample_brief, format="short_video")
+        script = generator.generate(None, sample_brief, format="short_video")
 
     assert isinstance(script, Script)
     assert script.topic_id == sample_brief.topic_id
@@ -111,7 +111,7 @@ def test_generate_script_malformed_json_fallback(
         mock_mgr.generate.return_value = _make_inference_result(malformed_response)
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
-        script = generator.generate(sample_brief, format="carousel")
+        script = generator.generate(None, sample_brief, format="carousel")
 
     assert script.hook == "needs_review"
     assert script.script_sections == [
@@ -140,7 +140,7 @@ def test_generate_script_429_retry(sample_brief, valid_script_response, prompt_d
         mock_mgr.generate.return_value = result_with_retries
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
-        script = generator.generate(sample_brief, format="short_video")
+        script = generator.generate(None, sample_brief, format="short_video")
 
     assert mock_mgr.generate.call_count == 1
     assert script.review_status == ScriptReviewStatus.DRAFT
@@ -156,7 +156,7 @@ def test_generate_script_format_passed_through(
         mock_mgr.generate.return_value = _make_inference_result(valid_script_response)
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
-        script = generator.generate(sample_brief, format="newsletter")
+        script = generator.generate(None, sample_brief, format="newsletter")
 
     assert script.format == "newsletter"
 
@@ -171,7 +171,7 @@ def test_generate_script_source_url_injected(
         mock_mgr.generate.return_value = _make_inference_result(valid_script_response)
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
-        script = generator.generate(sample_brief, format="short_video")
+        script = generator.generate(None, sample_brief, format="short_video")
 
     assert sample_brief.source_url in script.source_links
 

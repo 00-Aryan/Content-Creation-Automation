@@ -1,0 +1,488 @@
+{
+  "run_id": "20260602T191300Z",
+  "run_dir": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191300Z",
+  "results": [
+    {
+      "id": "A",
+      "objective": "Single topic completes entire pipeline.",
+      "procedure": [
+        "Run patched PipelineRunService with one deterministic topic."
+      ],
+      "expected": "All pipeline stages execute in order and all artifacts are created.",
+      "observed": "stages=['collect', 'score', 'generate-briefs', 'generate-content-intelligence', 'generate-storyboards', 'generate-assets', 'build-manifests']; missing=[]",
+      "result": "PASS",
+      "evidence": [
+        "evidence/happy_path/tree.json",
+        "evidence/happy_path/hashes.json",
+        "evidence/happy_path/pipeline_result.json",
+        "evidence/happy_path/pipeline_log.jsonl",
+        "evidence/happy_path/staged",
+        "evidence/happy_path/scored",
+        "evidence/happy_path/briefs",
+        "evidence/happy_path/content_intelligence",
+        "evidence/happy_path/storyboards",
+        "evidence/happy_path/thumbnails",
+        "evidence/happy_path/scripts",
+        "evidence/happy_path/carousels",
+        "evidence/happy_path/newsletters",
+        "evidence/happy_path/manifests",
+        "evidence/happy_path/workflow_state"
+      ],
+      "findings": []
+    },
+    {
+      "id": "B",
+      "objective": "Multiple topics processed with top-N priority selection.",
+      "procedure": [
+        "Seed three scored topics.",
+        "Run pipeline with top_n=2."
+      ],
+      "expected": "Two highest-priority topics receive downstream artifacts; third does not.",
+      "observed": "briefs=['phase7-topic-1', 'phase7-topic-2']",
+      "result": "PASS",
+      "evidence": [
+        "evidence/multi_topic_batch/tree.json",
+        "evidence/multi_topic_batch/hashes.json",
+        "evidence/multi_topic_batch/pipeline_result.json",
+        "evidence/multi_topic_batch/pipeline_log.jsonl",
+        "evidence/multi_topic_batch/staged",
+        "evidence/multi_topic_batch/scored",
+        "evidence/multi_topic_batch/briefs",
+        "evidence/multi_topic_batch/content_intelligence",
+        "evidence/multi_topic_batch/storyboards",
+        "evidence/multi_topic_batch/thumbnails",
+        "evidence/multi_topic_batch/scripts",
+        "evidence/multi_topic_batch/carousels",
+        "evidence/multi_topic_batch/newsletters",
+        "evidence/multi_topic_batch/manifests",
+        "evidence/multi_topic_batch/workflow_state"
+      ],
+      "findings": []
+    },
+    {
+      "id": "C",
+      "objective": "No topics available does not create invalid artifacts.",
+      "procedure": [
+        "Run pipeline with no collected/scored fixture topics."
+      ],
+      "expected": "Pipeline completes as no-op with no generated artifacts.",
+      "observed": "artifact_json_count=0; stages=['collect', 'score', 'generate-briefs', 'generate-content-intelligence', 'generate-storyboards', 'generate-assets', 'build-manifests']",
+      "result": "PASS",
+      "evidence": [
+        "evidence/empty_pipeline/tree.json",
+        "evidence/empty_pipeline/hashes.json",
+        "evidence/empty_pipeline/pipeline_result.json",
+        "evidence/empty_pipeline/pipeline_log.jsonl",
+        "evidence/empty_pipeline/staged",
+        "evidence/empty_pipeline/scored",
+        "evidence/empty_pipeline/briefs",
+        "evidence/empty_pipeline/content_intelligence",
+        "evidence/empty_pipeline/storyboards",
+        "evidence/empty_pipeline/thumbnails",
+        "evidence/empty_pipeline/scripts",
+        "evidence/empty_pipeline/carousels",
+        "evidence/empty_pipeline/newsletters",
+        "evidence/empty_pipeline/manifests",
+        "evidence/empty_pipeline/workflow_state"
+      ],
+      "findings": []
+    },
+    {
+      "id": "D",
+      "objective": "Pipeline resumes from existing Brief and Content Intelligence.",
+      "procedure": [
+        "Seed brief and CI artifacts.",
+        "Mark CI completed.",
+        "Run pipeline."
+      ],
+      "expected": "Existing upstream artifacts are skipped and missing storyboard/assets are generated.",
+      "observed": "storyboard_exists=True; thumbnail_exists=True",
+      "result": "PASS",
+      "evidence": [
+        "evidence/partial_resume/tree.json",
+        "evidence/partial_resume/hashes.json",
+        "evidence/partial_resume/pipeline_result.json",
+        "evidence/partial_resume/pipeline_log.jsonl",
+        "evidence/partial_resume/staged",
+        "evidence/partial_resume/scored",
+        "evidence/partial_resume/briefs",
+        "evidence/partial_resume/content_intelligence",
+        "evidence/partial_resume/storyboards",
+        "evidence/partial_resume/thumbnails",
+        "evidence/partial_resume/scripts",
+        "evidence/partial_resume/carousels",
+        "evidence/partial_resume/newsletters",
+        "evidence/partial_resume/manifests",
+        "evidence/partial_resume/workflow_state"
+      ],
+      "findings": []
+    },
+    {
+      "id": "H",
+      "objective": "Pipeline executed twice does not duplicate or mutate completed artifacts.",
+      "procedure": [
+        "Run pipeline.",
+        "Capture hashes/workflow.",
+        "Run pipeline again.",
+        "Compare."
+      ],
+      "expected": "No duplicate artifacts; non-manifest generated artifacts unchanged; workflow completed states preserved.",
+      "observed": "hashes_equal_excluding_manifests=True; second_stage_summaries={'collect': {'count': 1, 'success': True}, 'score': {'scored_count': 1, 'rejected_count': 0, 'success': True}, 'generate-briefs': {'generated_count': 0, 'skipped_count': 1, 'failed_count': 0, 'success': True}, 'generate-content-intelligence': {'generated_count': 0, 'skipped_count': 1, 'failed_count': 0, 'success': True}, 'generate-storyboards': {'generated_count': 0, 'skipped_count': 1, 'failed_count': 0, 'success': True}, 'generate-assets': {'counts': {'thumbnail': 0, 'script': 0, 'carousel': 0, 'newsletter': 0}, 'skipped_count': 4, 'failed_count': 0, 'success': True}, 'build-manifests': {'count': 1, 'success': True}}",
+      "result": "PASS",
+      "evidence": [
+        "evidence/idempotency/tree.json",
+        "evidence/idempotency/hashes.json",
+        "evidence/idempotency/pipeline_result.json",
+        "evidence/idempotency/pipeline_log.jsonl",
+        "evidence/idempotency/staged",
+        "evidence/idempotency/scored",
+        "evidence/idempotency/briefs",
+        "evidence/idempotency/content_intelligence",
+        "evidence/idempotency/storyboards",
+        "evidence/idempotency/thumbnails",
+        "evidence/idempotency/scripts",
+        "evidence/idempotency/carousels",
+        "evidence/idempotency/newsletters",
+        "evidence/idempotency/manifests",
+        "evidence/idempotency/workflow_state",
+        "evidence/idempotency/idempotency_comparison.json"
+      ],
+      "findings": []
+    },
+    {
+      "id": "I",
+      "objective": "Artifacts survive restart and reload through storage APIs.",
+      "procedure": [
+        "Run pipeline.",
+        "Create fresh ApplicationContext.",
+        "Load artifacts through storage APIs."
+      ],
+      "expected": "All generated artifacts reload successfully.",
+      "observed": "{\"brief\": true, \"carousels\": 1, \"ci_count\": 1, \"newsletters\": 1, \"scripts\": 1, \"storyboard\": true, \"thumbnails\": 1}",
+      "result": "PASS",
+      "evidence": [
+        "evidence/storage_persistence/tree.json",
+        "evidence/storage_persistence/hashes.json",
+        "evidence/storage_persistence/pipeline_result.json",
+        "evidence/storage_persistence/pipeline_log.jsonl",
+        "evidence/storage_persistence/staged",
+        "evidence/storage_persistence/scored",
+        "evidence/storage_persistence/briefs",
+        "evidence/storage_persistence/content_intelligence",
+        "evidence/storage_persistence/storyboards",
+        "evidence/storage_persistence/thumbnails",
+        "evidence/storage_persistence/scripts",
+        "evidence/storage_persistence/carousels",
+        "evidence/storage_persistence/newsletters",
+        "evidence/storage_persistence/manifests",
+        "evidence/storage_persistence/workflow_state",
+        "evidence/storage_persistence/fresh_context_load.json"
+      ],
+      "findings": []
+    },
+    {
+      "id": "E",
+      "objective": "Controlled ContentIntelligenceService exception halts downstream pipeline execution.",
+      "procedure": [
+        "Patch ContentIntelligenceService.run to raise.",
+        "Run pipeline."
+      ],
+      "expected": "Pipeline fails at generate-content-intelligence; downstream stages do not execute.",
+      "observed": "success=False; stages=['collect', 'score', 'generate-briefs', 'generate-content-intelligence']",
+      "result": "PASS",
+      "evidence": [
+        "evidence/ci_failure/tree.json",
+        "evidence/ci_failure/hashes.json",
+        "evidence/ci_failure/pipeline_result.json",
+        "evidence/ci_failure/pipeline_log.jsonl",
+        "evidence/ci_failure/staged",
+        "evidence/ci_failure/scored",
+        "evidence/ci_failure/briefs",
+        "evidence/ci_failure/content_intelligence",
+        "evidence/ci_failure/storyboards",
+        "evidence/ci_failure/thumbnails",
+        "evidence/ci_failure/scripts",
+        "evidence/ci_failure/carousels",
+        "evidence/ci_failure/newsletters",
+        "evidence/ci_failure/manifests",
+        "evidence/ci_failure/workflow_state"
+      ],
+      "findings": []
+    },
+    {
+      "id": "F",
+      "objective": "Controlled StoryboardService exception halts downstream pipeline execution.",
+      "procedure": [
+        "Patch StoryboardService.run to raise.",
+        "Run pipeline."
+      ],
+      "expected": "Pipeline fails at generate-storyboards; downstream stages do not execute.",
+      "observed": "success=False; stages=['collect', 'score', 'generate-briefs', 'generate-content-intelligence', 'generate-storyboards']",
+      "result": "PASS",
+      "evidence": [
+        "evidence/storyboard_failure/tree.json",
+        "evidence/storyboard_failure/hashes.json",
+        "evidence/storyboard_failure/pipeline_result.json",
+        "evidence/storyboard_failure/pipeline_log.jsonl",
+        "evidence/storyboard_failure/staged",
+        "evidence/storyboard_failure/scored",
+        "evidence/storyboard_failure/briefs",
+        "evidence/storyboard_failure/content_intelligence",
+        "evidence/storyboard_failure/storyboards",
+        "evidence/storyboard_failure/thumbnails",
+        "evidence/storyboard_failure/scripts",
+        "evidence/storyboard_failure/carousels",
+        "evidence/storyboard_failure/newsletters",
+        "evidence/storyboard_failure/manifests",
+        "evidence/storyboard_failure/workflow_state"
+      ],
+      "findings": []
+    },
+    {
+      "id": "G",
+      "objective": "Controlled AssetGenerationService exception halts downstream pipeline execution.",
+      "procedure": [
+        "Patch AssetGenerationService.run to raise.",
+        "Run pipeline."
+      ],
+      "expected": "Pipeline fails at generate-assets; downstream stages do not execute.",
+      "observed": "success=False; stages=['collect', 'score', 'generate-briefs', 'generate-content-intelligence', 'generate-storyboards', 'generate-assets']",
+      "result": "PASS",
+      "evidence": [
+        "evidence/asset_failure/tree.json",
+        "evidence/asset_failure/hashes.json",
+        "evidence/asset_failure/pipeline_result.json",
+        "evidence/asset_failure/pipeline_log.jsonl",
+        "evidence/asset_failure/staged",
+        "evidence/asset_failure/scored",
+        "evidence/asset_failure/briefs",
+        "evidence/asset_failure/content_intelligence",
+        "evidence/asset_failure/storyboards",
+        "evidence/asset_failure/thumbnails",
+        "evidence/asset_failure/scripts",
+        "evidence/asset_failure/carousels",
+        "evidence/asset_failure/newsletters",
+        "evidence/asset_failure/manifests",
+        "evidence/asset_failure/workflow_state"
+      ],
+      "findings": []
+    },
+    {
+      "id": "ARCH-STORYBOARD-OWNERSHIP",
+      "objective": "Prove assets consume Storyboard outputs rather than Brief-only values.",
+      "procedure": [
+        "Seed brief with brief-only sentinels.",
+        "Seed storyboard with storyboard sentinels.",
+        "Run AssetGenerationService.",
+        "Compare persisted assets."
+      ],
+      "expected": "All storyboard-owned fields in persisted assets match storyboard values and brief sentinels are absent.",
+      "observed": "{\"brief_sentinels_absent\": true, \"carousel_claims\": true, \"carousel_cta\": true, \"carousel_title\": true, \"newsletter_claims\": true, \"newsletter_cta\": true, \"newsletter_subject\": true, \"script_claims\": true, \"script_cta\": true, \"script_hook\": true, \"thumbnail_title\": true, \"thumbnail_visual_metaphor\": true}",
+      "result": "PASS",
+      "evidence": [
+        "evidence/storyboard_ownership/tree.json",
+        "evidence/storyboard_ownership/hashes.json",
+        "evidence/storyboard_ownership/staged",
+        "evidence/storyboard_ownership/scored",
+        "evidence/storyboard_ownership/briefs",
+        "evidence/storyboard_ownership/content_intelligence",
+        "evidence/storyboard_ownership/storyboards",
+        "evidence/storyboard_ownership/thumbnails",
+        "evidence/storyboard_ownership/scripts",
+        "evidence/storyboard_ownership/carousels",
+        "evidence/storyboard_ownership/newsletters",
+        "evidence/storyboard_ownership/manifests",
+        "evidence/storyboard_ownership/workflow_state",
+        "evidence/storyboard_ownership/storyboard_asset_comparison.json"
+      ],
+      "findings": []
+    },
+    {
+      "id": "ARCH-LINEAGE-WORKFLOW",
+      "objective": "Validate artifact lineage and workflow states, including accepted brief asymmetry.",
+      "procedure": [
+        "Run full pipeline.",
+        "Compare topic IDs across all artifacts.",
+        "Inspect workflow state."
+      ],
+      "expected": "All artifact IDs match; downstream workflow stages completed; brief remains pending as accepted v0.6 exception.",
+      "observed": "lineage_ok=True; workflow_statuses={'brief': 'pending', 'content_intelligence': 'completed', 'storyboard': 'completed', 'thumbnail': 'completed', 'script': 'completed', 'carousel': 'completed', 'newsletter': 'completed'}",
+      "result": "PASS",
+      "evidence": [
+        "evidence/lineage_workflow/tree.json",
+        "evidence/lineage_workflow/hashes.json",
+        "evidence/lineage_workflow/pipeline_result.json",
+        "evidence/lineage_workflow/pipeline_log.jsonl",
+        "evidence/lineage_workflow/staged",
+        "evidence/lineage_workflow/scored",
+        "evidence/lineage_workflow/briefs",
+        "evidence/lineage_workflow/content_intelligence",
+        "evidence/lineage_workflow/storyboards",
+        "evidence/lineage_workflow/thumbnails",
+        "evidence/lineage_workflow/scripts",
+        "evidence/lineage_workflow/carousels",
+        "evidence/lineage_workflow/newsletters",
+        "evidence/lineage_workflow/manifests",
+        "evidence/lineage_workflow/workflow_state",
+        "evidence/lineage_workflow/lineage_and_workflow.json"
+      ],
+      "findings": []
+    },
+    {
+      "id": "ARCH-INTERFACE-CONTRACT",
+      "objective": "Validate approved generator, service, and storage interfaces.",
+      "procedure": [
+        "Inspect runtime signatures.",
+        "Verify storage method availability.",
+        "Search orchestration source for brief-first shims."
+      ],
+      "expected": "Storyboard-first generator contracts and approved service/storage interfaces remain intact.",
+      "observed": "{\"generator_ok\": {\"CarouselGenerator.generate\": true, \"NewsletterGenerator.generate\": true, \"ScriptGenerator.generate\": true, \"ThumbnailGenerator.generate\": true}, \"no_brief_first_shim_evidence\": true, \"signatures\": {\"AssetGenerationService.run\": [\"self\", \"ctx\", \"top_n\", \"api_key\", \"rate_limit_delay\"], \"CarouselGenerator.generate\": [\"self\", \"storyboard\", \"brief\"], \"ContentIntelligenceService.run\": [\"self\", \"ctx\", \"top_n\", \"api_key\", \"rate_limit_delay\"], \"NewsletterGenerator.generate\": [\"self\", \"storyboard\", \"brief\"], \"PipelineRunService.run\": [\"self\", \"ctx\", \"top_n\", \"source_filter\", \"auto_approve\", \"api_key\"], \"ScriptGenerator.generate\": [\"self\", \"storyboard\", \"brief\", \"format\"], \"StoryboardService.run\": [\"self\", \"ctx\", \"top_n\", \"api_key\", \"rate_limit_delay\"], \"ThumbnailGenerator.generate\": [\"self\", \"storyboard\", \"brief\"]}, \"storage_ok\": {\"get_brief\": true, \"get_storyboard\": true, \"list_content_intelligence\": true, \"save_brief\": true, \"save_carousel\": true, \"save_content_intelligence\": true, \"save_newsletter\": true, \"save_script\": true, \"save_storyboard\": true, \"save_thumbnail\": true}}",
+      "result": "PASS",
+      "evidence": [
+        "evidence/interface_contracts/interface_contracts.json"
+      ],
+      "findings": []
+    },
+    {
+      "id": "M1",
+      "objective": "Validate manifest behavior when content_intelligence artifact is missing but assets exist.",
+      "procedure": [
+        "Seed approved brief/assets with content_intelligence missing.",
+        "Build manifest."
+      ],
+      "expected": "Manifest remains based on brief/assets only; missing CI/storyboard is captured separately.",
+      "observed": "overall_status=complete; ready_for_planner=True; missing_confirmed=True",
+      "result": "PASS",
+      "evidence": [
+        "evidence/manifest_m1_ci_missing/tree.json",
+        "evidence/manifest_m1_ci_missing/hashes.json",
+        "evidence/manifest_m1_ci_missing/staged",
+        "evidence/manifest_m1_ci_missing/scored",
+        "evidence/manifest_m1_ci_missing/briefs",
+        "evidence/manifest_m1_ci_missing/content_intelligence",
+        "evidence/manifest_m1_ci_missing/storyboards",
+        "evidence/manifest_m1_ci_missing/thumbnails",
+        "evidence/manifest_m1_ci_missing/scripts",
+        "evidence/manifest_m1_ci_missing/carousels",
+        "evidence/manifest_m1_ci_missing/newsletters",
+        "evidence/manifest_m1_ci_missing/manifests",
+        "evidence/manifest_m1_ci_missing/workflow_state",
+        "evidence/manifest_m1_ci_missing/manifest_scope.json"
+      ],
+      "findings": []
+    },
+    {
+      "id": "M2",
+      "objective": "Validate manifest behavior when storyboard artifact is missing but assets exist.",
+      "procedure": [
+        "Seed approved brief/assets with storyboard missing.",
+        "Build manifest."
+      ],
+      "expected": "Manifest remains based on brief/assets only; missing CI/storyboard is captured separately.",
+      "observed": "overall_status=complete; ready_for_planner=True; missing_confirmed=True",
+      "result": "PASS",
+      "evidence": [
+        "evidence/manifest_m2_storyboard_missing/tree.json",
+        "evidence/manifest_m2_storyboard_missing/hashes.json",
+        "evidence/manifest_m2_storyboard_missing/staged",
+        "evidence/manifest_m2_storyboard_missing/scored",
+        "evidence/manifest_m2_storyboard_missing/briefs",
+        "evidence/manifest_m2_storyboard_missing/content_intelligence",
+        "evidence/manifest_m2_storyboard_missing/storyboards",
+        "evidence/manifest_m2_storyboard_missing/thumbnails",
+        "evidence/manifest_m2_storyboard_missing/scripts",
+        "evidence/manifest_m2_storyboard_missing/carousels",
+        "evidence/manifest_m2_storyboard_missing/newsletters",
+        "evidence/manifest_m2_storyboard_missing/manifests",
+        "evidence/manifest_m2_storyboard_missing/workflow_state",
+        "evidence/manifest_m2_storyboard_missing/manifest_scope.json"
+      ],
+      "findings": []
+    },
+    {
+      "id": "J",
+      "objective": "Validate workflow-completed/artifact-missing divergence behavior.",
+      "procedure": [
+        "Create completed workflow state with missing artifact for CI, Storyboard, and Thumbnail.",
+        "Run relevant services.",
+        "Record regeneration/fallback behavior."
+      ],
+      "expected": "Divergence is detected and documented; current services are not expected to self-heal this condition.",
+      "observed": "[{\"artifact_exists\": true, \"generated_count\": 1, \"skipped_count\": 0, \"stage\": \"content_intelligence\"}, {\"artifact_exists\": true, \"asset_counts\": {\"carousel\": 1, \"newsletter\": 1, \"script\": 1, \"thumbnail\": 1}, \"fallback_asset_generated\": false, \"generated_count\": 1, \"skipped_count\": 0, \"stage\": \"storyboard\"}, {\"artifact_exists\": true, \"manifest_thumbnail_status\": \"needs_review\", \"skipped_count\": 0, \"stage\": \"thumbnail\"}]",
+      "result": "PASS",
+      "evidence": [
+        "evidence/workflow_artifact_divergence/divergence_results.json",
+        "evidence/divergence_ci/tree.json",
+        "evidence/divergence_ci/hashes.json",
+        "evidence/divergence_ci/staged",
+        "evidence/divergence_ci/scored",
+        "evidence/divergence_ci/briefs",
+        "evidence/divergence_ci/content_intelligence",
+        "evidence/divergence_ci/storyboards",
+        "evidence/divergence_ci/thumbnails",
+        "evidence/divergence_ci/scripts",
+        "evidence/divergence_ci/carousels",
+        "evidence/divergence_ci/newsletters",
+        "evidence/divergence_ci/manifests",
+        "evidence/divergence_ci/workflow_state",
+        "evidence/divergence_storyboard/tree.json",
+        "evidence/divergence_storyboard/hashes.json",
+        "evidence/divergence_storyboard/staged",
+        "evidence/divergence_storyboard/scored",
+        "evidence/divergence_storyboard/briefs",
+        "evidence/divergence_storyboard/content_intelligence",
+        "evidence/divergence_storyboard/storyboards",
+        "evidence/divergence_storyboard/thumbnails",
+        "evidence/divergence_storyboard/scripts",
+        "evidence/divergence_storyboard/carousels",
+        "evidence/divergence_storyboard/newsletters",
+        "evidence/divergence_storyboard/manifests",
+        "evidence/divergence_storyboard/workflow_state",
+        "evidence/divergence_asset/tree.json",
+        "evidence/divergence_asset/hashes.json",
+        "evidence/divergence_asset/staged",
+        "evidence/divergence_asset/scored",
+        "evidence/divergence_asset/briefs",
+        "evidence/divergence_asset/content_intelligence",
+        "evidence/divergence_asset/storyboards",
+        "evidence/divergence_asset/thumbnails",
+        "evidence/divergence_asset/scripts",
+        "evidence/divergence_asset/carousels",
+        "evidence/divergence_asset/newsletters",
+        "evidence/divergence_asset/manifests",
+        "evidence/divergence_asset/workflow_state"
+      ],
+      "findings": [
+        "VF-001",
+        "VF-002"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "VF-001",
+      "severity": "High",
+      "scenario": "J - Workflow / Artifact Divergence Recovery",
+      "expected_behavior": "Workflow completed state with missing artifact should not silently mask missing CI/storyboard/asset outputs in release evidence.",
+      "actual_behavior": "Services skip regeneration when workflow state is completed before checking artifact existence; missing artifacts remain missing.",
+      "impact": "A corrupted or partially deleted artifact store can appear resumable while required outputs are absent.",
+      "release_recommendation": "Requires remediation or explicit operational mitigation before signoff."
+    },
+    {
+      "id": "VF-002",
+      "severity": "High",
+      "scenario": "J - Storyboard divergence",
+      "expected_behavior": "Assets should not be generated in brief-only fallback mode when workflow says storyboard completed but storyboard artifact is missing.",
+      "actual_behavior": "AssetGenerationService receives storyboard=None and generated fallback assets in the controlled divergence scenario.",
+      "impact": "Storyboard ownership can be silently bypassed after workflow/artifact divergence.",
+      "release_recommendation": "Requires remediation before signoff because storyboard ownership is a primary v0.6 gate."
+    }
+  ],
+  "counts": {
+    "executed": 15,
+    "passed": 15,
+    "failed": 0,
+    "findings": 2
+  }
+}

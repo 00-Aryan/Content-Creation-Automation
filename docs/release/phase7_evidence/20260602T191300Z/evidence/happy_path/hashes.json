@@ -1,0 +1,13 @@
+{
+  "briefs/phase7-topic-1.json": "2011b8cd6dd40c8a6addab05b993cbe7218e46d7c2a90e7044956709fd92e2fe",
+  "carousels/phase7-topic-1.json": "86bbd7b677f812f976407d454abb72070186fba858c23e47dc9b24efd971ab84",
+  "content_intelligence/phase7-topic-1.json": "8c5afee1f676f16cb8cc8973306e6d6ec9deb0b70fc310da838d1ff10aab52b6",
+  "manifests/phase7-topic-1.json": "436cb806993e4e2e035094b00fa7758bd54effc825fdddb8c262a3b3f20aea72",
+  "newsletters/phase7-topic-1.json": "c78c73572431bab1cac0b7e686dc5a364e232718f6259d7a354536ef5ecb724b",
+  "scored/phase7-topic-1.json": "c8ece8b6edc3123aff239abbb1c56f46d0d5bf877aaced0ece742a232b60f427",
+  "scripts/phase7-topic-1.json": "ca87f1177dfe12724c5c21f19fa8f055d3678476a4b91cab4219b54bea785260",
+  "staged/phase7-topic-1.json": "b66945ac209a3b3e2c5fa8863e912081131d9d2e80b71613ad56cca9adfbc7e4",
+  "storyboards/phase7-topic-1.json": "37ccdcd5ff15815329374c9321652589ba0c173e4a01d0f420078323e565fe2f",
+  "thumbnails/phase7-topic-1.json": "b2ceec181eea7dfe362e0ceea8f0b9e3e31cc339d7b6efdc26a5f7aa509c9966",
+  "workflow_state/phase7-topic-1.json": "39c1c10c793fccfe4b1a30b4204e1e5af0b249161113ddeb16c82ade2c761c69"
+}

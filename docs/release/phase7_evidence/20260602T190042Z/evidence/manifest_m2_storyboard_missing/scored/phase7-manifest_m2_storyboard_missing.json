@@ -1,0 +1,36 @@
+{
+  "id": "phase7-manifest_m2_storyboard_missing",
+  "title": "Phase 7 Topic 1",
+  "url": "https://example.com/phase7-manifest_m2_storyboard_missing",
+  "source": "phase7_fixture",
+  "published_at": "2026-06-03T00:00:00Z",
+  "author": "Validation",
+  "raw_text": "Fixture raw text for topic 1",
+  "excerpt": "Fixture excerpt 1",
+  "category": "paper",
+  "topic_tags": [
+    "phase7",
+    "validation"
+  ],
+  "status": "scored",
+  "metadata": {
+    "recommended_formats": [
+      "short_video",
+      "carousel",
+      "newsletter"
+    ]
+  },
+  "priority_score": 95.0,
+  "student_usefulness_score": 0.0,
+  "novelty_score": 0.0,
+  "credibility_score": 0.0,
+  "explainability_score": 0.0,
+  "hook_potential_score": 0.0,
+  "recency_score": 0.0,
+  "source_quality_score": 0.0,
+  "keyword_score": 0.0,
+  "quality_score": 0.0,
+  "scoring_timestamp": "2026-06-03T00:30:42.618613",
+  "scoring_rules_fired": [],
+  "validation_flags": []
+}

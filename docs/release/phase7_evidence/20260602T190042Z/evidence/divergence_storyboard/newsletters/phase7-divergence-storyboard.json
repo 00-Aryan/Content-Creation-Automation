@@ -1,0 +1,27 @@
+{
+  "topic_id": "phase7-divergence-storyboard",
+  "subject_line": "FALLBACK_NO_STORYBOARD",
+  "sections": [
+    {
+      "section_name": "what_happened",
+      "content": "what happened"
+    },
+    {
+      "section_name": "why_it_matters",
+      "content": "why it matters"
+    },
+    {
+      "section_name": "student_takeaway",
+      "content": "takeaway"
+    }
+  ],
+  "cta": "FALLBACK_NO_STORYBOARD",
+  "claims_used": [
+    "FALLBACK_NO_STORYBOARD"
+  ],
+  "source_links": [
+    "https://example.com/phase7-divergence-storyboard"
+  ],
+  "review_status": "needs_review",
+  "generated_at": "2026-06-02T19:00:42.646238+00:00"
+}

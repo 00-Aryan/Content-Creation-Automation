@@ -1,0 +1,20 @@
+{
+  "topic_id": "phase7-manifest_m1_ci_missing",
+  "slides": [
+    {
+      "slide_number": 1,
+      "title": "STORYBOARD_CAROUSEL_HOOK_USED",
+      "body": "body",
+      "visual_note": "STORYBOARD_VISUAL_METAPHOR_USED"
+    }
+  ],
+  "cta_slide": "STORYBOARD_CAROUSEL_CTA_USED",
+  "claims_used": [
+    "STORYBOARD_CAROUSEL_CLAIM_USED"
+  ],
+  "source_links": [
+    "https://example.com/phase7-manifest_m1_ci_missing"
+  ],
+  "review_status": "approved",
+  "generated_at": "2026-06-02T19:12:12.334295+00:00"
+}

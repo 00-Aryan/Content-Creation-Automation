@@ -1,0 +1,151 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.0, pytest-9.0.3, pluggy-1.6.0
+rootdir: /home/aryan/May-2026/Content-Creation
+configfile: pyproject.toml
+testpaths: tests
+plugins: cov-7.1.0, anyio-4.13.0
+collected 241 items
+
+tests/test_analytics.py ..........                                       [  4%]
+tests/test_application_context.py .                                      [  4%]
+tests/test_asset_generation_service.py .                                 [  4%]
+tests/test_asset_review_service.py .                                     [  5%]
+tests/test_brief_generation_critical.py ............                     [ 10%]
+tests/test_brief_generation_service.py .                                 [ 10%]
+tests/test_carousel_storyboard_integration.py ......                     [ 13%]
+tests/test_cli.py ........                                               [ 16%]
+tests/test_collect_topics_service.py .                                   [ 17%]
+tests/test_content_intelligence.py ......................                [ 26%]
+tests/test_content_intelligence_service.py .....                         [ 28%]
+tests/test_dryrun.py ..........                                          [ 32%]
+tests/test_e2e_verification.py .                                         [ 32%]
+tests/test_generation_scaffold.py .................                      [ 39%]
+tests/test_inference_critical.py ..............                          [ 45%]
+tests/test_inference_fallback.py ...                                     [ 46%]
+tests/test_ingestion.py .....                                            [ 48%]
+tests/test_integration.py ..                                             [ 49%]
+tests/test_manifest.py ...............                                   [ 56%]
+tests/test_models.py ....                                                [ 57%]
+tests/test_newsletter_storyboard_integration.py ......                   [ 60%]
+tests/test_pipeline_run_service.py ..                                    [ 60%]
+tests/test_planner.py ..........                                         [ 65%]
+tests/test_review.py .........                                           [ 68%]
+tests/test_score_topics_service.py .                                     [ 69%]
+tests/test_scoring_config.py ..                                          [ 70%]
+tests/test_scoring_rules.py .....                                        [ 72%]
+tests/test_scoring_validation.py ............                            [ 77%]
+tests/test_script_storyboard_integration.py .....                        [ 79%]
+tests/test_storage.py ...                                                [ 80%]
+tests/test_storage_integration.py ....                                   [ 82%]
+tests/test_storyboard.py ...........                                     [ 86%]
+tests/test_storyboard_service.py ......                                  [ 89%]
+tests/test_thumbnail_storyboard_integration.py .........                 [ 92%]
+tests/test_utils.py ............                                         [ 97%]
+tests/test_workflow.py .....                                             [100%]
+
+=============================== warnings summary ===============================
+.venv/lib/python3.14/site-packages/google/genai/types.py:42
+  /home/aryan/May-2026/Content-Creation/.venv/lib/python3.14/site-packages/google/genai/types.py:42: DeprecationWarning: '_UnionGenericAlias' is deprecated and slated for removal in Python 3.17
+    VersionedUnionType = Union[builtin_types.UnionType, _UnionGenericAlias]
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.14.0-final-0 ________________
+
+Name                                                               Stmts   Miss  Cover   Missing
+------------------------------------------------------------------------------------------------
+src/content_creation/__init__.py                                       5      0   100%
+src/content_creation/application/__init__.py                          10      0   100%
+src/content_creation/application/asset_generation_service.py          79     21    73%   41, 48, 74, 88-94, 102-106, 112, 115-116, 120, 134-140
+src/content_creation/application/asset_review_service.py              73     13    82%   50, 85-95, 114, 129-130
+src/content_creation/application/brief_generation_service.py          43      8    81%   48, 60, 72-73, 79-81, 85
+src/content_creation/application/collect_topics_service.py            14      0   100%
+src/content_creation/application/content_intelligence_service.py      59      4    93%   51, 57, 70, 147
+src/content_creation/application/context.py                           21      0   100%
+src/content_creation/application/pipeline_run_service.py             150     58    61%   86-90, 111-115, 136-143, 164-171, 193-197, 207, 213-217, 221-265
+src/content_creation/application/score_topics_service.py              31      3    90%   36, 53-54
+src/content_creation/application/storyboard_service.py                64      4    94%   48, 54, 66, 135
+src/content_creation/cli.py                                          713    593    17%   160-161, 189-208, 211-216, 222, 225-226, 234, 238-256, 259-294, 297-317, 320-342, 345-407, 410-581, 584-625, 628-647, 650-722, 725-788, 791-859, 862-956, 959-1068, 1078-1083, 1087
+src/content_creation/collectors/__init__.py                            3      0   100%
+src/content_creation/collectors/base.py                               36     17    53%   26, 31, 36, 40-54
+src/content_creation/collectors/rss.py                                55      4    93%   22, 87-89
+src/content_creation/domains/__init__.py                               0      0   100%
+src/content_creation/domains/brief/__init__.py                         0      0   100%
+src/content_creation/domains/brief/repository.py                       6      0   100%
+src/content_creation/domains/carousel/__init__.py                      0      0   100%
+src/content_creation/domains/carousel/repository.py                    6      0   100%
+src/content_creation/domains/content_intelligence/__init__.py          5      0   100%
+src/content_creation/domains/content_intelligence/generator.py        53      2    96%   45-46
+src/content_creation/domains/content_intelligence/model.py            26      0   100%
+src/content_creation/domains/content_intelligence/quality.py          20      0   100%
+src/content_creation/domains/content_intelligence/repository.py        7      0   100%
+src/content_creation/domains/newsletter/__init__.py                    0      0   100%
+src/content_creation/domains/newsletter/repository.py                  6      0   100%
+src/content_creation/domains/script/__init__.py                        0      0   100%
+src/content_creation/domains/script/repository.py                      6      0   100%
+src/content_creation/domains/storyboard/__init__.py                    4      0   100%
+src/content_creation/domains/storyboard/generator.py                  57      4    93%   65-66, 129-130
+src/content_creation/domains/storyboard/model.py                       7      0   100%
+src/content_creation/domains/storyboard/repository.py                  7      0   100%
+src/content_creation/domains/thumbnail/__init__.py                     0      0   100%
+src/content_creation/domains/thumbnail/repository.py                   6      0   100%
+src/content_creation/generation/__init__.py                            5      0   100%
+src/content_creation/generation/brief.py                              36      0   100%
+src/content_creation/generation/carousel.py                           61      1    98%   40
+src/content_creation/generation/newsletter.py                         60      1    98%   40
+src/content_creation/generation/script.py                             86     19    78%   35, 45, 56-59, 95-102, 129-136
+src/content_creation/generation/thumbnail.py                          53      1    98%   40
+src/content_creation/inference/__init__.py                             3      0   100%
+src/content_creation/inference/cache.py                               35      3    91%   45-46, 50
+src/content_creation/inference/health.py                              39      0   100%
+src/content_creation/inference/manager.py                             66      2    97%   61, 67
+src/content_creation/inference/models.py                              15      0   100%
+src/content_creation/inference/providers/__init__.py                   0      0   100%
+src/content_creation/inference/providers/base.py                      17      0   100%
+src/content_creation/inference/providers/gemini.py                    42     22    48%   16-49, 60, 89, 93-121
+src/content_creation/inference/providers/groq.py                       0      0   100%
+src/content_creation/inference/providers/ollama.py                     0      0   100%
+src/content_creation/inference/providers/openrouter.py                44     23    48%   18-50, 61, 86, 90-131
+src/content_creation/inference/retry.py                               78      7    91%   50, 54, 69, 90-92, 168
+src/content_creation/inference/router.py                               0      0   100%
+src/content_creation/ingestion.py                                     49      4    92%   67-68, 82-83
+src/content_creation/manifest.py                                      99     18    82%   87, 134-138, 141-144, 159-163, 182-188, 220-222
+src/content_creation/models/__init__.py                               11      0   100%
+src/content_creation/models/analytics.py                              17      0   100%
+src/content_creation/models/brief.py                                  13      0   100%
+src/content_creation/models/calendar.py                                5      0   100%
+src/content_creation/models/carousel.py                                7      0   100%
+src/content_creation/models/dryrun.py                                  6      0   100%
+src/content_creation/models/manifest.py                                6      0   100%
+src/content_creation/models/newsletter.py                              7      0   100%
+src/content_creation/models/script.py                                  6      0   100%
+src/content_creation/models/thumbnail.py                               6      0   100%
+src/content_creation/models/topic.py                                  67      0   100%
+src/content_creation/planning/__init__.py                              3      0   100%
+src/content_creation/planning/dryrun.py                              101     10    90%   56-69, 94, 163, 168-169
+src/content_creation/planning/planner.py                             100      4    96%   84, 91, 114, 192
+src/content_creation/platform/__init__.py                              0      0   100%
+src/content_creation/platform/storage/__init__.py                      3      0   100%
+src/content_creation/platform/storage/json_repository.py              45      7    84%   37-39, 57, 62-64
+src/content_creation/platform/storage/local_backend.py                36      3    92%   54, 57-58
+src/content_creation/prompts/__init__.py                               2      0   100%
+src/content_creation/prompts/registry.py                              16      1    94%   28
+src/content_creation/scoring/__init__.py                               4      0   100%
+src/content_creation/scoring/base.py                                  57     14    75%   35, 40, 52, 59-61, 73-75, 80, 129-132
+src/content_creation/scoring/config.py                                46      5    89%   81-82, 89-91
+src/content_creation/scoring/engine.py                                66      9    86%   57, 85-86, 119, 123-133
+src/content_creation/scoring/rules.py                                 93     50    46%   18-20, 23, 34-60, 67-69, 72, 83-84, 95, 107, 115, 146-150, 153, 164-183
+src/content_creation/scoring/validation.py                            57      4    93%   27, 35, 83, 121
+src/content_creation/shared/__init__.py                                3      0   100%
+src/content_creation/shared/enums.py                                   7      0   100%
+src/content_creation/shared/types.py                                   1      0   100%
+src/content_creation/storage/local.py                                254     83    67%   84, 97-101, 109-110, 114, 124-125, 130-138, 146, 162, 170, 174, 178, 182, 186, 190, 194, 198, 202-209, 219-220, 230-232, 242-243, 248-255, 259-267, 276-278, 288-289, 302-304, 310, 316-318, 326-332, 383-385
+src/content_creation/utils/__init__.py                                 3      0   100%
+src/content_creation/utils/config.py                                  33     10    70%   22, 41, 46-47, 91-101
+src/content_creation/utils/logging.py                                 57      9    84%   96-99, 106-114
+src/content_creation/workflow/__init__.py                              2      0   100%
+src/content_creation/workflow/state.py                                63      2    97%   75-76
+------------------------------------------------------------------------------------------------
+TOTAL                                                               3563   1043    71%
+Coverage HTML written to dir htmlcov
+======================== 241 passed, 1 warning in 5.95s ========================

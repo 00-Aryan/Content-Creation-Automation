@@ -19,31 +19,56 @@ def test_pipeline_run_service_success_orchestration(tmp_path):
     ) as mock_score_cls, patch(
         "content_creation.application.pipeline_run_service.BriefGenerationService"
     ) as mock_brief_cls, patch(
+        "content_creation.application.pipeline_run_service.ContentIntelligenceService"
+    ) as mock_ci_cls, patch(
+        "content_creation.application.pipeline_run_service.StoryboardService"
+    ) as mock_storyboard_cls, patch(
         "content_creation.application.pipeline_run_service.AssetGenerationService"
     ) as mock_asset_cls, patch(
         "content_creation.application.pipeline_run_service.ManifestBuilder"
     ) as mock_manifest_builder_cls:
 
+        call_order = []
+
         # Mock results
         mock_collect = MagicMock()
-        mock_collect.run.return_value = MagicMock(count=5)
+        mock_collect.run.side_effect = lambda *args, **kwargs: (
+            call_order.append("collect") or MagicMock(count=5)
+        )
         mock_collect_cls.return_value = mock_collect
 
         mock_score = MagicMock()
-        mock_score.run.return_value = MagicMock(
-            scored_count=3, rejected_count=1
+        mock_score.run.side_effect = lambda *args, **kwargs: (
+            call_order.append("score")
+            or MagicMock(scored_count=3, rejected_count=1)
         )
         mock_score_cls.return_value = mock_score
 
         mock_brief = MagicMock()
-        mock_brief.run.return_value = MagicMock(
-            generated_count=2, skipped_count=0, failures=[]
+        mock_brief.run.side_effect = lambda *args, **kwargs: (
+            call_order.append("brief")
+            or MagicMock(generated_count=2, skipped_count=0, failures=[])
         )
         mock_brief_cls.return_value = mock_brief
 
+        mock_ci = MagicMock()
+        mock_ci.run.side_effect = lambda *args, **kwargs: (
+            call_order.append("content_intelligence")
+            or MagicMock(generated_count=2, skipped_count=0, failures=[])
+        )
+        mock_ci_cls.return_value = mock_ci
+
+        mock_storyboard = MagicMock()
+        mock_storyboard.run.side_effect = lambda *args, **kwargs: (
+            call_order.append("storyboard")
+            or MagicMock(generated_count=2, skipped_count=0, failures=[])
+        )
+        mock_storyboard_cls.return_value = mock_storyboard
+
         mock_asset = MagicMock()
-        mock_asset.run.return_value = MagicMock(
-            counts={"thumbnail": 1}, skipped_count=0, failed_count=0
+        mock_asset.run.side_effect = lambda *args, **kwargs: (
+            call_order.append("assets")
+            or MagicMock(counts={"thumbnail": 1}, skipped_count=0, failed_count=0)
         )
         mock_asset_cls.return_value = mock_asset
 
@@ -67,6 +92,8 @@ def test_pipeline_run_service_success_orchestration(tmp_path):
             "collect",
             "score",
             "generate-briefs",
+            "generate-content-intelligence",
+            "generate-storyboards",
             "generate-assets",
             "build-manifests",
         ]
@@ -77,10 +104,25 @@ def test_pipeline_run_service_success_orchestration(tmp_path):
         mock_brief.run.assert_called_once_with(
             ctx, top_n=5, api_key="dummy_key", rate_limit_delay=5.0
         )
+        mock_ci.run.assert_called_once_with(
+            ctx, top_n=5, api_key="dummy_key", rate_limit_delay=5.0
+        )
+        mock_storyboard.run.assert_called_once_with(
+            ctx, top_n=5, api_key="dummy_key", rate_limit_delay=5.0
+        )
         mock_asset.run.assert_called_once_with(
             ctx, top_n=5, api_key="dummy_key", rate_limit_delay=5.0
         )
         mock_manifest_builder.build_all.assert_called_once()
+
+        assert call_order == [
+            "collect",
+            "score",
+            "brief",
+            "content_intelligence",
+            "storyboard",
+            "assets",
+        ]
 
 
 def test_pipeline_run_service_failure_halts_downstream(tmp_path):

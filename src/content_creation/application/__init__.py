@@ -34,6 +34,18 @@ from content_creation.application.asset_review_service import (
     AssetReviewService,
     ReviewResult,
 )
+from content_creation.application.brief_review_service import (
+    BriefDecision,
+    BriefReviewItem,
+    BriefReviewResult,
+    BriefReviewService,
+)
+from content_creation.application.storyboard_review_service import (
+    StoryboardDecision,
+    StoryboardReviewItem,
+    StoryboardReviewResult,
+    StoryboardReviewService,
+)
 from content_creation.application.pipeline_run_service import (
     PipelineRunResult,
     PipelineRunService,
@@ -60,6 +72,14 @@ __all__ = [
     "AssetReviewItem",
     "AssetReviewService",
     "ReviewResult",
+    "BriefDecision",
+    "BriefReviewItem",
+    "BriefReviewResult",
+    "BriefReviewService",
+    "StoryboardDecision",
+    "StoryboardReviewItem",
+    "StoryboardReviewResult",
+    "StoryboardReviewService",
     "PipelineRunResult",
     "PipelineRunService",
 ]

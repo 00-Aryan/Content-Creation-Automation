@@ -1,0 +1,68 @@
+{
+  "topic_id": "phase7-topic-2",
+  "stages": {
+    "brief": {
+      "topic_id": "phase7-topic-2",
+      "stage": "brief",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "content_intelligence": {
+      "topic_id": "phase7-topic-2",
+      "stage": "content_intelligence",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:13:00.682093+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191300Z/workspaces/multi_topic_batch/data/content_intelligence/phase7-topic-2.json"
+    },
+    "storyboard": {
+      "topic_id": "phase7-topic-2",
+      "stage": "storyboard",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:13:00.683578+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191300Z/workspaces/multi_topic_batch/data/storyboards/phase7-topic-2.json"
+    },
+    "thumbnail": {
+      "topic_id": "phase7-topic-2",
+      "stage": "thumbnail",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:13:00.684349+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191300Z/workspaces/multi_topic_batch/data/thumbnails/phase7-topic-2.json"
+    },
+    "script": {
+      "topic_id": "phase7-topic-2",
+      "stage": "script",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:13:00.685279+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191300Z/workspaces/multi_topic_batch/data/scripts/phase7-topic-2.json"
+    },
+    "carousel": {
+      "topic_id": "phase7-topic-2",
+      "stage": "carousel",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:13:00.684837+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191300Z/workspaces/multi_topic_batch/data/carousels/phase7-topic-2.json"
+    },
+    "newsletter": {
+      "topic_id": "phase7-topic-2",
+      "stage": "newsletter",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:13:00.685756+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191300Z/workspaces/multi_topic_batch/data/newsletters/phase7-topic-2.json"
+    }
+  }
+}

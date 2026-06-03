@@ -127,6 +127,8 @@ def test_content_intelligence_service_success(tmp_path, sample_brief, sample_sco
 def test_content_intelligence_service_skip_workflow(tmp_path, sample_brief, sample_scored_item):
     """Test that the service skips generation if workflow marks it completed."""
     service = ContentIntelligenceService()
+    ci_file = tmp_path / "test-topic-1.json"
+    ci_file.write_text("{}")
 
     with patch(
         "content_creation.application.content_intelligence_service.ContentIntelligenceGenerator"

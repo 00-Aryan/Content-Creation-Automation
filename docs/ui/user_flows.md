@@ -1,15 +1,15 @@
-# User Flows: Streamlit Content Creation Pipeline UI
+# User Flows: Streamlit Content Creation Pipeline UI (v0.6)
 
 **Author:** UX Architect  
-**Document Status:** Approved (Draft)  
+**Document Status:** Approved (Remediated)  
 **Target Path:** [user_flows.md](file:///home/aryan/May-2026/Content-Creation/docs/ui/user_flows.md)  
-**Context:** Detailed Step-by-Step UI Page State Definitions  
+**Context:** Step-by-Step UI Page State and Action Mappings to v0.6 Services  
 
 ---
 
 ## Operational Flow Overview
 
-The Streamlit application coordinates the execution of the content creation pipeline in a step-by-step linear workflow, matching the underlying backend architecture. Users traverse from raw topic ingestion to final multi-format asset approval through the following sequential path:
+The Streamlit application coordinates the execution of the content creation pipeline in a step-by-step linear workflow, matching the underlying backend service architecture. Users traverse from raw topic ingestion to final multi-format asset approval through the following sequential path:
 
 ```
 [1. Dashboard] ──► [2. Collect Topics] ──► [3. Score Topics] ──► [4. Generate Briefs]
@@ -17,67 +17,49 @@ The Streamlit application coordinates the execution of the content creation pipe
 [8. Review Outputs] ◄── [7. Generate Assets] ◄── [6. Storyboards] ◄─────┘
 ```
 
-Each page in the application manages its data lifecycle directly through the underlying repository patterns, persisting changes to local JSON storage files on completion of each step.
+Each page in the application manages its data lifecycle directly through the underlying Application Services, persisting changes to local storage via the `ApplicationContext` container.
 
 ---
 
 ## Detailed Page Flow Specifications
 
 ### Page 1: Dashboard
-* **Purpose:** Provides a centralized control center displaying overall system status, total assets in each stage of the lifecycle, API connection statuses, and pipeline throughput metrics.
-* **Inputs:** Read-only aggregate counts calculated from `data/` subdirectories (`data/raw`, `data/briefs`, `data/content_intelligence`, `data/storyboards`, `data/thumbnails`, `data/workflow_state`).
+* **Purpose:** Centralized control center displaying overall system status, total assets in each stage of the lifecycle, API connection statuses, and pipeline run executions.
+* **Inputs:** Read-only aggregate counts calculated from `LocalStorage` directories (`data/raw`, `data/briefs`, `data/content_intelligence`, `data/storyboards`, `data/thumbnails`, `data/scripts`, `data/carousels`, `data/newsletters`, `data/manifests`).
 * **Actions:**
-  - **Refresh Dashboard:** Re-scan the filesystem and update counts.
+  - **Run End-to-End Pipeline:** Triggers [PipelineRunService.run](file:///home/aryan/May-2026/Content-Creation/src/content_creation/application/pipeline_run_service.py) in the background. Streams logs live to a Streamlit console.
   - **Credentials Check:** Validate connectivity to primary Gemini API and OpenRouter fallback endpoints.
 * **Outputs:** 
-  - Summary metric cards showing: *Collected Raw Feeds*, *Scored Topics*, *Active Drafts*, *Needs Review*, *Approved Content Suites*.
-  - A visual timeline/progress pipeline chart showing current pipeline backlog distribution.
-  - Health checks indicators for the Gemini and OpenRouter API keys.
-* **Empty States:** Renders an informational banner: *"No database directory detected. Initialize the directory structure to get started."*
-* **Error States:** Renders a warning message if API keys are missing from `.env` or return validation failures (e.g. *OpenRouter: 401 Unauthorized*).
-* **Success States:** Green status badges confirming: *System fully operational. All API configurations healthy.*
+  - Summary metric cards showing: *Collected Raw Feeds*, *Scored Topics*, *Active Briefs*, *Storyboards*, *Needs Review*, *Approved Content Suites*.
+  - Live console stream showing background execution logs.
+* **Empty/Error States:** Warns if API keys are missing from `.env` or validation fails.
 
 ---
 
 ### Page 2: Collect Topics
 * **Purpose:** Initiates the ingestion phase, scanning configured RSS feeds or sources to download and store raw paper/article metadata.
-* **Inputs:** Confired RSS URLs or manual URL entries in a text field.
+* **Inputs:** Optional source id filter.
 * **Actions:**
-  - **Run Collector:** Triggers the RSS parser and ingestion runner scripts.
-  - **Clear Raw Queue:** Delete staging raw files.
-* **Outputs:** A data table of raw topics (Topic ID, Title, Source Link, Ingested Timestamp) ready for scoring.
-* **Empty States:** Renders a table card: *"Raw queue empty. Click 'Run Collector' to scan configured feeds."*
-* **Error States:** Renders an error box: *"Failed to connect to RSS Feed: Network Timeout."*
-* **Success States:** A banner displaying: *"Successfully collected 24 new raw topics."*
+  - **Run Collector:** Triggers [CollectTopicsService.run](file:///home/aryan/May-2026/Content-Creation/src/content_creation/application/collect_topics_service.py).
+* **Outputs:** A data table of raw topics (Topic ID, Title, Source Link, Ingested Timestamp).
 
 ---
 
 ### Page 3: Score Topics
-* **Purpose:** Evaluates raw topics using the platform's prioritization rules, applying configurable weights to rank research materials.
-* **Inputs:** 
-  - Sliders to temporarily adjust weights for topic rules (e.g., novelty, utility, student value).
-  - Selected topics checkboxes from the raw queue.
+* **Purpose:** Evaluates raw topics using the platform's prioritization rules, applying configured weights to rank research materials.
+* **Inputs:** Weight adjustments for scoring criteria ( novelty, utility, student value).
 * **Actions:**
-  - **Run Prioritization Scorer:** Feeds selection to `ScoringEngine` and writes `ScoredTopicItem` JSONs.
-* **Outputs:** A prioritized list of topics sorted by total score, showing triggered warning flags (e.g., lack of source URL or duplicate entries).
-* **Empty States:** Renders: *"No unscored raw topics available. Collect topics first."*
-* **Error States:** Displays: *"Configuration error: scoring.yaml weight mismatch."*
-* **Success States:** Renders: *"Scoring complete. 12 topics prioritized. Proceed to Brief Generation."*
+  - **Run Prioritization Scorer:** Triggers [ScoreTopicsService.run](file:///home/aryan/May-2026/Content-Creation/src/content_creation/application/score_topics_service.py).
+* **Outputs:** A prioritized list of topics sorted by total score, showing warning flags.
 
 ---
 
 ### Page 4: Generate Briefs
 * **Purpose:** Synthesizes the core technical contribution of selected high-scoring papers into clear educational briefs.
-* **Inputs:** 
-  - Topic selection dropdown from the scored queue.
-  - Text inputs for optional manual brief overrides (e.g., student takeaways or analogies).
+* **Inputs:** Topic selection dropdown from the scored queue.
 * **Actions:**
-  - **Generate Brief:** Triggers the LLM to write the Brief.
-  - **Mark Brief Approved:** Direct state persistence to storage.
-* **Outputs:** Renders the text blocks of the generated Brief: plain English summaries, analogies, limitations, and target audiences.
-* **Empty States:** Renders: *"Select a scored topic from the dropdown to generate its Brief."*
-* **Error States:** Displays: *"Brief generation failed: Rate limit (429) hit. Gemini model currently unavailable. Fallback provider triggered."*
-* **Success States:** Displays: *"Brief generated successfully. Quality: READY. Analogy and limitations fully populated."*
+  - **Generate Brief:** Triggers [BriefGenerationService.run](file:///home/aryan/May-2026/Content-Creation/src/content_creation/application/brief_generation_service.py) for the selected topic.
+* **Outputs:** Renders plain English summaries, analogies, limitations, and recommended formats.
 
 ---
 
@@ -85,11 +67,8 @@ Each page in the application manages its data lifecycle directly through the und
 * **Purpose:** Extracts hooks, emotional registers, contrast pairs, and curiosity gaps from approved briefs.
 * **Inputs:** Selection of an approved Brief.
 * **Actions:**
-  - **Extract Hooks & Angles:** Runs the Content Intelligence LLM generator.
-* **Outputs:** Display cards showing primary hook (statistic/quote), secondary hook (question/bold claim), before/after contrast pairs, and topic classification (e.g. "paper").
-* **Empty States:** Displays: *"No brief selected. Please select a brief to analyze."*
-* **Error States:** Displays: *"Content Intelligence failed: JSON format validation error. Delimiter expected."*
-* **Success States:** Displays: *"Content Intelligence successfully drafted. Register: EXCITEMENT. Hooks extracted."*
+  - **Extract Hooks & Angles:** Runs [ContentIntelligenceService.run](file:///home/aryan/May-2026/Content-Creation/src/content_creation/application/content_intelligence_service.py) for the selected topic.
+* **Outputs:** Displays primary hooks, secondary hooks, before/after contrast pairs, and topic classifications.
 
 ---
 
@@ -97,34 +76,25 @@ Each page in the application manages its data lifecycle directly through the und
 * **Purpose:** Coordinates the claims distribution, visual metaphors, layout styles, and CTAs across formats.
 * **Inputs:** Select topic with active Content Intelligence.
 * **Actions:**
-  - **Build Storyboard:** Executes the storyboard mapping generator.
-* **Outputs:** Grid displaying layout formatting options (Carousel, Short Video, Newsletter) with their assigned hooks, CTA details, and the shared visual metaphor concept.
-* **Empty States:** Displays: *"Select a topic with content intelligence to construct a storyboard layout."*
-* **Error States:** Displays: *"Storyboard generation failed. Reason: Insufficient Content Intelligence data."*
-* **Success States:** Displays: *"Storyboard generated. 3 format tracks coordinated. Visual metaphor resolved."*
+  - **Build Storyboard:** Runs [StoryboardService.run](file:///home/aryan/May-2026/Content-Creation/src/content_creation/application/storyboard_service.py) for the selected topic.
+* **Outputs:** Grid displaying format layouts (Carousel, Short Video, Newsletter) with their assigned hooks, CTA details, and the shared visual metaphor concept.
 
 ---
 
 ### Page 7: Generate Assets
 * **Purpose:** Generates the specific copy and scripting formats based on the storyboard allocations.
-* **Inputs:** Dropdown to select a storyboard. Checkboxes to toggle format generation (Carousel, Newsletter, Script, Thumbnail).
+* **Inputs:** Dropdown to select a topic with completed Storyboard. (Storyboard is a mandatory gate; fails validation if missing).
 * **Actions:**
-  - **Generate Content Suite:** Simultaneously spawns generator jobs.
-* **Outputs:** Tabbed viewer presenting the final scripts, visual slides, and markdown emails side-by-side with copy buttons.
-* **Empty States:** Displays: *"No storyboard selected. Choose a storyboard to generate assets."*
-* **Error States:** Renders: *"Inference failed on script generation. Retrying..."*
-* **Success States:** Displays: *"All assets successfully generated as Drafts."*
+  - **Generate Assets:** Runs [AssetGenerationService.run](file:///home/aryan/May-2026/Content-Creation/src/content_creation/application/asset_generation_service.py) for the selected topic.
+* **Outputs:** Displays generation counts and updates workflow state to completed.
+* **Error States:** Explicitly fails if Storyboard is missing, prompting the user to generate a Storyboard first.
 
 ---
 
 ### Page 8: Review Outputs
-* **Purpose:** The final quality check dashboard where authors can manually review, override, and approve the complete suite before publishing.
-* **Inputs:** Dropdown containing topics in `needs_review` or `draft` status. Text boxes to edit generated text inline.
+* **Purpose:** Final preview workspace to review generated copy (newsletters, video scripts, carousels, thumbnails) and export files.
+* **Inputs:** Dropdown containing topics with completed drafts. Manifest data loaded for review visibility.
 * **Actions:**
-  - **Approve Entire Suite:** Saves `review_status="approved"` to files on disk.
-  - **Regenerate Section:** Re-runs the LLM prompt for a single specific section.
+  - **Approve/Reject Asset Type:** Calls [AssetReviewService.apply_decisions](file:///home/aryan/May-2026/Content-Creation/src/content_creation/application/asset_review_service.py) with structured `AssetDecision` payloads.
   - **Download ZIP Bundle:** Compiles all approved assets for download.
-* **Outputs:** Summary evaluation cards representing the expert roles (Strategist, Creator, Editor, Auditor) and inline editing inputs.
-* **Empty States:** Displays: *"All generated assets have been approved and published. No items remaining in review queue."*
-* **Error States:** Displays: *"Cannot approve suite: Thumbnail prompt has 'needs_review' placeholders. Edit or regenerate before approval."*
-* **Success States:** Displays: *"Suite APPROVED. Bundle created. Ready for upload."*
+* **Outputs:** Tabbed viewer presenting scripts, carousels, newsletters, and thumbnail prompts beside the manifest status tags.

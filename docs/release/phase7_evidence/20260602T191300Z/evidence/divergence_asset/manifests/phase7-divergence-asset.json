@@ -1,0 +1,42 @@
+{
+  "topic_id": "phase7-divergence-asset",
+  "topic_title": "Divergence Asset",
+  "source_url": "https://example.com/phase7-divergence-asset",
+  "assets": {
+    "brief": {
+      "path": "data/briefs/phase7-divergence-asset.json",
+      "status": "needs_review",
+      "generated_at": "2026-06-02T19:13:00.944678+00:00"
+    },
+    "script": {
+      "path": "data/scripts/phase7-divergence-asset.json",
+      "status": "needs_review",
+      "generated_at": "2026-06-02T19:13:00.947119+00:00"
+    },
+    "carousel": {
+      "path": "data/carousels/phase7-divergence-asset.json",
+      "status": "needs_review",
+      "generated_at": "2026-06-02T19:13:00.946559+00:00"
+    },
+    "newsletter": {
+      "path": "data/newsletters/phase7-divergence-asset.json",
+      "status": "needs_review",
+      "generated_at": "2026-06-02T19:13:00.947642+00:00"
+    },
+    "thumbnail": {
+      "path": "data/thumbnails/phase7-divergence-asset.json",
+      "status": "needs_review",
+      "generated_at": "2026-06-02T19:13:00.945942+00:00"
+    }
+  },
+  "overall_status": "partial",
+  "blocking_reasons": [
+    "brief: needs_review",
+    "script: needs_review",
+    "carousel: needs_review",
+    "newsletter: needs_review",
+    "thumbnail: needs_review"
+  ],
+  "ready_for_planner": false,
+  "generated_at": "2026-06-02T19:13:00.948491+00:00"
+}

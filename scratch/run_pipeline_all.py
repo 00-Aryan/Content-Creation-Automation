@@ -124,7 +124,7 @@ for idx, tid in enumerate(topic_ids):
     # 5. Generate Thumbnail
     try:
         print("  Generating Thumbnail...")
-        thumb = thumb_gen.generate(brief, storyboard=sb)
+        thumb = thumb_gen.generate(sb, brief)
         storage._thumbnail_repo.save(thumb)
         print(f"  Saved Thumbnail (Status={thumb.review_status})")
     except Exception as e:

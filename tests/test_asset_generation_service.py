@@ -91,8 +91,9 @@ def test_asset_generation_service_orchestration(tmp_path):
 
         # Verify generation dispatch
         mock_thumb.generate.assert_called_once_with(mock_storage.get_storyboard.return_value, mock_brief)
-        mock_script.generate.assert_called_once_with(mock_brief, "short_video")
+        mock_script.generate.assert_called_once_with(mock_storage.get_storyboard.return_value, mock_brief, "short_video")
         mock_carousel.generate.assert_called_once_with(mock_storage.get_storyboard.return_value, mock_brief)
+        mock_storage.get_storyboard.assert_called_once_with(mock_brief.topic_id)
 
         # Verify storage saves
         mock_storage.save_thumbnail.assert_called_once()

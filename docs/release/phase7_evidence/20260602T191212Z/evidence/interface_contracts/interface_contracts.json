@@ -1,0 +1,73 @@
+{
+  "signatures": {
+    "ThumbnailGenerator.generate": [
+      "self",
+      "storyboard",
+      "brief"
+    ],
+    "CarouselGenerator.generate": [
+      "self",
+      "storyboard",
+      "brief"
+    ],
+    "NewsletterGenerator.generate": [
+      "self",
+      "storyboard",
+      "brief"
+    ],
+    "ScriptGenerator.generate": [
+      "self",
+      "storyboard",
+      "brief",
+      "format"
+    ],
+    "ContentIntelligenceService.run": [
+      "self",
+      "ctx",
+      "top_n",
+      "api_key",
+      "rate_limit_delay"
+    ],
+    "StoryboardService.run": [
+      "self",
+      "ctx",
+      "top_n",
+      "api_key",
+      "rate_limit_delay"
+    ],
+    "AssetGenerationService.run": [
+      "self",
+      "ctx",
+      "top_n",
+      "api_key",
+      "rate_limit_delay"
+    ],
+    "PipelineRunService.run": [
+      "self",
+      "ctx",
+      "top_n",
+      "source_filter",
+      "auto_approve",
+      "api_key"
+    ]
+  },
+  "generator_ok": {
+    "ThumbnailGenerator.generate": true,
+    "CarouselGenerator.generate": true,
+    "NewsletterGenerator.generate": true,
+    "ScriptGenerator.generate": true
+  },
+  "storage_ok": {
+    "save_brief": true,
+    "get_brief": true,
+    "save_content_intelligence": true,
+    "list_content_intelligence": true,
+    "save_storyboard": true,
+    "get_storyboard": true,
+    "save_thumbnail": true,
+    "save_script": true,
+    "save_carousel": true,
+    "save_newsletter": true
+  },
+  "no_brief_first_shim_evidence": true
+}

@@ -1,0 +1,13 @@
+{
+  "topic_id": "phase7-divergence-storyboard",
+  "title_text": "FALLBACK_NO_STORYBOARD",
+  "supporting_text": "supporting text",
+  "visual_metaphor": "FALLBACK_NO_STORYBOARD",
+  "style": "clean_minimal",
+  "negative_prompt": [
+    "none"
+  ],
+  "readability_notes": "readable",
+  "review_status": "needs_review",
+  "generated_at": "2026-06-02T19:00:42.642912+00:00"
+}

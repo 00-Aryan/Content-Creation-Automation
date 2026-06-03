@@ -1,0 +1,38 @@
+{
+  "success": false,
+  "stages": [
+    "collect",
+    "score",
+    "generate-briefs",
+    "generate-content-intelligence",
+    "generate-storyboards"
+  ],
+  "stage_summaries": {
+    "collect": {
+      "count": 1,
+      "success": true
+    },
+    "score": {
+      "scored_count": 1,
+      "rejected_count": 0,
+      "success": true
+    },
+    "generate-briefs": {
+      "generated_count": 1,
+      "skipped_count": 0,
+      "failed_count": 0,
+      "success": true
+    },
+    "generate-content-intelligence": {
+      "generated_count": 1,
+      "skipped_count": 0,
+      "failed_count": 0,
+      "success": true
+    },
+    "generate-storyboards": {
+      "error": "Injected Storyboard failure",
+      "success": false
+    }
+  },
+  "log_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T190042Z/workspaces/storyboard_failure/data/logs/pipeline_20260603_003042.jsonl"
+}
