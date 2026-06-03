@@ -88,7 +88,7 @@ def test_generate_script_success(sample_brief, valid_script_response, prompt_dir
         mock_mgr.generate.return_value = _make_inference_result(valid_script_response)
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
-        script = generator.generate(sample_brief, format="short_video")
+        script = generator.generate(None, sample_brief, format="short_video")
 
     assert isinstance(script, Script)
     assert script.topic_id == sample_brief.topic_id
@@ -111,7 +111,7 @@ def test_generate_script_malformed_json_fallback(
         mock_mgr.generate.return_value = _make_inference_result(malformed_response)
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
-        script = generator.generate(sample_brief, format="carousel")
+        script = generator.generate(None, sample_brief, format="carousel")
 
     assert script.hook == "needs_review"
     assert script.script_sections == [
@@ -140,7 +140,7 @@ def test_generate_script_429_retry(sample_brief, valid_script_response, prompt_d
         mock_mgr.generate.return_value = result_with_retries
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
-        script = generator.generate(sample_brief, format="short_video")
+        script = generator.generate(None, sample_brief, format="short_video")
 
     assert mock_mgr.generate.call_count == 1
     assert script.review_status == ScriptReviewStatus.DRAFT
@@ -156,7 +156,7 @@ def test_generate_script_format_passed_through(
         mock_mgr.generate.return_value = _make_inference_result(valid_script_response)
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
-        script = generator.generate(sample_brief, format="newsletter")
+        script = generator.generate(None, sample_brief, format="newsletter")
 
     assert script.format == "newsletter"
 
@@ -171,7 +171,7 @@ def test_generate_script_source_url_injected(
         mock_mgr.generate.return_value = _make_inference_result(valid_script_response)
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
-        script = generator.generate(sample_brief, format="short_video")
+        script = generator.generate(None, sample_brief, format="short_video")
 
     assert sample_brief.source_url in script.source_links
 
@@ -233,7 +233,7 @@ def test_generate_carousel_success(sample_brief, valid_carousel_response, carous
         mock_mgr.generate.return_value = _make_carousel_result(valid_carousel_response)
 
         generator = CarouselGenerator(api_key="test_api_key", prompt_dir=carousel_prompt_dir)
-        carousel = generator.generate(sample_brief)
+        carousel = generator.generate(None, sample_brief)
 
     assert isinstance(carousel, Carousel)
     assert carousel.topic_id == sample_brief.topic_id
@@ -252,7 +252,7 @@ def test_generate_carousel_malformed_json_fallback(sample_brief, malformed_respo
         mock_mgr.generate.return_value = _make_carousel_result(malformed_response)
 
         generator = CarouselGenerator(api_key="test_api_key", prompt_dir=carousel_prompt_dir)
-        carousel = generator.generate(sample_brief)
+        carousel = generator.generate(None, sample_brief)
 
     assert carousel.slides[0].title == "needs_review"
     assert carousel.cta_slide == "needs_review"
@@ -275,7 +275,7 @@ def test_generate_carousel_429_retry(sample_brief, valid_carousel_response, caro
         mock_mgr.generate.return_value = result_with_retries
 
         generator = CarouselGenerator(api_key="test_api_key", prompt_dir=carousel_prompt_dir)
-        carousel = generator.generate(sample_brief)
+        carousel = generator.generate(None, sample_brief)
 
     assert mock_mgr.generate.call_count == 1
     assert carousel.review_status == ScriptReviewStatus.DRAFT
@@ -289,7 +289,7 @@ def test_generate_carousel_slides_parsed_correctly(sample_brief, valid_carousel_
         mock_mgr.generate.return_value = _make_carousel_result(valid_carousel_response)
 
         generator = CarouselGenerator(api_key="test_api_key", prompt_dir=carousel_prompt_dir)
-        carousel = generator.generate(sample_brief)
+        carousel = generator.generate(None, sample_brief)
 
     assert isinstance(carousel.slides[0], CarouselSlide)
     assert carousel.slides[0].slide_number == 1
@@ -354,7 +354,7 @@ def test_generate_newsletter_success(sample_brief, valid_newsletter_response, ne
         mock_mgr.generate.return_value = _make_newsletter_result(valid_newsletter_response)
 
         generator = NewsletterGenerator(api_key="test_api_key", prompt_dir=newsletter_prompt_dir)
-        newsletter = generator.generate(sample_brief)
+        newsletter = generator.generate(None, sample_brief)
 
     assert isinstance(newsletter, Newsletter)
     assert newsletter.topic_id == sample_brief.topic_id
@@ -374,7 +374,7 @@ def test_generate_newsletter_malformed_json_fallback(sample_brief, malformed_res
         mock_mgr.generate.return_value = _make_newsletter_result(malformed_response)
 
         generator = NewsletterGenerator(api_key="test_api_key", prompt_dir=newsletter_prompt_dir)
-        newsletter = generator.generate(sample_brief)
+        newsletter = generator.generate(None, sample_brief)
 
     assert newsletter.subject_line == "needs_review"
     assert len(newsletter.sections) == 3
@@ -398,7 +398,7 @@ def test_generate_newsletter_429_retry(sample_brief, valid_newsletter_response, 
         mock_mgr.generate.return_value = result_with_retries
 
         generator = NewsletterGenerator(api_key="test_api_key", prompt_dir=newsletter_prompt_dir)
-        newsletter = generator.generate(sample_brief)
+        newsletter = generator.generate(None, sample_brief)
 
     assert mock_mgr.generate.call_count == 1
     assert newsletter.review_status == ScriptReviewStatus.DRAFT
@@ -412,7 +412,7 @@ def test_generate_newsletter_sections_parsed_correctly(sample_brief, valid_newsl
         mock_mgr.generate.return_value = _make_newsletter_result(valid_newsletter_response)
 
         generator = NewsletterGenerator(api_key="test_api_key", prompt_dir=newsletter_prompt_dir)
-        newsletter = generator.generate(sample_brief)
+        newsletter = generator.generate(None, sample_brief)
 
     assert isinstance(newsletter.sections[0], NewsletterSection)
     assert newsletter.sections[0].section_name == "what_happened"
@@ -472,7 +472,7 @@ def test_generate_thumbnail_success(sample_brief, valid_thumbnail_response, thum
         mock_mgr.generate.return_value = _make_thumbnail_result(valid_thumbnail_response)
 
         generator = ThumbnailGenerator(api_key="test_api_key", prompt_dir=thumbnail_prompt_dir)
-        thumbnail = generator.generate(sample_brief)
+        thumbnail = generator.generate(None, sample_brief)
 
     assert isinstance(thumbnail, ThumbnailPrompt)
     assert thumbnail.topic_id == sample_brief.topic_id
@@ -494,7 +494,7 @@ def test_generate_thumbnail_malformed_json_fallback(sample_brief, malformed_resp
         mock_mgr.generate.return_value = _make_thumbnail_result(malformed_response)
 
         generator = ThumbnailGenerator(api_key="test_api_key", prompt_dir=thumbnail_prompt_dir)
-        thumbnail = generator.generate(sample_brief)
+        thumbnail = generator.generate(None, sample_brief)
 
     assert thumbnail.title_text == "needs_review"
     assert thumbnail.supporting_text == "needs_review"
@@ -521,7 +521,7 @@ def test_generate_thumbnail_429_retry(sample_brief, valid_thumbnail_response, th
         mock_mgr.generate.return_value = result_with_retries
 
         generator = ThumbnailGenerator(api_key="test_api_key", prompt_dir=thumbnail_prompt_dir)
-        thumbnail = generator.generate(sample_brief)
+        thumbnail = generator.generate(None, sample_brief)
 
     assert mock_mgr.generate.call_count == 1
     assert thumbnail.review_status == ScriptReviewStatus.DRAFT
@@ -535,7 +535,7 @@ def test_generate_thumbnail_negative_prompt_as_list(sample_brief, valid_thumbnai
         mock_mgr.generate.return_value = _make_thumbnail_result(valid_thumbnail_response)
 
         generator = ThumbnailGenerator(api_key="test_api_key", prompt_dir=thumbnail_prompt_dir)
-        thumbnail = generator.generate(sample_brief)
+        thumbnail = generator.generate(None, sample_brief)
 
     assert isinstance(thumbnail.negative_prompt, list)
     assert all(isinstance(item, str) for item in thumbnail.negative_prompt)

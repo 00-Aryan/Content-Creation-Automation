@@ -1,0 +1,41 @@
+{
+  "missing_artifact": "storyboard",
+  "missing_confirmed": true,
+  "manifest": {
+    "topic_id": "phase7-manifest_m2_storyboard_missing",
+    "topic_title": "Manifest Topic",
+    "source_url": "https://example.com/phase7-manifest_m2_storyboard_missing",
+    "assets": {
+      "brief": {
+        "path": "data/briefs/phase7-manifest_m2_storyboard_missing.json",
+        "status": "approved",
+        "generated_at": "2026-06-02T19:11:06.795727+00:00"
+      },
+      "script": {
+        "path": "data/scripts/phase7-manifest_m2_storyboard_missing.json",
+        "status": "approved",
+        "generated_at": "2026-06-02T19:11:06.796131+00:00"
+      },
+      "carousel": {
+        "path": "data/carousels/phase7-manifest_m2_storyboard_missing.json",
+        "status": "approved",
+        "generated_at": "2026-06-02T19:11:06.796249+00:00"
+      },
+      "newsletter": {
+        "path": "data/newsletters/phase7-manifest_m2_storyboard_missing.json",
+        "status": "approved",
+        "generated_at": "2026-06-02T19:11:06.796367+00:00"
+      },
+      "thumbnail": {
+        "path": "data/thumbnails/phase7-manifest_m2_storyboard_missing.json",
+        "status": "approved",
+        "generated_at": "2026-06-02T19:11:06.796024+00:00"
+      }
+    },
+    "overall_status": "complete",
+    "blocking_reasons": [],
+    "ready_for_planner": true,
+    "generated_at": "2026-06-02T19:11:06.796863+00:00"
+  },
+  "interpretation": "Manifest certifies brief/asset readiness only."
+}

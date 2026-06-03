@@ -11,6 +11,10 @@ from content_creation.application.context import ApplicationContext
 from content_creation.application.collect_topics_service import CollectTopicsService
 from content_creation.application.score_topics_service import ScoreTopicsService
 from content_creation.application.brief_generation_service import BriefGenerationService
+from content_creation.application.content_intelligence_service import (
+    ContentIntelligenceService,
+)
+from content_creation.application.storyboard_service import StoryboardService
 from content_creation.application.asset_generation_service import AssetGenerationService
 from content_creation.manifest import ManifestBuilder
 from content_creation.shared.enums import ReviewStatus
@@ -110,7 +114,63 @@ class PipelineRunService:
                     summaries["generate-briefs"] = {"error": str(e), "success": False}
                     pipeline_success = False
 
-        # Stage 4: Generate Assets
+        # Stage 4: Generate Content Intelligence
+        if pipeline_success:
+            with pl.stage("generate-content-intelligence") as stage_ctx:
+                stages_executed.append("generate-content-intelligence")
+                try:
+                    service = ContentIntelligenceService()
+                    res = service.run(
+                        ctx,
+                        top_n=top_n,
+                        api_key=api_key,
+                        rate_limit_delay=5.0,
+                    )
+                    stage_ctx["items"] = res.generated_count
+                    summaries["generate-content-intelligence"] = {
+                        "generated_count": res.generated_count,
+                        "skipped_count": res.skipped_count,
+                        "failed_count": len(res.failures),
+                        "success": True,
+                    }
+                except Exception as e:
+                    stage_ctx["status"] = "error"
+                    stage_ctx["error"] = str(e)
+                    summaries["generate-content-intelligence"] = {
+                        "error": str(e),
+                        "success": False,
+                    }
+                    pipeline_success = False
+
+        # Stage 5: Generate Storyboards
+        if pipeline_success:
+            with pl.stage("generate-storyboards") as stage_ctx:
+                stages_executed.append("generate-storyboards")
+                try:
+                    service = StoryboardService()
+                    res = service.run(
+                        ctx,
+                        top_n=top_n,
+                        api_key=api_key,
+                        rate_limit_delay=5.0,
+                    )
+                    stage_ctx["items"] = res.generated_count
+                    summaries["generate-storyboards"] = {
+                        "generated_count": res.generated_count,
+                        "skipped_count": res.skipped_count,
+                        "failed_count": len(res.failures),
+                        "success": True,
+                    }
+                except Exception as e:
+                    stage_ctx["status"] = "error"
+                    stage_ctx["error"] = str(e)
+                    summaries["generate-storyboards"] = {
+                        "error": str(e),
+                        "success": False,
+                    }
+                    pipeline_success = False
+
+        # Stage 6: Generate Assets
         if pipeline_success:
             with pl.stage("generate-assets") as stage_ctx:
                 stages_executed.append("generate-assets")
@@ -136,7 +196,7 @@ class PipelineRunService:
                     summaries["generate-assets"] = {"error": str(e), "success": False}
                     pipeline_success = False
 
-        # Stage 5: Build Manifests
+        # Stage 7: Build Manifests
         if pipeline_success:
             with pl.stage("build-manifests") as stage_ctx:
                 stages_executed.append("build-manifests")
@@ -156,7 +216,7 @@ class PipelineRunService:
                     summaries["build-manifests"] = {"error": str(e), "success": False}
                     pipeline_success = False
 
-        # Stage 6: Batch Approve (Auto-Approve)
+        # Stage 8: Batch Approve (Auto-Approve)
         if pipeline_success and auto_approve:
             with pl.stage("batch-approve") as stage_ctx:
                 stages_executed.append("batch-approve")

@@ -1,0 +1,20 @@
+{
+  "topic_id": "phase7-divergence-storyboard",
+  "slides": [
+    {
+      "slide_number": 1,
+      "title": "FALLBACK_NO_STORYBOARD",
+      "body": "body",
+      "visual_note": "FALLBACK_NO_STORYBOARD"
+    }
+  ],
+  "cta_slide": "FALLBACK_NO_STORYBOARD",
+  "claims_used": [
+    "FALLBACK_NO_STORYBOARD"
+  ],
+  "source_links": [
+    "https://example.com/phase7-divergence-storyboard"
+  ],
+  "review_status": "needs_review",
+  "generated_at": "2026-06-02T19:11:06.809940+00:00"
+}

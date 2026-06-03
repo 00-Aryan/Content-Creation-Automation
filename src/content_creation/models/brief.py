@@ -1,6 +1,6 @@
 from pydantic import BaseModel, field_validator
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from content_creation.shared.enums import ReviewStatus  # noqa: F401 — re-exported for backward compat
 from content_creation.shared.types import TopicId
@@ -16,6 +16,7 @@ class Brief(BaseModel):
     recommended_formats: List[str]
     source_url: str
     review_status: ReviewStatus = ReviewStatus.DRAFT
+    review_notes: Optional[str] = None
     generated_at: str
 
     @field_validator("plain_english_summary")

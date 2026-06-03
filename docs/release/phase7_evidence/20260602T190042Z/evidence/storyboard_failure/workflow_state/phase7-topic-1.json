@@ -1,0 +1,68 @@
+{
+  "topic_id": "phase7-topic-1",
+  "stages": {
+    "brief": {
+      "topic_id": "phase7-topic-1",
+      "stage": "brief",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "content_intelligence": {
+      "topic_id": "phase7-topic-1",
+      "stage": "content_intelligence",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:00:42.511118+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T190042Z/workspaces/storyboard_failure/data/content_intelligence/phase7-topic-1.json"
+    },
+    "storyboard": {
+      "topic_id": "phase7-topic-1",
+      "stage": "storyboard",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "thumbnail": {
+      "topic_id": "phase7-topic-1",
+      "stage": "thumbnail",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "script": {
+      "topic_id": "phase7-topic-1",
+      "stage": "script",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "carousel": {
+      "topic_id": "phase7-topic-1",
+      "stage": "carousel",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "newsletter": {
+      "topic_id": "phase7-topic-1",
+      "stage": "newsletter",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    }
+  }
+}

@@ -6,6 +6,7 @@ from typing import Optional, Union
 
 from content_creation.inference import InferenceManager
 from content_creation.models.brief import Brief
+from content_creation.domains.storyboard.model import Storyboard
 from content_creation.prompts import PromptRegistry
 from content_creation.shared.enums import ReviewStatus
 from content_creation.models.thumbnail import ThumbnailPrompt
@@ -21,11 +22,15 @@ class ThumbnailGenerator:
         self._registry = prompt_dir if isinstance(prompt_dir, PromptRegistry) else None
         self.prompt_dir = prompt_dir if isinstance(prompt_dir, Path) else None
 
-    def generate(self, brief: Brief, storyboard=None) -> ThumbnailPrompt:
-        """Generate a thumbnail prompt for ``brief``.
+    def generate(
+        self,
+        storyboard: Optional[Storyboard],
+        brief: Brief,
+    ) -> ThumbnailPrompt:
+        """Generate a thumbnail prompt.
 
-        When *storyboard* is provided, title_text, style, and visual_metaphor
-        are overridden with Storyboard-owned values.
+        Storyboard is the primary layout planner, and Brief is the auxiliary content.
+        If storyboard is None, fallback to legacy/brief-only mode is executed.
         """
         if self._registry:
             template = self._registry.get("thumbnail", "thumbnail")
@@ -43,7 +48,13 @@ class ThumbnailGenerator:
         prompt = prompt.replace("{{ brief.plain_english_summary }}", summary_bullets)
 
         prompt = prompt.replace("{{ brief.student_takeaway }}", brief.student_takeaway)
-        prompt = prompt.replace("{{ brief.analogy }}", brief.analogy)
+
+        # Map analogy to storyboard's visual metaphor under new flow
+        if storyboard is not None:
+            prompt = prompt.replace("{{ brief.analogy }}", storyboard.visual_metaphor)
+        else:
+            prompt = prompt.replace("{{ brief.analogy }}", brief.analogy)
+
         prompt = prompt.replace("{{ brief.limitation }}", brief.limitation)
         prompt = prompt.replace("{{ brief.audience_fit }}", brief.audience_fit)
         prompt = prompt.replace("{{ brief.source_url }}", brief.source_url)

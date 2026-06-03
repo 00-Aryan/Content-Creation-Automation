@@ -1,0 +1,27 @@
+{
+  "topic_id": "phase7-topic-1",
+  "subject_line": "STORYBOARD_NEWSLETTER_HOOK_USED",
+  "sections": [
+    {
+      "section_name": "what_happened",
+      "content": "what happened"
+    },
+    {
+      "section_name": "why_it_matters",
+      "content": "why it matters"
+    },
+    {
+      "section_name": "student_takeaway",
+      "content": "takeaway"
+    }
+  ],
+  "cta": "STORYBOARD_NEWSLETTER_CTA_USED",
+  "claims_used": [
+    "STORYBOARD_NEWSLETTER_CLAIM_USED"
+  ],
+  "source_links": [
+    "https://example.com/phase7-topic-1"
+  ],
+  "review_status": "needs_review",
+  "generated_at": "2026-06-02T19:12:12.208953+00:00"
+}

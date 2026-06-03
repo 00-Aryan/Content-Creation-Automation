@@ -1,0 +1,23 @@
+{
+  "id": "phase7-topic-2",
+  "title": "Phase 7 Topic 2",
+  "url": "https://example.com/phase7/topic-2",
+  "source": "phase7_fixture",
+  "published_at": "2026-06-03T00:00:00Z",
+  "author": "Validation",
+  "raw_text": "Fixture raw text for topic 2",
+  "excerpt": "Fixture excerpt 2",
+  "category": "paper",
+  "topic_tags": [
+    "phase7",
+    "validation"
+  ],
+  "status": "staged",
+  "metadata": {
+    "recommended_formats": [
+      "short_video",
+      "carousel",
+      "newsletter"
+    ]
+  }
+}

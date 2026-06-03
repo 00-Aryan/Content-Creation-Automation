@@ -1,0 +1,34 @@
+{
+  "ids": {
+    "staged": "phase7-topic-1",
+    "scored": "phase7-topic-1",
+    "brief": "phase7-topic-1",
+    "ci": "phase7-topic-1",
+    "storyboard": "phase7-topic-1",
+    "thumbnail": "phase7-topic-1",
+    "script": "phase7-topic-1",
+    "carousel": "phase7-topic-1",
+    "newsletter": "phase7-topic-1",
+    "manifest": "phase7-topic-1"
+  },
+  "lineage_ok": true,
+  "workflow_statuses": {
+    "brief": "pending",
+    "content_intelligence": "completed",
+    "storyboard": "completed",
+    "thumbnail": "completed",
+    "script": "completed",
+    "carousel": "completed",
+    "newsletter": "completed"
+  },
+  "expected_workflow": {
+    "brief": "pending",
+    "content_intelligence": "completed",
+    "storyboard": "completed",
+    "thumbnail": "completed",
+    "script": "completed",
+    "carousel": "completed",
+    "newsletter": "completed"
+  },
+  "brief_pending_exception_observed": true
+}

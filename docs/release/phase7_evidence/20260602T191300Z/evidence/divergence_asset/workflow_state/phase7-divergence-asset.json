@@ -1,0 +1,68 @@
+{
+  "topic_id": "phase7-divergence-asset",
+  "stages": {
+    "brief": {
+      "topic_id": "phase7-divergence-asset",
+      "stage": "brief",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "content_intelligence": {
+      "topic_id": "phase7-divergence-asset",
+      "stage": "content_intelligence",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "storyboard": {
+      "topic_id": "phase7-divergence-asset",
+      "stage": "storyboard",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "thumbnail": {
+      "topic_id": "phase7-divergence-asset",
+      "stage": "thumbnail",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:13:00.946186+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191300Z/workspaces/divergence_asset/data/thumbnails/phase7-divergence-asset.json"
+    },
+    "script": {
+      "topic_id": "phase7-divergence-asset",
+      "stage": "script",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:13:00.947322+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191300Z/workspaces/divergence_asset/data/scripts/phase7-divergence-asset.json"
+    },
+    "carousel": {
+      "topic_id": "phase7-divergence-asset",
+      "stage": "carousel",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:13:00.946796+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191300Z/workspaces/divergence_asset/data/carousels/phase7-divergence-asset.json"
+    },
+    "newsletter": {
+      "topic_id": "phase7-divergence-asset",
+      "stage": "newsletter",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:13:00.947865+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191300Z/workspaces/divergence_asset/data/newsletters/phase7-divergence-asset.json"
+    }
+  }
+}

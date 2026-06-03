@@ -24,6 +24,8 @@ from content_creation.domains.script.repository import ScriptRepository
 from content_creation.domains.carousel.repository import CarouselRepository
 from content_creation.domains.newsletter.repository import NewsletterRepository
 from content_creation.domains.thumbnail.repository import ThumbnailRepository
+from content_creation.domains.content_intelligence import ContentIntelligence, ContentIntelligenceRepository
+from content_creation.domains.storyboard import Storyboard, StoryboardRepository
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +47,9 @@ class LocalStorage:
         self.calendars_dir = base_dir / "data" / "calendars"
         self.dryruns_dir = base_dir / "data" / "dryruns"
         self.analytics_dir = base_dir / "data" / "analytics"
+        self.content_intelligence_dir = base_dir / "data" / "content_intelligence"
+        self.storyboards_dir = base_dir / "data" / "storyboards"
+        self.review_history_dir = base_dir / "data" / "review_history"
         self.logs_dir = base_dir / "data" / "logs"
 
         self._backend = LocalBackend(
@@ -54,7 +59,8 @@ class LocalStorage:
                 self.briefs_dir, self.scripts_dir, self.carousels_dir,
                 self.newsletters_dir, self.thumbnails_dir, self.manifests_dir,
                 self.calendars_dir, self.dryruns_dir, self.analytics_dir,
-                self.logs_dir,
+                self.content_intelligence_dir, self.storyboards_dir,
+                self.review_history_dir, self.logs_dir,
             ],
         )
 
@@ -63,6 +69,8 @@ class LocalStorage:
         self._carousel_repo = CarouselRepository(directory=self.carousels_dir)
         self._newsletter_repo = NewsletterRepository(directory=self.newsletters_dir)
         self._thumbnail_repo = ThumbnailRepository(directory=self.thumbnails_dir)
+        self._content_intelligence_repo = ContentIntelligenceRepository(directory=self.content_intelligence_dir)
+        self._storyboard_repo = StoryboardRepository(directory=self.storyboards_dir)
 
     def save_raw(self, source_id: str, data: Any):
         """Save raw payload to data/raw/."""
@@ -133,6 +141,30 @@ class LocalStorage:
     def list_briefs(self) -> List[Brief]:
         """Load all briefs from data/briefs/"""
         return self._brief_repo.list_all()
+
+    def get_brief(self, topic_id: str) -> Optional[Brief]:
+        """Get a specific brief by topic ID."""
+        return self._brief_repo.get(topic_id)
+
+    def save_content_intelligence(self, ci: ContentIntelligence) -> Path:
+        """Save content intelligence JSON to data/content_intelligence/{topic_id}.json"""
+        return self._content_intelligence_repo.save(ci)
+
+    def list_content_intelligence(self) -> List[ContentIntelligence]:
+        """Load all content intelligence artifacts from data/content_intelligence/"""
+        return self._content_intelligence_repo.list_all()
+
+    def save_storyboard(self, storyboard: Storyboard) -> Path:
+        """Save storyboard JSON to data/storyboards/{topic_id}.json"""
+        return self._storyboard_repo.save(storyboard)
+
+    def get_storyboard(self, topic_id: str) -> Optional[Storyboard]:
+        """Get a specific storyboard by topic ID."""
+        return self._storyboard_repo.get(topic_id)
+
+    def list_storyboards(self) -> List[Storyboard]:
+        """Load all storyboards from data/storyboards/"""
+        return self._storyboard_repo.list_all()
 
     def save_script(self, script: Script) -> Path:
         """Save script JSON to data/scripts/{topic_id}.json"""
@@ -352,3 +384,116 @@ class LocalStorage:
         except Exception as e:
             logger.error(f"Failed to update asset status for {file_path}: {e}")
             return False
+
+    def update_asset_status_with_notes(
+        self,
+        asset_type: str,
+        topic_id: str,
+        new_status: "ReviewStatus",
+        notes: Optional[str] = None,
+    ) -> bool:
+        """Update review_status and review_notes for an asset.
+
+        Args:
+            asset_type: One of brief, script, carousel, newsletter, thumbnail, storyboard
+            topic_id: The topic identifier
+            new_status: The new ReviewStatus to set
+            notes: Optional reviewer notes
+
+        Returns:
+            True on success, False if file not found
+
+        Raises:
+            ValueError: If asset_type is not recognized
+        """
+        from content_creation.shared.enums import ReviewStatus
+
+        asset_dirs = {
+            "brief": self.briefs_dir,
+            "script": self.scripts_dir,
+            "carousel": self.carousels_dir,
+            "newsletter": self.newsletters_dir,
+            "thumbnail": self.thumbnails_dir,
+            "storyboard": self.storyboards_dir,
+        }
+
+        if asset_type not in asset_dirs:
+            raise ValueError(f"Unknown asset_type: {asset_type}. Must be one of: {list(asset_dirs.keys())}")
+
+        file_path = asset_dirs[asset_type] / f"{topic_id}.json"
+
+        if not file_path.exists():
+            logger.warning(f"Asset file not found: {file_path}")
+            return False
+
+        try:
+            with open(file_path, "r") as f:
+                data = json.load(f)
+
+            data["review_status"] = new_status.value
+            if notes is not None:
+                data["review_notes"] = notes
+
+            with open(file_path, "w") as f:
+                json.dump(data, f, indent=2)
+
+            logger.info(f"Updated {asset_type} {topic_id} status to {new_status.value} with notes")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update asset status with notes for {file_path}: {e}")
+            return False
+
+    def save_review_history_entry(self, entry: "ReviewHistoryEntry") -> Path:
+        """Append a review history entry to the topic's history log.
+
+        Args:
+            entry: The ReviewHistoryEntry to record
+
+        Returns:
+            Path to the history file
+        """
+        from content_creation.models.review_history import ReviewHistoryEntry
+
+        history_file = self.review_history_dir / f"{entry.topic_id}.json"
+
+        existing: list = []
+        if history_file.exists():
+            try:
+                with open(history_file, "r") as f:
+                    existing = json.load(f)
+            except (json.JSONDecodeError, Exception) as e:
+                logger.warning(f"Failed to load existing review history for {entry.topic_id}: {e}")
+                existing = []
+
+        existing.append(entry.model_dump())
+
+        try:
+            with open(history_file, "w") as f:
+                json.dump(existing, f, indent=2)
+            return history_file
+        except Exception as e:
+            logger.error(f"Failed to save review history for {entry.topic_id}: {e}")
+            raise
+
+    def get_review_history(self, topic_id: str) -> list:
+        """Load all review history entries for a topic.
+
+        Args:
+            topic_id: The topic identifier
+
+        Returns:
+            List of review history entry dicts, ordered oldest to newest
+        """
+        from content_creation.models.review_history import ReviewHistoryEntry
+
+        history_file = self.review_history_dir / f"{topic_id}.json"
+        if not history_file.exists():
+            return []
+
+        try:
+            with open(history_file, "r") as f:
+                data = json.load(f)
+            return [ReviewHistoryEntry(**entry) for entry in data]
+        except (json.JSONDecodeError, Exception) as e:
+            logger.error(f"Failed to load review history for {topic_id}: {e}")
+            return []

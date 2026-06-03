@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 from content_creation.prompts import PromptRegistry
 from content_creation.storage.local import LocalStorage
@@ -20,13 +21,24 @@ class ApplicationContext:
     scoring_config_path: Path
 
     @classmethod
-    def create(cls, base_dir: Path) -> "ApplicationContext":
-        """Factory method to bootstrap dependencies relative to base_dir."""
+    def create(cls, base_dir: Path, source_dir: Optional[Path] = None) -> "ApplicationContext":
+        """Factory method to bootstrap dependencies relative to base_dir.
+
+        Args:
+            base_dir: Root directory for data storage (workflow state, artifacts).
+                      On Render, this points to the persistent disk mount.
+            source_dir: Root directory for source code (config files, prompt templates).
+                        Defaults to base_dir for backward compatibility.
+                        On Render, this points to the immutable code directory.
+        """
+        if source_dir is None:
+            source_dir = base_dir
+
         storage = LocalStorage(base_dir)
         workflow = WorkflowStateManager(base_dir / "data" / "workflow_state")
-        prompt_registry = PromptRegistry(base_dir)
-        feeds_config_path = base_dir / "config" / "feeds.yaml"
-        scoring_config_path = base_dir / "config" / "scoring.yaml"
+        prompt_registry = PromptRegistry(source_dir)
+        feeds_config_path = source_dir / "config" / "feeds.yaml"
+        scoring_config_path = source_dir / "config" / "scoring.yaml"
 
         return cls(
             base_dir=base_dir,
@@ -36,3 +48,13 @@ class ApplicationContext:
             feeds_config_path=feeds_config_path,
             scoring_config_path=scoring_config_path,
         )
+
+    @property
+    def content_intelligence_dir(self) -> Path:
+        """Directory path for content intelligence files."""
+        return self.storage.content_intelligence_dir
+
+    @property
+    def storyboards_dir(self) -> Path:
+        """Directory path for storyboard files."""
+        return self.storage.storyboards_dir

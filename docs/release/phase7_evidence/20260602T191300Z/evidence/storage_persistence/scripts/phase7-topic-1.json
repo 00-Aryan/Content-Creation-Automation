@@ -1,0 +1,18 @@
+{
+  "topic_id": "phase7-topic-1",
+  "format": "short_video",
+  "hook": "STORYBOARD_SCRIPT_HOOK_USED",
+  "script_sections": [
+    "section 1",
+    "section 2"
+  ],
+  "cta": "STORYBOARD_SCRIPT_CTA_USED",
+  "claims_used": [
+    "STORYBOARD_SCRIPT_CLAIM_USED"
+  ],
+  "source_links": [
+    "https://example.com/phase7-topic-1"
+  ],
+  "review_status": "needs_review",
+  "generated_at": "2026-06-02T19:13:00.763902+00:00"
+}

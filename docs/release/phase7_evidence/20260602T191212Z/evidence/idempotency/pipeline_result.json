@@ -1,0 +1,57 @@
+{
+  "success": true,
+  "stages": [
+    "collect",
+    "score",
+    "generate-briefs",
+    "generate-content-intelligence",
+    "generate-storyboards",
+    "generate-assets",
+    "build-manifests"
+  ],
+  "stage_summaries": {
+    "collect": {
+      "count": 1,
+      "success": true
+    },
+    "score": {
+      "scored_count": 1,
+      "rejected_count": 0,
+      "success": true
+    },
+    "generate-briefs": {
+      "generated_count": 0,
+      "skipped_count": 1,
+      "failed_count": 0,
+      "success": true
+    },
+    "generate-content-intelligence": {
+      "generated_count": 0,
+      "skipped_count": 1,
+      "failed_count": 0,
+      "success": true
+    },
+    "generate-storyboards": {
+      "generated_count": 0,
+      "skipped_count": 1,
+      "failed_count": 0,
+      "success": true
+    },
+    "generate-assets": {
+      "counts": {
+        "thumbnail": 0,
+        "script": 0,
+        "carousel": 0,
+        "newsletter": 0
+      },
+      "skipped_count": 4,
+      "failed_count": 0,
+      "success": true
+    },
+    "build-manifests": {
+      "count": 1,
+      "success": true
+    }
+  },
+  "log_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191212Z/workspaces/idempotency/data/logs/pipeline_20260603_004212.jsonl"
+}

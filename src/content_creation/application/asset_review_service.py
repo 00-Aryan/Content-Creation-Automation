@@ -7,6 +7,7 @@ from typing import List, Optional
 from content_creation.application.context import ApplicationContext
 from content_creation.manifest import ManifestBuilder
 from content_creation.models.manifest import TopicManifest
+from content_creation.models.review_history import ReviewHistoryEntry
 from content_creation.shared.enums import ReviewStatus
 
 
@@ -120,6 +121,27 @@ class AssetReviewService:
         rejected = 0
 
         for decision in decisions:
+            asset_file_map = {
+                "brief": ctx.storage.briefs_dir,
+                "script": ctx.storage.scripts_dir,
+                "carousel": ctx.storage.carousels_dir,
+                "newsletter": ctx.storage.newsletters_dir,
+                "thumbnail": ctx.storage.thumbnails_dir,
+            }
+            asset_dir = asset_file_map.get(decision.asset_type)
+            previous_status = None
+            if asset_dir:
+                asset_file = asset_dir / f"{topic_id}.json"
+                if asset_file.exists():
+                    try:
+                        with open(asset_file, "r") as f:
+                            asset_data = json.load(f)
+                        raw_status = asset_data.get("review_status")
+                        if raw_status:
+                            previous_status = ReviewStatus(raw_status)
+                    except (json.JSONDecodeError, Exception):
+                        pass
+
             success = ctx.storage.update_asset_status(
                 decision.asset_type, topic_id, decision.status
             )
@@ -128,6 +150,16 @@ class AssetReviewService:
                     approved += 1
                 elif decision.status == ReviewStatus.REJECTED:
                     rejected += 1
+
+                entry = ReviewHistoryEntry(
+                    topic_id=topic_id,
+                    asset_type=decision.asset_type,
+                    action=decision.status.value,
+                    previous_status=previous_status,
+                    new_status=decision.status,
+                    notes=decision.rejection_reason,
+                )
+                ctx.storage.save_review_history_entry(entry)
 
         scored_item = ctx.storage.get_scored(topic_id)
         topic_title = (
@@ -150,3 +182,11 @@ class AssetReviewService:
             rejected_count=rejected,
             manifest=new_manifest,
         )
+
+    def get_history(
+        self, ctx: ApplicationContext, topic_id: str
+    ) -> List[ReviewHistoryEntry]:
+        """Returns the review history for assets (script, carousel, newsletter, thumbnail)."""
+        all_history = ctx.storage.get_review_history(topic_id)
+        asset_types = {"script", "carousel", "newsletter", "thumbnail"}
+        return [entry for entry in all_history if entry.asset_type in asset_types]

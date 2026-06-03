@@ -1,0 +1,27 @@
+[
+  {
+    "stage": "content_intelligence",
+    "generated_count": 0,
+    "skipped_count": 1,
+    "artifact_exists": false
+  },
+  {
+    "stage": "storyboard",
+    "generated_count": 0,
+    "skipped_count": 1,
+    "artifact_exists": false,
+    "fallback_asset_generated": true,
+    "asset_counts": {
+      "thumbnail": 1,
+      "script": 1,
+      "carousel": 1,
+      "newsletter": 1
+    }
+  },
+  {
+    "stage": "thumbnail",
+    "skipped_count": 1,
+    "artifact_exists": false,
+    "manifest_thumbnail_status": "missing"
+  }
+]

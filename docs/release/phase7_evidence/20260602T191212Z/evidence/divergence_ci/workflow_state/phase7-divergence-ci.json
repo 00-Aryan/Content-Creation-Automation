@@ -1,0 +1,68 @@
+{
+  "topic_id": "phase7-divergence-ci",
+  "stages": {
+    "brief": {
+      "topic_id": "phase7-divergence-ci",
+      "stage": "brief",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "content_intelligence": {
+      "topic_id": "phase7-divergence-ci",
+      "stage": "content_intelligence",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:12:12.354403+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191212Z/workspaces/divergence_ci/data/content_intelligence/phase7-divergence-ci.json"
+    },
+    "storyboard": {
+      "topic_id": "phase7-divergence-ci",
+      "stage": "storyboard",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "thumbnail": {
+      "topic_id": "phase7-divergence-ci",
+      "stage": "thumbnail",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "script": {
+      "topic_id": "phase7-divergence-ci",
+      "stage": "script",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "carousel": {
+      "topic_id": "phase7-divergence-ci",
+      "stage": "carousel",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "newsletter": {
+      "topic_id": "phase7-divergence-ci",
+      "stage": "newsletter",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    }
+  }
+}

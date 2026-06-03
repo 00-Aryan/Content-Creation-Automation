@@ -10,6 +10,7 @@ from .calendar import ScheduledPost, WeeklyCalendar
 from .dryrun import AssetCheck, DryRunReport
 from .analytics import PostAnalytics, PerformanceSnapshot
 from .topic import ScoredTopicItem, TopicCategory, TopicItem, TopicStatus
+from .review_history import ReviewHistoryEntry
 
 __all__ = [
     "Brief",
@@ -32,4 +33,5 @@ __all__ = [
     "TopicStatus",
     "TopicCategory",
     "ScoredTopicItem",
+    "ReviewHistoryEntry",
 ]

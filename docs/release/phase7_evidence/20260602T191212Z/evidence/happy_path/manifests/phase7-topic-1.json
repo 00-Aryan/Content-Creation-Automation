@@ -1,0 +1,42 @@
+{
+  "topic_id": "phase7-topic-1",
+  "topic_title": "Phase 7 Topic 1",
+  "source_url": "https://example.com/phase7-topic-1",
+  "assets": {
+    "brief": {
+      "path": "data/briefs/phase7-topic-1.json",
+      "status": "needs_review",
+      "generated_at": "2026-06-02T19:12:12.163168+00:00"
+    },
+    "script": {
+      "path": "data/scripts/phase7-topic-1.json",
+      "status": "needs_review",
+      "generated_at": "2026-06-02T19:12:12.166460+00:00"
+    },
+    "carousel": {
+      "path": "data/carousels/phase7-topic-1.json",
+      "status": "needs_review",
+      "generated_at": "2026-06-02T19:12:12.165572+00:00"
+    },
+    "newsletter": {
+      "path": "data/newsletters/phase7-topic-1.json",
+      "status": "needs_review",
+      "generated_at": "2026-06-02T19:12:12.166036+00:00"
+    },
+    "thumbnail": {
+      "path": "data/thumbnails/phase7-topic-1.json",
+      "status": "needs_review",
+      "generated_at": "2026-06-02T19:12:12.165107+00:00"
+    }
+  },
+  "overall_status": "partial",
+  "blocking_reasons": [
+    "brief: needs_review",
+    "script: needs_review",
+    "carousel: needs_review",
+    "newsletter: needs_review",
+    "thumbnail: needs_review"
+  ],
+  "ready_for_planner": false,
+  "generated_at": "2026-06-02T19:12:12.167398+00:00"
+}

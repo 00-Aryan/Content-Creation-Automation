@@ -60,21 +60,38 @@ class AssetGenerationService:
         counts = {"thumbnail": 0, "script": 0, "carousel": 0, "newsletter": 0}
         skipped = 0
         failures = 0
+        asset_generators = {
+            "short_video": (script_gen, ctx.storage.save_script, ("short_video",)),
+            "carousel": (carousel_gen, ctx.storage.save_carousel, ()),
+            "newsletter": (newsletter_gen, ctx.storage.save_newsletter, ()),
+        }
 
         for brief in briefs:
+            storyboard = ctx.storage.get_storyboard(brief.topic_id)
+            if storyboard is None:
+                raise ValueError(
+                    f"Required Storyboard artifact is missing for topic {brief.topic_id}. "
+                    "Asset generation cannot proceed without a valid Storyboard."
+                )
+
             # 1. Thumbnail Generation (always required)
-            if ctx.workflow.stage_completed(brief.topic_id, "thumbnail"):
+            thumbnail_file = ctx.storage.thumbnails_dir / f"{brief.topic_id}.json"
+            thumbnail_completed = ctx.workflow.stage_completed(brief.topic_id, "thumbnail")
+
+            if thumbnail_completed and thumbnail_file.exists():
                 skipped += 1
-            elif not (ctx.storage.thumbnails_dir / f"{brief.topic_id}.json").exists():
+            else:
+                if thumbnail_completed and not thumbnail_file.exists():
+                    logger.warning(
+                        f"Divergence detected: stage thumbnail completed but artifact {thumbnail_file} is missing. Regenerating."
+                    )
                 try:
-                    thumb = thumb_gen.generate(brief)
+                    thumb = thumb_gen.generate(storyboard, brief)
                     ctx.storage.save_thumbnail(thumb)
                     ctx.workflow.mark_completed(
                         brief.topic_id,
                         "thumbnail",
-                        artifact_path=str(
-                            ctx.storage.thumbnails_dir / f"{brief.topic_id}.json"
-                        ),
+                        artifact_path=str(thumbnail_file),
                     )
                     counts["thumbnail"] += 1
                     if rate_limit_delay > 0:
@@ -104,29 +121,31 @@ class AssetGenerationService:
                 if not asset_type:
                     continue
 
-                if ctx.workflow.stage_completed(brief.topic_id, asset_type):
+                asset_dir = getattr(ctx.storage, f"{asset_type}s_dir")
+                asset_file = asset_dir / f"{brief.topic_id}.json"
+                asset_completed = ctx.workflow.stage_completed(brief.topic_id, asset_type)
+
+                if asset_completed and asset_file.exists():
                     skipped += 1
                     continue
 
-                asset_dir = getattr(ctx.storage, f"{asset_type}s_dir")
-                if (asset_dir / f"{brief.topic_id}.json").exists():
+                if asset_completed and not asset_file.exists():
+                    logger.warning(
+                        f"Divergence detected: stage {asset_type} completed but artifact {asset_file} is missing. Regenerating."
+                    )
+
+                if not asset_completed and asset_file.exists():
                     continue
 
                 try:
-                    if fmt == "short_video":
-                        asset = script_gen.generate(brief, "short_video")
-                        ctx.storage.save_script(asset)
-                    elif fmt == "carousel":
-                        asset = carousel_gen.generate(brief)
-                        ctx.storage.save_carousel(asset)
-                    elif fmt == "newsletter":
-                        asset = newsletter_gen.generate(brief)
-                        ctx.storage.save_newsletter(asset)
+                    generator, save_asset, extra_args = asset_generators[fmt]
+                    asset = generator.generate(storyboard, brief, *extra_args)
+                    save_asset(asset)
 
                     ctx.workflow.mark_completed(
                         brief.topic_id,
                         asset_type,
-                        artifact_path=str(asset_dir / f"{brief.topic_id}.json"),
+                        artifact_path=str(asset_file),
                     )
                     counts[asset_type] += 1
                     if rate_limit_delay > 0:

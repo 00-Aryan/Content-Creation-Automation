@@ -1,0 +1,36 @@
+{
+  "topic_id": "phase7-manifest_m2_storyboard_missing",
+  "topic_title": "Manifest Topic",
+  "source_url": "https://example.com/phase7-manifest_m2_storyboard_missing",
+  "assets": {
+    "brief": {
+      "path": "data/briefs/phase7-manifest_m2_storyboard_missing.json",
+      "status": "approved",
+      "generated_at": "2026-06-02T19:00:42.618969+00:00"
+    },
+    "script": {
+      "path": "data/scripts/phase7-manifest_m2_storyboard_missing.json",
+      "status": "approved",
+      "generated_at": "2026-06-02T19:00:42.619568+00:00"
+    },
+    "carousel": {
+      "path": "data/carousels/phase7-manifest_m2_storyboard_missing.json",
+      "status": "approved",
+      "generated_at": "2026-06-02T19:00:42.619757+00:00"
+    },
+    "newsletter": {
+      "path": "data/newsletters/phase7-manifest_m2_storyboard_missing.json",
+      "status": "approved",
+      "generated_at": "2026-06-02T19:00:42.619958+00:00"
+    },
+    "thumbnail": {
+      "path": "data/thumbnails/phase7-manifest_m2_storyboard_missing.json",
+      "status": "approved",
+      "generated_at": "2026-06-02T19:00:42.619412+00:00"
+    }
+  },
+  "overall_status": "complete",
+  "blocking_reasons": [],
+  "ready_for_planner": true,
+  "generated_at": "2026-06-02T19:00:42.620733+00:00"
+}

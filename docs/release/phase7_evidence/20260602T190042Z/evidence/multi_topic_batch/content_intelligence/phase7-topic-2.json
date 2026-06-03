@@ -1,0 +1,25 @@
+{
+  "topic_id": "phase7-topic-2",
+  "generated_at": "2026-06-02T19:00:42.380211+00:00",
+  "review_status": "needs_review",
+  "quality_status": "ready",
+  "topic_type": "paper",
+  "timeliness_hook": "Published this week",
+  "primary_hook": {
+    "hook_text": "Primary hook for phase7-topic-2",
+    "hook_type": "question",
+    "source_field": "why_it_matters"
+  },
+  "secondary_hook": {
+    "hook_text": "Secondary hook for phase7-topic-2",
+    "hook_type": "bold_claim",
+    "source_field": "limitation"
+  },
+  "story_angle": "Story angle for phase7-topic-2",
+  "curiosity_gap": "Curiosity gap for phase7-topic-2",
+  "contrast_pair": {
+    "before": "before",
+    "after": "after"
+  },
+  "emotional_register": "surprise"
+}

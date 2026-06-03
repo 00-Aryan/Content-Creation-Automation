@@ -1,0 +1,68 @@
+{
+  "topic_id": "phase7-divergence-storyboard",
+  "stages": {
+    "brief": {
+      "topic_id": "phase7-divergence-storyboard",
+      "stage": "brief",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "content_intelligence": {
+      "topic_id": "phase7-divergence-storyboard",
+      "stage": "content_intelligence",
+      "status": "pending",
+      "provider": null,
+      "retries": 0,
+      "completed_at": null,
+      "artifact_path": null
+    },
+    "storyboard": {
+      "topic_id": "phase7-divergence-storyboard",
+      "stage": "storyboard",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:11:06.807850+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191106Z/workspaces/divergence_storyboard/data/storyboards/phase7-divergence-storyboard.json"
+    },
+    "thumbnail": {
+      "topic_id": "phase7-divergence-storyboard",
+      "stage": "thumbnail",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:11:06.808728+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191106Z/workspaces/divergence_storyboard/data/thumbnails/phase7-divergence-storyboard.json"
+    },
+    "script": {
+      "topic_id": "phase7-divergence-storyboard",
+      "stage": "script",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:11:06.809200+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191106Z/workspaces/divergence_storyboard/data/scripts/phase7-divergence-storyboard.json"
+    },
+    "carousel": {
+      "topic_id": "phase7-divergence-storyboard",
+      "stage": "carousel",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:11:06.810116+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191106Z/workspaces/divergence_storyboard/data/carousels/phase7-divergence-storyboard.json"
+    },
+    "newsletter": {
+      "topic_id": "phase7-divergence-storyboard",
+      "stage": "newsletter",
+      "status": "completed",
+      "provider": null,
+      "retries": 0,
+      "completed_at": "2026-06-02T19:11:06.809647+00:00",
+      "artifact_path": "/home/aryan/May-2026/Content-Creation/docs/release/phase7_evidence/20260602T191106Z/workspaces/divergence_storyboard/data/newsletters/phase7-divergence-storyboard.json"
+    }
+  }
+}
