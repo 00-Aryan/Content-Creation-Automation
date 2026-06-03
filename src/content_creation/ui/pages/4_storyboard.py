@@ -10,7 +10,7 @@ if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
 from content_creation.ui.components.status import render_api_health
-from content_creation.ui.services.client import ServiceClient
+from content_creation.ui.services.client import ServiceClient, get_api_key
 from content_creation.ui.state.session import init_session_state
 from content_creation.shared.enums import ReviewStatus
 from content_creation.application.storyboard_review_service import StoryboardDecision
@@ -29,7 +29,7 @@ def main() -> None:
     st.sidebar.markdown("### 🔑 API Key Override")
     api_key_input = st.sidebar.text_input(
         "Gemini API Key",
-        value=os.environ.get("GEMINI_API_KEY") or "",
+        value=get_api_key("GEMINI_API_KEY") or "",
         type="password",
         help="Provide a key to execute live Gemini API generation."
     )
@@ -95,7 +95,7 @@ def main() -> None:
             st.warning("⚠️ Content Intelligence is missing.")
             gen_ci_btn = st.button("🎨 Generate Content Intelligence", type="primary", use_container_width=True)
             if gen_ci_btn:
-                resolved_key = api_key_input or os.environ.get("GEMINI_API_KEY")
+                resolved_key = api_key_input or get_api_key("GEMINI_API_KEY")
                 if not resolved_key:
                     st.error("Missing Gemini API Key!")
                 else:
@@ -139,7 +139,7 @@ def main() -> None:
             st.warning("⚠️ Storyboard is missing.")
             gen_sb_btn = st.button("📋 Generate Storyboards", type="primary", use_container_width=True)
             if gen_sb_btn:
-                resolved_key = api_key_input or os.environ.get("GEMINI_API_KEY")
+                resolved_key = api_key_input or get_api_key("GEMINI_API_KEY")
                 if not resolved_key:
                     st.error("Missing Gemini API Key!")
                 else:

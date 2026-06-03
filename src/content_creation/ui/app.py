@@ -10,7 +10,7 @@ if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
 from content_creation.ui.components.status import render_header, render_api_health, render_metric_cards
-from content_creation.ui.services.client import ServiceClient
+from content_creation.ui.services.client import ServiceClient, get_api_key
 from content_creation.ui.state.session import init_session_state
 
 
@@ -59,7 +59,7 @@ def main() -> None:
                     timed = client.run_full_pipeline(
                         top_n=int(top_n),
                         source_filter=source_filter or None,
-                        api_key=st.secrets.get("GEMINI_API_KEY"),
+                        api_key=get_api_key("GEMINI_API_KEY"),
                     )
                     res = timed.result
                     st.write(f"Duration: `{timed.duration_seconds:.2f}s`")

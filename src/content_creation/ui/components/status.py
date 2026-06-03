@@ -1,7 +1,8 @@
 """UI components for status, headers, and metric cards."""
 
-import os
 import streamlit as st
+
+from content_creation.ui.services.client import get_api_key
 
 
 def render_header() -> None:
@@ -13,8 +14,8 @@ def render_header() -> None:
 def render_api_health() -> None:
     """Validates and displays system environment and API credentials status."""
     st.sidebar.markdown("### 🔑 System Health")
-    gemini_key = os.environ.get("GEMINI_API_KEY")
-    openrouter_key = os.environ.get("OPENROUTER_API_KEY")
+    gemini_key = get_api_key("GEMINI_API_KEY")
+    openrouter_key = get_api_key("OPENROUTER_API_KEY")
 
     if gemini_key:
         st.sidebar.success("Gemini API: Connected")

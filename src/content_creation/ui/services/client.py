@@ -20,6 +20,20 @@ from content_creation.application.brief_review_service import BriefReviewService
 from content_creation.application.storyboard_review_service import StoryboardReviewService
 
 
+def get_api_key(key_name: str) -> Optional[str]:
+    """Resolves an API key with environment variable taking precedence over Streamlit secrets."""
+    api_key = os.environ.get(key_name)
+    if api_key:
+        return api_key
+    try:
+        if hasattr(st, "secrets") and st.secrets:
+            # streamlit secrets acts as a dict
+            return st.secrets.get(key_name)
+    except Exception:
+        pass
+    return None
+
+
 @dataclass(frozen=True)
 class TimedServiceResult:
     """UI-facing wrapper for a backend service result and elapsed time."""
