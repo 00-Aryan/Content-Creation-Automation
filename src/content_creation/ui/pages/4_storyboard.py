@@ -10,7 +10,7 @@ if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
 from content_creation.ui.components.status import render_api_health
-from content_creation.ui.services.client import ServiceClient, get_api_key
+from content_creation.ui.services.client import ServiceClient
 from content_creation.ui.state.session import init_session_state
 from content_creation.shared.enums import ReviewStatus
 from content_creation.application.storyboard_review_service import StoryboardDecision
@@ -20,19 +20,10 @@ def main() -> None:
     st.set_page_config(page_title="Content Intelligence & Storyboards", page_icon="🎨", layout="wide")
     init_session_state()
     client = ServiceClient()
-    render_api_health()
+    render_api_health(client.is_generation_available())
     
     st.markdown("# 🎨 Content Intelligence & Coordinated Storyboard")
     st.markdown("---")
-    
-    # API key override
-    st.sidebar.markdown("### 🔑 API Key Override")
-    api_key_input = st.sidebar.text_input(
-        "Gemini API Key",
-        value=get_api_key("GEMINI_API_KEY") or "",
-        type="password",
-        help="Provide a key to execute live Gemini API generation."
-    )
     
     briefs = client.list_briefs()
     if not briefs:
@@ -95,15 +86,13 @@ def main() -> None:
             st.warning("⚠️ Content Intelligence is missing.")
             gen_ci_btn = st.button("🎨 Generate Content Intelligence", type="primary", use_container_width=True)
             if gen_ci_btn:
-                resolved_key = api_key_input or get_api_key("GEMINI_API_KEY")
-                if not resolved_key:
-                    st.error("Missing Gemini API Key!")
+                if not client.is_generation_available():
+                    st.error("Cannot generate content intelligence: Generation Service credentials are not configured on the backend.")
                 else:
                     with st.status("Generating content intelligence...", expanded=True) as status:
                         try:
                             timed = client.generate_content_intelligence(
                                 top_n=20,
-                                api_key=resolved_key,
                                 rate_limit_delay=5.0,
                             )
                             res = timed.result
@@ -139,15 +128,13 @@ def main() -> None:
             st.warning("⚠️ Storyboard is missing.")
             gen_sb_btn = st.button("📋 Generate Storyboards", type="primary", use_container_width=True)
             if gen_sb_btn:
-                resolved_key = api_key_input or get_api_key("GEMINI_API_KEY")
-                if not resolved_key:
-                    st.error("Missing Gemini API Key!")
+                if not client.is_generation_available():
+                    st.error("Cannot generate storyboards: Generation Service credentials are not configured on the backend.")
                 else:
                     with st.status("Generating storyboards...", expanded=True) as status:
                         try:
                             timed = client.generate_storyboards(
                                 top_n=20,
-                                api_key=resolved_key,
                                 rate_limit_delay=5.0,
                             )
                             res = timed.result

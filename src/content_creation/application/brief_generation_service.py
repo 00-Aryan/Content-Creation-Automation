@@ -43,10 +43,6 @@ class BriefGenerationService:
         rate_limit_delay: float = 5.0,
     ) -> BriefGenerationResult:
         """Generates briefs for top scored topics that don't have them yet."""
-        resolved_key = api_key or os.environ.get("GEMINI_API_KEY")
-        if not resolved_key:
-            raise ValueError("GEMINI_API_KEY not set in environment or parameter")
-
         scored_items = ctx.storage.list_scored()
 
         # Filter and sort
@@ -73,7 +69,7 @@ class BriefGenerationService:
                 continue
 
             try:
-                brief = generate_brief(item, ctx.prompt_registry, resolved_key)
+                brief = generate_brief(item, ctx.prompt_registry, api_key)
                 ctx.storage.save_brief(brief)
                 generated_briefs.append(brief)
             except Exception as e:

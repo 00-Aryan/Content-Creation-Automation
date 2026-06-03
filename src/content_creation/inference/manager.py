@@ -24,9 +24,15 @@ _DEFAULT_PROVIDER = "gemini"
 class InferenceManager:
     """Routes inference requests to the configured provider."""
 
+    @staticmethod
+    def is_available() -> bool:
+        """Checks if the default generation service is available."""
+        from content_creation.inference.credentials import resolve_credential
+        return bool(resolve_credential("GEMINI_API_KEY"))
+
     def __init__(
         self,
-        api_key: str,
+        api_key: Optional[str] = None,
         provider: str = _DEFAULT_PROVIDER,
         model: Optional[str] = None,
         fallback: Optional[str] = None,
@@ -35,9 +41,19 @@ class InferenceManager:
         cache_dir: Optional[Path] = None,
         enable_cache: bool = True,
     ):
-        import os
+        from content_creation.inference.credentials import resolve_credential
+
+        if not api_key:
+            if provider == "gemini":
+                api_key = resolve_credential("GEMINI_API_KEY")
+            elif provider == "openrouter":
+                api_key = resolve_credential("OPENROUTER_API_KEY")
+
+        if not api_key:
+            raise ValueError(f"API key not found for provider '{provider}'")
+
         if fallback is None:
-            openrouter_key = os.environ.get("OPENROUTER_API_KEY")
+            openrouter_key = resolve_credential("OPENROUTER_API_KEY")
             if openrouter_key:
                 fallback = "openrouter"
                 fallback_api_key = openrouter_key

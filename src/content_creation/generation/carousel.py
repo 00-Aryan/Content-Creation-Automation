@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class CarouselGenerator:
     """Generate carousel content from a brief."""
 
-    def __init__(self, api_key: str, prompt_dir: Union[Path, PromptRegistry]):
+    def __init__(self, api_key: Optional[str] = None, prompt_dir: Optional[Union[Path, PromptRegistry]] = None):
         self._manager = InferenceManager(api_key=api_key)
         self._registry = prompt_dir if isinstance(prompt_dir, PromptRegistry) else None
         self.prompt_dir = prompt_dir if isinstance(prompt_dir, Path) else None

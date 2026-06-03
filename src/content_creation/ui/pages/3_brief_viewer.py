@@ -10,7 +10,7 @@ if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
 from content_creation.ui.components.status import render_api_health
-from content_creation.ui.services.client import ServiceClient, get_api_key
+from content_creation.ui.services.client import ServiceClient
 from content_creation.ui.state.session import init_session_state, set_selected_brief_id
 from content_creation.shared.enums import ReviewStatus
 from content_creation.application.brief_review_service import BriefDecision
@@ -20,19 +20,10 @@ def main() -> None:
     st.set_page_config(page_title="Brief Viewer", page_icon="📝", layout="wide")
     init_session_state()
     client = ServiceClient()
-    render_api_health()
+    render_api_health(client.is_generation_available())
     
     st.markdown("# 📝 Brief Synthesis & Viewer")
     st.markdown("---")
-    
-    # 1. API Key overrides
-    st.sidebar.markdown("### 🔑 API Key Override")
-    api_key_input = st.sidebar.text_input(
-        "Gemini API Key",
-        value=get_api_key("GEMINI_API_KEY") or "",
-        type="password",
-        help="Provide a key to execute live Gemini API generation."
-    )
     
     scored_items = client.list_scored_topics()
     
@@ -204,15 +195,13 @@ def main() -> None:
                 gen_btn = st.button("📝 Generate Briefs", type="primary", use_container_width=True)
                 
             if gen_btn:
-                resolved_key = api_key_input or get_api_key("GEMINI_API_KEY")
-                if not resolved_key:
-                    st.error("Cannot generate brief: GEMINI_API_KEY is not set. Please configure it in the sidebar.")
+                if not client.is_generation_available():
+                    st.error("Cannot generate brief: Generation Service credentials are not configured on the backend.")
                 else:
                     with st.status("Generating briefs...", expanded=True) as status:
                         try:
                             timed = client.generate_briefs(
                                 top_n=20,
-                                api_key=resolved_key,
                                 rate_limit_delay=rate_limit_delay,
                             )
                             res = timed.result

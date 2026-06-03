@@ -1,8 +1,4 @@
-"""UI components for status, headers, and metric cards."""
-
 import streamlit as st
-
-from content_creation.ui.services.client import get_api_key
 
 
 def render_header() -> None:
@@ -11,21 +7,14 @@ def render_header() -> None:
     st.markdown("---")
 
 
-def render_api_health() -> None:
-    """Validates and displays system environment and API credentials status."""
+def render_api_health(is_available: bool) -> None:
+    """Displays generic system environment and generation availability status."""
     st.sidebar.markdown("### 🔑 System Health")
-    gemini_key = get_api_key("GEMINI_API_KEY")
-    openrouter_key = get_api_key("OPENROUTER_API_KEY")
 
-    if gemini_key:
-        st.sidebar.success("Gemini API: Connected")
+    if is_available:
+        st.sidebar.success("Generation Service: Available")
     else:
-        st.sidebar.error("Gemini API: Key Missing")
-
-    if openrouter_key:
-        st.sidebar.success("OpenRouter Fallback: Configured")
-    else:
-        st.sidebar.info("OpenRouter Fallback: Optional")
+        st.sidebar.error("Generation Service: Unavailable")
 
 
 def render_metric_cards(metric_counts: dict) -> None:

@@ -4,6 +4,8 @@ import json
 import logging
 from datetime import datetime, timezone
 
+from typing import Optional
+
 from content_creation.inference import InferenceManager
 from content_creation.models.brief import Brief
 from content_creation.models.topic import TopicCategory
@@ -50,7 +52,7 @@ def _compute_timeliness(published_at: str) -> str:
 class ContentIntelligenceGenerator:
     """Generate Content Intelligence from a Brief."""
 
-    def __init__(self, api_key: str, registry: PromptRegistry):
+    def __init__(self, api_key: Optional[str] = None, registry: Optional[PromptRegistry] = None):
         self._manager = InferenceManager(api_key=api_key)
         self._registry = registry
 

@@ -20,20 +20,6 @@ from content_creation.application.brief_review_service import BriefReviewService
 from content_creation.application.storyboard_review_service import StoryboardReviewService
 
 
-def get_api_key(key_name: str) -> Optional[str]:
-    """Resolves an API key with environment variable taking precedence over Streamlit secrets."""
-    api_key = os.environ.get(key_name)
-    if api_key:
-        return api_key
-    try:
-        if hasattr(st, "secrets") and st.secrets:
-            # streamlit secrets acts as a dict
-            return st.secrets.get(key_name)
-    except Exception:
-        pass
-    return None
-
-
 @dataclass(frozen=True)
 class TimedServiceResult:
     """UI-facing wrapper for a backend service result and elapsed time."""
@@ -73,6 +59,11 @@ class ServiceClient:
 
     def __init__(self) -> None:
         self.ctx = get_context()
+
+    def is_generation_available(self) -> bool:
+        """Verifies if the generation service credentials are configured on the backend."""
+        from content_creation.inference.manager import InferenceManager
+        return InferenceManager.is_available()
 
     @property
     def collect(self) -> CollectTopicsService:
@@ -136,7 +127,6 @@ class ServiceClient:
         self,
         top_n: int = 5,
         source_filter: Optional[str] = None,
-        api_key: Optional[str] = None,
     ) -> TimedServiceResult:
         """Runs the approved end-to-end pipeline service."""
         return self._timed(
@@ -145,7 +135,6 @@ class ServiceClient:
             top_n=top_n,
             source_filter=source_filter,
             auto_approve=False,
-            api_key=api_key,
         )
 
     def collect_topics(self, source_filter: Optional[str] = None) -> TimedServiceResult:
@@ -159,7 +148,6 @@ class ServiceClient:
     def generate_briefs(
         self,
         top_n: int = 5,
-        api_key: Optional[str] = None,
         rate_limit_delay: float = 5.0,
     ) -> TimedServiceResult:
         """Runs brief generation through BriefGenerationService."""
@@ -167,14 +155,12 @@ class ServiceClient:
             self.brief.run,
             self.ctx,
             top_n=top_n,
-            api_key=api_key,
             rate_limit_delay=rate_limit_delay,
         )
 
     def generate_content_intelligence(
         self,
         top_n: int = 5,
-        api_key: Optional[str] = None,
         rate_limit_delay: float = 5.0,
     ) -> TimedServiceResult:
         """Runs content intelligence generation through ContentIntelligenceService."""
@@ -182,14 +168,12 @@ class ServiceClient:
             self.content_intelligence.run,
             self.ctx,
             top_n=top_n,
-            api_key=api_key,
             rate_limit_delay=rate_limit_delay,
         )
 
     def generate_storyboards(
         self,
         top_n: int = 5,
-        api_key: Optional[str] = None,
         rate_limit_delay: float = 5.0,
     ) -> TimedServiceResult:
         """Runs storyboard generation through StoryboardService."""
@@ -197,14 +181,12 @@ class ServiceClient:
             self.storyboard.run,
             self.ctx,
             top_n=top_n,
-            api_key=api_key,
             rate_limit_delay=rate_limit_delay,
         )
 
     def generate_asset_suite(
         self,
         top_n: int = 5,
-        api_key: Optional[str] = None,
         rate_limit_delay: float = 5.0,
     ) -> TimedServiceResult:
         """Runs storyboard-first asset generation through AssetGenerationService."""
@@ -212,7 +194,6 @@ class ServiceClient:
             self.asset_generation.run,
             self.ctx,
             top_n=top_n,
-            api_key=api_key,
             rate_limit_delay=rate_limit_delay,
         )
 

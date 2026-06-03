@@ -43,11 +43,7 @@ class StoryboardService:
         rate_limit_delay: float = 5.0,
     ) -> StoryboardGenerationResult:
         """Generates Storyboards for content intelligence items that don't have them yet."""
-        resolved_key = api_key or os.environ.get("GEMINI_API_KEY")
-        if not resolved_key:
-            raise ValueError("GEMINI_API_KEY not set in environment or parameter")
-
-        generator = StoryboardGenerator(resolved_key, ctx.prompt_registry)
+        generator = StoryboardGenerator(api_key, ctx.prompt_registry)
 
         ci_list = ctx.storage.list_content_intelligence()
         if not ci_list:

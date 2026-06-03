@@ -17,7 +17,7 @@ def main() -> None:
     st.set_page_config(page_title="Topic Pipeline", page_icon="⚖️", layout="wide")
     init_session_state()
     client = ServiceClient()
-    render_api_health()
+    render_api_health(client.is_generation_available())
     
     st.markdown("# ⚖️ Topic Prioritization & Pipeline Triage")
     st.markdown("---")

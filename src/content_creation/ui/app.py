@@ -10,7 +10,7 @@ if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
 from content_creation.ui.components.status import render_header, render_api_health, render_metric_cards
-from content_creation.ui.services.client import ServiceClient, get_api_key
+from content_creation.ui.services.client import ServiceClient
 from content_creation.ui.state.session import init_session_state
 
 
@@ -28,7 +28,7 @@ def main() -> None:
     client = ServiceClient()
     
     # 3. Sidebar status checking
-    render_api_health()
+    render_api_health(client.is_generation_available())
     
     # 4. Render main layout
     render_header()
@@ -59,7 +59,6 @@ def main() -> None:
                     timed = client.run_full_pipeline(
                         top_n=int(top_n),
                         source_filter=source_filter or None,
-                        api_key=get_api_key("GEMINI_API_KEY"),
                     )
                     res = timed.result
                     st.write(f"Duration: `{timed.duration_seconds:.2f}s`")
@@ -147,7 +146,6 @@ def main() -> None:
                         "Topic ID": state.topic_id[:8],
                         "Stage": stage_name.replace("_", " ").title(),
                         "Status": "Success 🟢",
-                        "Provider": art_state.provider or "Local / AI"
                     })
                 elif art_state.status == "failed":
                     activity_events.append({
@@ -155,7 +153,6 @@ def main() -> None:
                         "Topic ID": state.topic_id[:8],
                         "Stage": stage_name.replace("_", " ").title(),
                         "Status": "Failed 🔴",
-                        "Provider": "N/A"
                     })
         
         activity_events.sort(key=lambda x: x["Timestamp"] or "", reverse=True)

@@ -36,10 +36,6 @@ class AssetGenerationService:
         rate_limit_delay: float = 5.0,
     ) -> AssetGenerationResult:
         """Generates thumbnails, scripts, newsletters, and carousels for the top briefs."""
-        resolved_key = api_key or os.environ.get("GEMINI_API_KEY")
-        if not resolved_key:
-            raise ValueError("GEMINI_API_KEY not set in environment or parameter")
-
         briefs = ctx.storage.list_briefs()
         briefs.sort(key=lambda b: b.generated_at, reverse=True)
         briefs = briefs[:top_n]
@@ -52,10 +48,10 @@ class AssetGenerationService:
             )
 
         # Instantiate generators using registry
-        thumb_gen = ThumbnailGenerator(resolved_key, ctx.prompt_registry)
-        script_gen = ScriptGenerator(resolved_key, ctx.prompt_registry)
-        carousel_gen = CarouselGenerator(resolved_key, ctx.prompt_registry)
-        newsletter_gen = NewsletterGenerator(resolved_key, ctx.prompt_registry)
+        thumb_gen = ThumbnailGenerator(api_key, ctx.prompt_registry)
+        script_gen = ScriptGenerator(api_key, ctx.prompt_registry)
+        carousel_gen = CarouselGenerator(api_key, ctx.prompt_registry)
+        newsletter_gen = NewsletterGenerator(api_key, ctx.prompt_registry)
 
         counts = {"thumbnail": 0, "script": 0, "carousel": 0, "newsletter": 0}
         skipped = 0

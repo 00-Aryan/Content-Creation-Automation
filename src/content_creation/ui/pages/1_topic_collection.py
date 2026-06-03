@@ -17,7 +17,7 @@ def main() -> None:
     st.set_page_config(page_title="Topic Collection", page_icon="📡", layout="wide")
     init_session_state()
     client = ServiceClient()
-    render_api_health()
+    render_api_health(client.is_generation_available())
     
     st.markdown("# 📡 Topic Ingestion & Collection")
     st.markdown("---")

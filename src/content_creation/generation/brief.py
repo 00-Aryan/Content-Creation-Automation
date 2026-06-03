@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 from content_creation.inference import InferenceManager
 from content_creation.models.brief import Brief
@@ -13,7 +13,7 @@ from content_creation.models.topic import ScoredTopicItem
 logger = logging.getLogger(__name__)
 
 
-def generate_brief(item: ScoredTopicItem, prompt_path: Union[Path, PromptRegistry], api_key: str) -> Brief:
+def generate_brief(item: ScoredTopicItem, prompt_path: Union[Path, PromptRegistry], api_key: Optional[str] = None) -> Brief:
     """Generate a brief for a scored topic using the inference manager."""
 
     if not item.raw_text or len(item.raw_text) < 100:

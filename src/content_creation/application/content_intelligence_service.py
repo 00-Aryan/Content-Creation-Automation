@@ -46,11 +46,7 @@ class ContentIntelligenceService:
         rate_limit_delay: float = 5.0,
     ) -> ContentIntelligenceGenerationResult:
         """Generates Content Intelligence for briefs that don't have them yet."""
-        resolved_key = api_key or os.environ.get("GEMINI_API_KEY")
-        if not resolved_key:
-            raise ValueError("GEMINI_API_KEY not set in environment or parameter")
-
-        generator = ContentIntelligenceGenerator(resolved_key, ctx.prompt_registry)
+        generator = ContentIntelligenceGenerator(api_key, ctx.prompt_registry)
 
         briefs = ctx.storage.list_briefs()
         if not briefs:

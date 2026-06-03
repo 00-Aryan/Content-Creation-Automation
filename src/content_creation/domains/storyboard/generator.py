@@ -3,7 +3,7 @@
 import json
 import logging
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 
 from content_creation.domains.content_intelligence.model import ContentIntelligence, TopicType
 from content_creation.inference import InferenceManager
@@ -77,7 +77,7 @@ def _resolve_visual_metaphor(brief: Brief, ci: ContentIntelligence) -> str:
 class StoryboardGenerator:
     """Generate Storyboard from Brief + ContentIntelligence."""
 
-    def __init__(self, api_key: str, registry: PromptRegistry):
+    def __init__(self, api_key: Optional[str] = None, registry: Optional[PromptRegistry] = None):
         self._manager = InferenceManager(api_key=api_key)
         self._registry = registry
 
