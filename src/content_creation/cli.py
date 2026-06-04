@@ -161,11 +161,16 @@ def main() -> int:
                 return 1
             
             ctx = ApplicationContext.create(base_dir)
-            service = CollectTopicsService()
+            from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+            executor = WorkflowActionExecutor()
             source = args.source if args.source else None
-            result = service.run(ctx, source_filter=source)
-            print(f"\nIngestion complete. Added {result.count} new items.")
-            return 0
+            res = executor.execute(ctx, "collect", "topic", "all", {"source": source})
+            if res.success:
+                print(f"\nIngestion complete. Added {res.affected_artifacts.get('collected_count', '0')} new items.")
+                return 0
+            else:
+                print(f"Error during collection: {res.blocking_reasons}")
+                return 1
 
         elif args.command == "status":
             storage = LocalStorage(base_dir)
@@ -217,22 +222,20 @@ def main() -> int:
 
         elif args.command == "score-topics":
             ctx = ApplicationContext.create(base_dir)
-            items = ctx.storage.list_staged()
-            if args.limit:
-                items = items[:args.limit]
+            from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+            executor = WorkflowActionExecutor()
             
-            if not items:
-                print("No staged items found to score.")
+            print("Scoring topics...")
+            res = executor.execute(ctx, "score_topics", "topic", "all", {"limit": args.limit})
+            if res.success:
+                print(f"Successfully scored {res.affected_artifacts.get('scored_count', '0')} items.")
+                rejected = int(res.affected_artifacts.get('rejected_count', '0'))
+                if rejected > 0:
+                    print(f"Rejected {rejected} items (check logs for reasons).")
                 return 0
-            
-            print(f"Scoring {len(items)} items...")
-            service = ScoreTopicsService()
-            result = service.run(ctx, limit=args.limit)
-            
-            print(f"Successfully scored {result.scored_count} items.")
-            if result.rejected_count > 0:
-                print(f"Rejected {result.rejected_count} items (check logs for reasons).")
-            return 0
+            else:
+                print(f"Error during scoring: {res.blocking_reasons}")
+                return 1
 
         elif args.command == "review-scores":
             storage = LocalStorage(base_dir)
@@ -300,21 +303,17 @@ def main() -> int:
                 return 1
             
             ctx = ApplicationContext.create(base_dir)
-            scored_items = ctx.storage.list_scored()
-            from content_creation.models.topic import TopicStatus
-            items_to_process = [item for item in scored_items if item.status == TopicStatus.SCORED]
-            items_to_process.sort(key=lambda x: x.priority_score, reverse=True)
-            items_to_process = items_to_process[:args.top]
+            from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+            executor = WorkflowActionExecutor()
             
-            if not items_to_process:
-                print("No scored topics found to process.")
+            print("Generating briefs...")
+            res = executor.execute(ctx, "generate_briefs", "brief", "all", {"top_n": args.top, "api_key": api_key})
+            if res.success:
+                print(f"Generated {res.affected_artifacts.get('generated_count', '0')} briefs, {res.affected_artifacts.get('failures', '0')} failed")
                 return 0
-            
-            print(f"Generating briefs for top {len(items_to_process)} topics...")
-            service = BriefGenerationService()
-            result = service.run(ctx, top_n=args.top, api_key=api_key)
-            print(f"Generated {result.generated_count} briefs, {len(result.failures)} failed")
-            return 0
+            else:
+                print(f"Error during brief generation: {res.blocking_reasons}")
+                return 1
 
         elif args.command == "generate-assets":
             api_key = os.environ.get("GEMINI_API_KEY")
@@ -323,88 +322,42 @@ def main() -> int:
                 return 1
 
             ctx = ApplicationContext.create(base_dir)
-            briefs = ctx.storage.list_briefs()
-            briefs.sort(key=lambda b: b.generated_at, reverse=True)
-            briefs = briefs[:args.top]
+            from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+            executor = WorkflowActionExecutor()
 
-            if not briefs:
-                print("No briefs found. Run 'generate-briefs' first.")
+            print("Generating assets...")
+            res = executor.execute(ctx, "generate_assets", "assets", "all", {"top_n": args.top, "api_key": api_key})
+            if res.success:
+                print(f"\nGenerated: {res.affected_artifacts.get('counts')}")
+                print(f"Failures: {res.affected_artifacts.get('failed_count', '0')}")
                 return 0
-
-            print(f"Generating assets for {len(briefs)} briefs...")
-            service = AssetGenerationService()
-            result = service.run(ctx, top_n=args.top, api_key=api_key)
-            
-            print(f"\nGenerated: {result.counts}")
-            if result.skipped_count > 0:
-                print(f"Skipped (already completed): {result.skipped_count}")
-            print(f"Failures: {result.failed_count}")
-            return 0
+            else:
+                print(f"Error during asset generation: {res.blocking_reasons}")
+                return 1
 
         elif args.command == "batch-approve":
-            from content_creation.shared.enums import ReviewStatus
-            from content_creation.manifest import ManifestBuilder
+            ctx = ApplicationContext.create(base_dir)
+            from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+            executor = WorkflowActionExecutor()
 
-            storage = LocalStorage(base_dir)
+            res = executor.execute(
+                ctx,
+                "batch_approve",
+                "assets",
+                "all",
+                {
+                    "asset_type": args.asset_type,
+                    "exclude_incomplete": args.exclude_incomplete,
+                }
+            )
 
-            asset_types = ["brief", "script", "carousel", "newsletter", "thumbnail"]
-            if args.asset_type != "all":
-                if args.asset_type not in asset_types:
-                    print(f"Error: Invalid asset type '{args.asset_type}'. Valid: {asset_types + ['all']}")
-                    return 1
-                asset_types = [args.asset_type]
-
-            asset_dirs = {
-                "brief": storage.briefs_dir,
-                "script": storage.scripts_dir,
-                "carousel": storage.carousels_dir,
-                "newsletter": storage.newsletters_dir,
-                "thumbnail": storage.thumbnails_dir,
-            }
-
-            import json as json_mod
-            approved_count = 0
-            skipped_count = 0
-
-            for asset_type in asset_types:
-                dir_path = asset_dirs[asset_type]
-                for file_path in dir_path.glob("*.json"):
-                    try:
-                        with open(file_path, "r") as f:
-                            data = json_mod.load(f)
-                    except Exception:
-                        continue
-
-                    status = data.get("review_status")
-                    if status in ("approved", "rejected"):
-                        continue
-
-                    if args.exclude_incomplete:
-                        has_incomplete = any(
-                            v == "needs_review"
-                            for k, v in data.items()
-                            if k != "review_status" and isinstance(v, str)
-                        )
-                        if has_incomplete:
-                            skipped_count += 1
-                            continue
-
-                    topic_id = file_path.stem
-                    storage.update_asset_status(asset_type, topic_id, ReviewStatus.APPROVED)
-                    approved_count += 1
-
-            # Rebuild manifests
-            builder = ManifestBuilder(storage)
-            manifests = builder.build_all()
-            for m in manifests:
-                storage.save_manifest(m)
-
-            print(f"Approved: {approved_count} assets")
-            if skipped_count:
-                print(f"Skipped (incomplete): {skipped_count}")
-            complete = sum(1 for m in manifests if m.overall_status == "complete")
-            print(f"Manifests rebuilt: {len(manifests)} ({complete} complete)")
-            return 0
+            if res.success:
+                print(f"Approved: {res.affected_artifacts.get('approved_count', '0')} assets")
+                print(f"Manifests rebuilt: {res.affected_artifacts.get('manifests_rebuilt', '0')}")
+                return 0
+            else:
+                print(f"Error executing batch approval: {res.blocking_reasons}")
+                return 1
 
         elif args.command == "run-pipeline":
             import json as json_mod
@@ -581,74 +534,54 @@ def main() -> int:
             return 0
 
         elif args.command == "build-manifest":
-            storage = LocalStorage(base_dir)
+            ctx = ApplicationContext.create(base_dir)
+            from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+            executor = WorkflowActionExecutor()
 
-            # Load the brief to get topic_title and source_url
-            brief = storage.get_scored(args.topic_id)
-            if not brief:
-                # Try to get from briefs dir
-                briefs = storage.list_briefs()
-                matching = [b for b in briefs if b.topic_id == args.topic_id]
-                if matching:
-                    brief = matching[0]
+            res = executor.execute(ctx, "build_manifest", "manifest", args.topic_id, {})
+            if res.success:
+                manifest = res.raw_result
+                print(f"Topic ID: {manifest.topic_id}")
+                print(f"Overall Status: {manifest.overall_status}")
+                print(f"Ready for Planner: {manifest.ready_for_planner}")
+                print("Assets:")
+                for asset_type in ["brief", "script", "carousel", "newsletter", "thumbnail"]:
+                    status = manifest.assets.get(asset_type, {}).status if manifest.assets.get(asset_type) else "missing"
+                    print(f"  {asset_type:12} {status}")
+                if manifest.blocking_reasons:
+                    print(f"Blocking: {', '.join(manifest.blocking_reasons)}")
                 else:
-                    print(f"Error: No brief found for topic_id '{args.topic_id}'")
-                    return 1
-
-            topic_title = getattr(brief, "title", getattr(brief, "why_it_matters", "unknown"))
-            source_url = getattr(brief, "url", getattr(brief, "source_url", "unknown"))
-
-            from content_creation.manifest import ManifestBuilder
-
-            builder = ManifestBuilder(storage)
-            manifest = builder.build(
-                topic_id=args.topic_id,
-                topic_title=topic_title,
-                source_url=source_url,
-            )
-
-            storage.save_manifest(manifest)
-
-            # Print summary
-            print(f"Topic ID: {manifest.topic_id}")
-            print(f"Overall Status: {manifest.overall_status}")
-            print(f"Ready for Planner: {manifest.ready_for_planner}")
-            print("Assets:")
-            for asset_type in ["brief", "script", "carousel", "newsletter", "thumbnail"]:
-                status = manifest.assets.get(asset_type, {}).status if manifest.assets.get(asset_type) else "missing"
-                print(f"  {asset_type:12} {status}")
-            if manifest.blocking_reasons:
-                print(f"Blocking: {', '.join(manifest.blocking_reasons)}")
+                    print("Blocking: none")
+                return 0
             else:
-                print("Blocking: none")
-
-            return 0
+                print(f"Error building manifest: {res.blocking_reasons}")
+                return 1
 
         elif args.command == "build-all-manifests":
-            from content_creation.manifest import ManifestBuilder
+            ctx = ApplicationContext.create(base_dir)
+            from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+            executor = WorkflowActionExecutor()
 
-            storage = LocalStorage(base_dir)
-            builder = ManifestBuilder(storage)
-            manifests = builder.build_all()
+            res = executor.execute(ctx, "build_all_manifests", "manifest", "all", {})
+            if res.success:
+                manifests = res.raw_result
+                complete = sum(1 for m in manifests if m.overall_status == "complete")
+                partial = sum(1 for m in manifests if m.overall_status == "partial")
+                blocked = sum(1 for m in manifests if m.overall_status == "blocked")
 
-            # Save each manifest
-            for manifest in manifests:
-                storage.save_manifest(manifest)
-
-            complete = sum(1 for m in manifests if m.overall_status == "complete")
-            partial = sum(1 for m in manifests if m.overall_status == "partial")
-            blocked = sum(1 for m in manifests if m.overall_status == "blocked")
-
-            print(f"Built and saved {len(manifests)} manifests")
-            print(f"  Complete: {complete}")
-            print(f"  Partial: {partial}")
-            print(f"  Blocked: {blocked}")
-
-            return 0
+                print(f"Built and saved {len(manifests)} manifests")
+                print(f"  Complete: {complete}")
+                print(f"  Partial: {partial}")
+                print(f"  Blocked: {blocked}")
+                return 0
+            else:
+                print(f"Error building manifests: {res.blocking_reasons}")
+                return 1
 
         elif args.command == "plan-week":
-            storage = LocalStorage(base_dir)
-            publishing_config_path = base_dir / "config" / "publishing.yaml"
+            ctx = ApplicationContext.create(base_dir)
+            from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+            executor = WorkflowActionExecutor()
 
             # Parse week_start
             if args.week_start:
@@ -665,13 +598,20 @@ def main() -> int:
                     days_until_monday = 7
                 week_start_date = today + timedelta(days=days_until_monday)
 
-            from content_creation.planning.planner import PostingPlanner
+            res = executor.execute(
+                ctx,
+                "plan_week",
+                "weekly_calendar",
+                week_start_date.isoformat(),
+                {"week_start_date": week_start_date}
+            )
 
-            planner = PostingPlanner(storage, publishing_config_path)
-            calendar = planner.plan_week(week_start_date)
+            if not res.success:
+                print(f"Error planning week: {res.blocking_reasons}")
+                return 1
 
-            # Save JSON
-            json_path = storage.save_calendar(calendar)
+            calendar = res.raw_result
+            json_path = ctx.storage.save_calendar(calendar)
 
             # Generate markdown
             week_end = calendar.week_end
@@ -707,7 +647,7 @@ Generated: {generated_at}
                     md_content += f"### Day {day_num} — {day_date} ({day_name})\n- No posts scheduled\n\n"
 
             # Save markdown
-            md_path = storage.calendars_dir / f"{calendar.week_start}.md"
+            md_path = ctx.storage.calendars_dir / f"{calendar.week_start}.md"
             with open(md_path, "w") as f:
                 f.write(md_content)
 
@@ -722,8 +662,9 @@ Generated: {generated_at}
             return 0
 
         elif args.command == "dry-run":
-            storage = LocalStorage(base_dir)
-            publishing_config_path = base_dir / "config" / "publishing.yaml"
+            ctx = ApplicationContext.create(base_dir)
+            from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+            executor = WorkflowActionExecutor()
 
             # Parse week_start
             if args.week_start:
@@ -743,30 +684,48 @@ Generated: {generated_at}
                 week_start_str = week_start_date.isoformat()
 
             # Try to find existing calendar
-            calendars = storage.list_calendars()
+            calendars = ctx.storage.list_calendars()
             calendar = None
             for c in calendars:
                 if c.week_start == week_start_str:
                     calendar = c
                     break
 
-            # If not found, generate one
+            # If not found, generate one via executor
             if calendar is None:
-                from content_creation.planning.planner import PostingPlanner
-                planner = PostingPlanner(storage, publishing_config_path)
-                calendar = planner.plan_week(week_start_date)
-                storage.save_calendar(calendar)
+                res_plan = executor.execute(
+                    ctx,
+                    "plan_week",
+                    "weekly_calendar",
+                    week_start_str,
+                    {"week_start_date": week_start_date}
+                )
+                if not res_plan.success:
+                    print(f"Error planning week for dry-run: {res_plan.blocking_reasons}")
+                    return 1
+                calendar = res_plan.raw_result
 
             # Run dry-run validation
-            from content_creation.planning.dryrun import DryRunValidator
-            validator = DryRunValidator(storage, publishing_config_path)
-            report = validator.run(calendar)
+            res_val = executor.execute(
+                ctx,
+                "dry_run",
+                "weekly_calendar",
+                week_start_str,
+                {"week_start": week_start_str}
+            )
 
-            # Save JSON
-            json_path = storage.save_dryrun(report)
+            if not res_val.success:
+                print(f"Error running dry-run validation: {res_val.blocking_reasons}")
+                return 1
+
+            report = res_val.raw_result
+            json_path = ctx.storage.save_dryrun(report)
 
             # Export markdown
-            md_path = storage.dryruns_dir / f"{week_start_str}.md"
+            from content_creation.planning.dryrun import DryRunValidator
+            publishing_config_path = base_dir / "config" / "publishing.yaml"
+            validator = DryRunValidator(ctx.storage, publishing_config_path)
+            md_path = ctx.storage.dryruns_dir / f"{week_start_str}.md"
             validator.export_markdown(report, md_path)
 
             # Print terminal summary
@@ -788,9 +747,9 @@ Generated: {generated_at}
             return 0
 
         elif args.command == "init-analytics":
-            from content_creation.models.analytics import PostAnalytics, PerformanceSnapshot
-
-            storage = LocalStorage(base_dir)
+            ctx = ApplicationContext.create(base_dir)
+            from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+            executor = WorkflowActionExecutor()
 
             # Parse week_start
             if args.week_start:
@@ -808,61 +767,29 @@ Generated: {generated_at}
                 week_start_date = today + timedelta(days=days_until_monday)
                 week_start_str = week_start_date.isoformat()
 
-            # Load calendar
-            calendars = storage.list_calendars()
-            calendar = None
-            for c in calendars:
-                if c.week_start == week_start_str:
-                    calendar = c
-                    break
+            res = executor.execute(
+                ctx,
+                "init_analytics",
+                "weekly_calendar",
+                week_start_str,
+                {"week_start": week_start_str}
+            )
 
-            if calendar is None:
-                print(f"Error: No calendar found for {week_start_str}. Run 'plan-week' first.")
+            if res.success:
+                print(f"\nAnalytics initialized: {res.affected_artifacts.get('initialized_count', '0')} new records")
+                print(f"Week: {week_start_str}")
+                return 0
+            else:
+                print(f"Error executing init-analytics: {res.blocking_reasons}")
                 return 1
 
-            # Initialize analytics for each post
-            new_count = 0
-            skipped_count = 0
-
-            for post in calendar.posts:
-                post_id = f"{post.topic_id}_{post.format}_{week_start_str}"
-
-                # Check if already exists
-                existing = storage.get_analytics(post_id)
-                if existing is not None:
-                    print(f"→ Skipping {post_id} (already exists)")
-                    skipped_count += 1
-                    continue
-
-                # Create new analytics record
-                analytics = PostAnalytics(
-                    post_id=post_id,
-                    topic_id=post.topic_id,
-                    topic_title=post.topic_title,
-                    format=post.format,
-                    asset_path=post.asset_path,
-                    source_url=post.source_url,
-                    posted_at=None,
-                    week_start=week_start_str,
-                    performance=PerformanceSnapshot(),
-                    last_updated=datetime.now(timezone.utc).isoformat(),
-                    notes=None,
-                )
-                storage.save_analytics(analytics)
-                print(f"✓ Initialized {post_id}")
-                new_count += 1
-
-            print(f"\nAnalytics initialized: {new_count} new records")
-            print(f"Skipped: {skipped_count} existing records")
-            print(f"Week: {week_start_str}")
-
-            return 0
-
         elif args.command == "update-analytics":
-            storage = LocalStorage(base_dir)
+            ctx = ApplicationContext.create(base_dir)
+            from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+            executor = WorkflowActionExecutor()
 
             # Load existing analytics
-            analytics = storage.get_analytics(args.post_id)
+            analytics = ctx.storage.get_analytics(args.post_id)
             if analytics is None:
                 print(f"Error: No analytics record found for '{args.post_id}'")
                 return 1
@@ -911,49 +838,61 @@ Generated: {generated_at}
                 return user_input
 
             try:
+                metrics = {}
                 # Prompt for performance fields
-                analytics.performance.views_24h = prompt_numeric("Views (24h)", analytics.performance.views_24h)
-                analytics.performance.views_7d = prompt_numeric("Views (7d)", analytics.performance.views_7d)
-                analytics.performance.views_30d = prompt_numeric("Views (30d)", analytics.performance.views_30d)
-                analytics.performance.reach_24h = prompt_numeric("Reach (24h)", analytics.performance.reach_24h)
-                analytics.performance.reach_7d = prompt_numeric("Reach (7d)", analytics.performance.reach_7d)
-                analytics.performance.saves = prompt_numeric("Saves", analytics.performance.saves)
-                analytics.performance.comments = prompt_numeric("Comments", analytics.performance.comments)
-                analytics.performance.cta_clicks = prompt_numeric("CTA Clicks", analytics.performance.cta_clicks)
+                metrics["views_24h"] = prompt_numeric("Views (24h)", analytics.performance.views_24h)
+                metrics["views_7d"] = prompt_numeric("Views (7d)", analytics.performance.views_7d)
+                metrics["views_30d"] = prompt_numeric("Views (30d)", analytics.performance.views_30d)
+                metrics["reach_24h"] = prompt_numeric("Reach (24h)", analytics.performance.reach_24h)
+                metrics["reach_7d"] = prompt_numeric("Reach (7d)", analytics.performance.reach_7d)
+                metrics["saves"] = prompt_numeric("Saves", analytics.performance.saves)
+                metrics["comments"] = prompt_numeric("Comments", analytics.performance.comments)
+                metrics["cta_clicks"] = prompt_numeric("CTA Clicks", analytics.performance.cta_clicks)
 
                 # Watch time (video only)
                 if analytics.format == "short_video":
-                    analytics.performance.watch_time_pct = prompt_float("Watch time %", analytics.performance.watch_time_pct)
+                    metrics["watch_time_pct"] = prompt_float("Watch time %", analytics.performance.watch_time_pct)
                 else:
                     print("Watch time %: (skipped - video only)")
 
                 # Posted at - only update if user provides a value
+                posted_at = analytics.posted_at
                 posted_input = input(f"Posted at (YYYY-MM-DDTHH:MM) [{analytics.posted_at or 'None'}]: ").strip()
                 if posted_input != "":
                     try:
                         datetime.strptime(posted_input, "%Y-%m-%dT%H:%M")
-                        analytics.posted_at = posted_input
+                        posted_at = posted_input
                     except ValueError:
                         print("Error: Invalid date format. Use YYYY-MM-DDTHH:MM")
-                        # Don't update posted_at if invalid format
 
                 # Notes
-                analytics.notes = prompt_optional_string("Notes", analytics.notes)
+                notes_val = prompt_optional_string("Notes", analytics.notes)
 
             except KeyboardInterrupt:
                 print("\nUpdate cancelled.")
                 return 130
 
-            # Update last_updated
-            analytics.last_updated = datetime.now(timezone.utc).isoformat()
+            res = executor.execute(
+                ctx,
+                "update_analytics",
+                "weekly_calendar",
+                args.post_id,
+                {
+                    "post_id": args.post_id,
+                    "posted_at": posted_at,
+                    "notes": notes_val,
+                    "metrics": metrics,
+                }
+            )
 
-            # Save
-            storage.save_analytics(analytics)
-
-            print(f"\nUpdated: {args.post_id}")
-            print(f"Last updated: {analytics.last_updated}")
-
-            return 0
+            if res.success:
+                updated_analytics = res.raw_result
+                print(f"\nUpdated: {args.post_id}")
+                print(f"Last updated: {updated_analytics.last_updated}")
+                return 0
+            else:
+                print(f"Error updating analytics: {res.blocking_reasons}")
+                return 1
 
         elif args.command == "review-assets":
             from content_creation.shared.enums import ReviewStatus
@@ -1048,8 +987,24 @@ Generated: {generated_at}
                         print("→ Skipped")
                         skipped_count += 1
 
-                # Apply decisions and rebuild manifest using the service
-                result = service.apply_decisions(ctx, args.topic_id, decisions)
+                # Apply decisions and rebuild manifest using the executor
+                from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+                executor = WorkflowActionExecutor()
+                last_manifest = None
+                
+                for decision in decisions:
+                    action_id = "approve_asset" if decision.status.value == "approved" else "reject_asset"
+                    res = executor.execute(
+                        ctx,
+                        action_id,
+                        "assets",
+                        args.topic_id,
+                        {"asset_type": decision.asset_type},
+                        notes=decision.rejection_reason
+                    )
+                    if not res.success:
+                        raise RuntimeError(f"Asset review decision failed: {res.blocking_reasons}")
+                    last_manifest = res.raw_result.manifest
 
                 # Print updated summary
                 print("\n" + "=" * 50)
@@ -1057,8 +1012,15 @@ Generated: {generated_at}
                 print(f"Approved: {approved_count}")
                 print(f"Rejected: {rejected_count}")
                 print(f"Skipped: {skipped_count}")
-                print(f"Overall Status: {result.manifest.overall_status}")
-                print(f"Ready for Planner: {result.manifest.ready_for_planner}")
+                if last_manifest:
+                    print(f"Overall Status: {last_manifest.overall_status}")
+                    print(f"Ready for Planner: {last_manifest.ready_for_planner}")
+                else:
+                    # If all assets were already approved or no decisions were made, load the manifest
+                    manifest_data_status = manifest_data.get('overall_status', 'unknown')
+                    manifest_data_ready = manifest_data.get('ready_for_planner', False)
+                    print(f"Overall Status: {manifest_data_status}")
+                    print(f"Ready for Planner: {manifest_data_ready}")
                 print("=" * 50)
 
                 return 0

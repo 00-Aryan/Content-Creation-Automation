@@ -59,6 +59,8 @@ class ServiceClient:
 
     def __init__(self) -> None:
         self.ctx = get_context()
+        from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+        self.executor = WorkflowActionExecutor()
 
     def is_generation_available(self) -> bool:
         """Verifies if the generation service credentials are configured on the backend."""
@@ -129,21 +131,52 @@ class ServiceClient:
         source_filter: Optional[str] = None,
     ) -> TimedServiceResult:
         """Runs the approved end-to-end pipeline service."""
-        return self._timed(
-            self.pipeline.run,
-            self.ctx,
-            top_n=top_n,
-            source_filter=source_filter,
-            auto_approve=False,
-        )
+        def _run():
+            res = self.executor.execute(
+                self.ctx,
+                "run_pipeline",
+                "manifest",
+                "all",
+                {
+                    "top_n": top_n,
+                    "source": source_filter,
+                    "api_key": os.environ.get("GEMINI_API_KEY"),
+                }
+            )
+            if not res.success:
+                raise RuntimeError(f"Pipeline failed: {res.blocking_reasons}")
+            return res.raw_result
+        return self._timed(_run)
 
     def collect_topics(self, source_filter: Optional[str] = None) -> TimedServiceResult:
         """Runs topic collection through CollectTopicsService."""
-        return self._timed(self.collect.run, self.ctx, source_filter=source_filter)
+        def _run():
+            res = self.executor.execute(
+                self.ctx,
+                "collect",
+                "topic",
+                "all",
+                {"source": source_filter}
+            )
+            if not res.success:
+                raise RuntimeError(f"Collection failed: {res.blocking_reasons}")
+            return res.raw_result
+        return self._timed(_run)
 
     def score_topics(self) -> TimedServiceResult:
         """Runs topic scoring through ScoreTopicsService."""
-        return self._timed(self.score.run, self.ctx)
+        def _run():
+            res = self.executor.execute(
+                self.ctx,
+                "score_topics",
+                "topic",
+                "all",
+                {}
+            )
+            if not res.success:
+                raise RuntimeError(f"Scoring failed: {res.blocking_reasons}")
+            return res.raw_result
+        return self._timed(_run)
 
     def generate_briefs(
         self,
@@ -151,12 +184,21 @@ class ServiceClient:
         rate_limit_delay: float = 5.0,
     ) -> TimedServiceResult:
         """Runs brief generation through BriefGenerationService."""
-        return self._timed(
-            self.brief.run,
-            self.ctx,
-            top_n=top_n,
-            rate_limit_delay=rate_limit_delay,
-        )
+        def _run():
+            res = self.executor.execute(
+                self.ctx,
+                "generate_briefs",
+                "brief",
+                "all",
+                {
+                    "top_n": top_n,
+                    "api_key": os.environ.get("GEMINI_API_KEY"),
+                }
+            )
+            if not res.success:
+                raise RuntimeError(f"Brief generation failed: {res.blocking_reasons}")
+            return res.raw_result
+        return self._timed(_run)
 
     def generate_content_intelligence(
         self,
@@ -164,12 +206,21 @@ class ServiceClient:
         rate_limit_delay: float = 5.0,
     ) -> TimedServiceResult:
         """Runs content intelligence generation through ContentIntelligenceService."""
-        return self._timed(
-            self.content_intelligence.run,
-            self.ctx,
-            top_n=top_n,
-            rate_limit_delay=rate_limit_delay,
-        )
+        def _run():
+            res = self.executor.execute(
+                self.ctx,
+                "generate_ci",
+                "content_intelligence",
+                "all",
+                {
+                    "top_n": top_n,
+                    "api_key": os.environ.get("GEMINI_API_KEY"),
+                }
+            )
+            if not res.success:
+                raise RuntimeError(f"Content Intelligence generation failed: {res.blocking_reasons}")
+            return res.raw_result
+        return self._timed(_run)
 
     def generate_storyboards(
         self,
@@ -177,12 +228,21 @@ class ServiceClient:
         rate_limit_delay: float = 5.0,
     ) -> TimedServiceResult:
         """Runs storyboard generation through StoryboardService."""
-        return self._timed(
-            self.storyboard.run,
-            self.ctx,
-            top_n=top_n,
-            rate_limit_delay=rate_limit_delay,
-        )
+        def _run():
+            res = self.executor.execute(
+                self.ctx,
+                "generate_storyboards",
+                "storyboard",
+                "all",
+                {
+                    "top_n": top_n,
+                    "api_key": os.environ.get("GEMINI_API_KEY"),
+                }
+            )
+            if not res.success:
+                raise RuntimeError(f"Storyboard generation failed: {res.blocking_reasons}")
+            return res.raw_result
+        return self._timed(_run)
 
     def generate_asset_suite(
         self,
@@ -190,39 +250,75 @@ class ServiceClient:
         rate_limit_delay: float = 5.0,
     ) -> TimedServiceResult:
         """Runs storyboard-first asset generation through AssetGenerationService."""
-        return self._timed(
-            self.asset_generation.run,
-            self.ctx,
-            top_n=top_n,
-            rate_limit_delay=rate_limit_delay,
-        )
+        def _run():
+            res = self.executor.execute(
+                self.ctx,
+                "generate_assets",
+                "assets",
+                "all",
+                {
+                    "top_n": top_n,
+                    "api_key": os.environ.get("GEMINI_API_KEY"),
+                }
+            )
+            if not res.success:
+                raise RuntimeError(f"Asset generation failed: {res.blocking_reasons}")
+            return res.raw_result
+        return self._timed(_run)
 
     def apply_asset_decisions(self, topic_id: str, decisions: list) -> TimedServiceResult:
         """Applies asset review decisions through AssetReviewService."""
-        return self._timed(
-            self.asset_review.apply_decisions,
-            self.ctx,
-            topic_id,
-            decisions,
-        )
+        def _run():
+            last_res = None
+            for decision in decisions:
+                action_id = "approve_asset" if decision.status.value == "approved" else "reject_asset"
+                res = self.executor.execute(
+                    self.ctx,
+                    action_id,
+                    "assets",
+                    topic_id,
+                    {"asset_type": decision.asset_type},
+                    notes=decision.rejection_reason
+                )
+                if not res.success:
+                    raise RuntimeError(f"Asset review failed: {res.blocking_reasons}")
+                last_res = res.raw_result
+            return last_res
+        return self._timed(_run)
 
     def apply_brief_decision(self, topic_id: str, decision) -> TimedServiceResult:
         """Applies a brief review decision through BriefReviewService."""
-        return self._timed(
-            self.brief_review.apply_decision,
-            self.ctx,
-            topic_id,
-            decision,
-        )
+        def _run():
+            action_id = "approve_brief" if decision.status.value == "approved" else "reject_brief"
+            res = self.executor.execute(
+                self.ctx,
+                action_id,
+                "brief",
+                topic_id,
+                {},
+                notes=decision.notes
+            )
+            if not res.success:
+                raise RuntimeError(f"Brief review failed: {res.blocking_reasons}")
+            return res.raw_result
+        return self._timed(_run)
 
     def apply_storyboard_decision(self, topic_id: str, decision) -> TimedServiceResult:
         """Applies a storyboard review decision through StoryboardReviewService."""
-        return self._timed(
-            self.storyboard_review.apply_decision,
-            self.ctx,
-            topic_id,
-            decision,
-        )
+        def _run():
+            action_id = "approve_storyboard" if decision.status.value == "approved" else "reject_storyboard"
+            res = self.executor.execute(
+                self.ctx,
+                action_id,
+                "storyboard",
+                topic_id,
+                {},
+                notes=decision.notes
+            )
+            if not res.success:
+                raise RuntimeError(f"Storyboard review failed: {res.blocking_reasons}")
+            return res.raw_result
+        return self._timed(_run)
 
     def get_review_history(self, topic_id: str) -> list:
         """Returns all review history entries for a topic via BriefReviewService."""

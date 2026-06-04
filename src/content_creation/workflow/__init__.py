@@ -31,6 +31,11 @@ from content_creation.workflow.action_availability_engine import (
     AvailableAction,
     BlockedAction,
 )
+from content_creation.workflow.workflow_action_executor import (
+    WorkflowActionExecutor,
+    ActionExecutionResult,
+    ActionExecutionStatus,
+)
 
 __all__ = [
     "ArtifactLifecycleState",
@@ -54,4 +59,7 @@ __all__ = [
     "ActionAvailabilityResult",
     "AvailableAction",
     "BlockedAction",
+    "WorkflowActionExecutor",
+    "ActionExecutionResult",
+    "ActionExecutionStatus",
 ]
