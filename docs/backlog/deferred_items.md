@@ -72,3 +72,44 @@ Phase 10.4 Audit — Risk R-006
 **Priority:** Low
 
 **Target Phase:** Multi-User Deployment
+
+---
+
+## BACKLOG-005
+
+**Title:** Operator Pipeline Results UX
+
+**Status:** Deferred
+
+**Category:** Operator Experience
+
+**Priority:** Medium
+
+**Problem:**
+
+The current pipeline completion screen exposes developer-oriented information rather than operator-oriented information.
+
+* Raw pipeline result JSON is displayed by default.
+* Internal filesystem paths are displayed (log paths).
+* Duration is displayed as raw seconds.
+* Pipeline outcomes require interpretation of technical counters.
+* Generated asset outcomes are not summarized clearly.
+
+**Desired Outcome:**
+
+Pipeline completion should communicate business outcomes first and technical details second.
+
+**Requirements:**
+
+1. Replace developer-facing completion output with an operator-facing summary.
+2. Remove filesystem paths from operator-facing views (e.g., do not display `/opt/render/project/src/data/logs/...`).
+3. Convert duration display into human-readable format (e.g., `226.44s` becomes `3m 46s`).
+4. Display pipeline results as a concise summary (e.g., Topics Collected, Topics Scored, Briefs Generated, Content Intelligence Generated, Storyboards Generated, Assets Generated, Manifests Built).
+5. Display generated asset outcomes clearly (e.g., ✓ Script, ✓ Thumbnail, ✓ Carousel, ✓ Newsletter).
+6. Preserve raw pipeline JSON only inside an expandable technical diagnostics section.
+7. Do not modify pipeline logic.
+8. Do not modify backend services.
+9. UI-only change.
+
+**Target Phase:** Operator Experience Polish
+

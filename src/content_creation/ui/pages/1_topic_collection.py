@@ -35,7 +35,9 @@ def main() -> None:
                 try:
                     timed = client.collect_topics(source_filter=source_filter or None)
                     res = timed.result
-                    st.write(f"Duration: `{timed.duration_seconds:.2f}s`")
+                    from content_creation.utils.formatting import format_duration
+                    st.write(f"Duration: `{format_duration(timed.duration_seconds)}`")
+
                     st.write(f"Items collected: `{res.count}`")
                     status.update(label="Topic collection completed.", state="complete")
                     st.success(f"Collect Topics completed. Found {res.count} items.")

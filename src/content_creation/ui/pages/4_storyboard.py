@@ -96,7 +96,8 @@ def main() -> None:
                                 rate_limit_delay=5.0,
                             )
                             res = timed.result
-                            st.write(f"Duration: `{timed.duration_seconds:.2f}s`")
+                            from content_creation.utils.formatting import format_duration
+                            st.write(f"Duration: `{format_duration(timed.duration_seconds)}`")
                             st.write(f"Generated: `{res.generated_count}`")
                             st.write(f"Skipped: `{res.skipped_count}`")
                             st.write(f"Failures: `{len(res.failures)}`")
@@ -138,7 +139,8 @@ def main() -> None:
                                 rate_limit_delay=5.0,
                             )
                             res = timed.result
-                            st.write(f"Duration: `{timed.duration_seconds:.2f}s`")
+                            from content_creation.utils.formatting import format_duration
+                            st.write(f"Duration: `{format_duration(timed.duration_seconds)}`")
                             st.write(f"Generated: `{res.generated_count}`")
                             st.write(f"Skipped: `{res.skipped_count}`")
                             st.write(f"Failures: `{len(res.failures)}`")
@@ -275,7 +277,8 @@ def main() -> None:
                                 try:
                                     timed = client.apply_storyboard_decision(topic_id, sb_decision)
                                     res = timed.result
-                                    st.write(f"Duration: `{timed.duration_seconds:.2f}s`")
+                                    from content_creation.utils.formatting import format_duration
+                                    st.write(f"Duration: `{format_duration(timed.duration_seconds)}`")
                                     st.write(f"Previous Status: `{res.previous_status.value}`")
                                     st.write(f"New Status: `{res.new_status.value}`")
                                     status.update(label="Storyboard review decision applied.", state="complete")

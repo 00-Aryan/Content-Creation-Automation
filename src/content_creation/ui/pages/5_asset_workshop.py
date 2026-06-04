@@ -89,7 +89,8 @@ def main() -> None:
                         rate_limit_delay=5.0,
                     )
                     res = timed.result
-                    st.write(f"Duration: `{timed.duration_seconds:.2f}s`")
+                    from content_creation.utils.formatting import format_duration
+                    st.write(f"Duration: `{format_duration(timed.duration_seconds)}`")
                     st.write(f"Counts: `{res.counts}`")
                     st.write(f"Skipped: `{res.skipped_count}`")
                     st.write(f"Failed: `{res.failed_count}`")
@@ -296,7 +297,8 @@ def main() -> None:
                     try:
                         timed = client.apply_asset_decisions(topic_id, decisions)
                         res = timed.result
-                        st.write(f"Duration: `{timed.duration_seconds:.2f}s`")
+                        from content_creation.utils.formatting import format_duration
+                        st.write(f"Duration: `{format_duration(timed.duration_seconds)}`")
                         st.write(f"Approved: `{res.approved_count}`")
                         st.write(f"Rejected: `{res.rejected_count}`")
                         status.update(label="Review decisions applied.", state="complete")

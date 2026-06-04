@@ -61,22 +61,110 @@ def main() -> None:
                         source_filter=source_filter or None,
                     )
                     res = timed.result
-                    st.write(f"Duration: `{timed.duration_seconds:.2f}s`")
-                    st.write(f"Stages executed: `{', '.join(res.stages)}`")
-                    st.json(res.stage_summaries)
-                    st.caption(f"Log path: {res.log_path}")
+                    
                     if res.success:
                         status.update(
                             label="Pipeline completed successfully.",
                             state="complete",
                         )
-                        st.success("Full pipeline completed successfully.")
                     else:
                         status.update(
                             label="Pipeline completed with failures.",
                             state="error",
                         )
-                        st.error("Pipeline run failed. Review the stage summary above.")
+
+                    from content_creation.utils.formatting import format_duration
+                    
+                    try:
+                        duration_str = format_duration(timed.duration_seconds)
+                    except Exception:
+                        duration_str = f"{timed.duration_seconds:.2f}s"
+
+                    st.markdown("### 📋 Pipeline Run Summary")
+                    
+                    col_summary, col_assets = st.columns(2)
+                    
+                    with col_summary:
+                        st.markdown(f"**Duration:** {duration_str}")
+                        
+                        try:
+                            # Safely extract metrics from stage summaries
+                            collect_sum = res.stage_summaries.get("collect", {})
+                            collect_count = collect_sum.get("count", 0) if isinstance(collect_sum, dict) else 0
+                            
+                            score_sum = res.stage_summaries.get("score", {})
+                            if isinstance(score_sum, dict):
+                                scored_count = score_sum.get("scored_count", 0)
+                                rejected_count = score_sum.get("rejected_count", 0)
+                            else:
+                                scored_count = 0
+                                rejected_count = 0
+                                
+                            brief_sum = res.stage_summaries.get("generate-briefs", {})
+                            brief_count = brief_sum.get("generated_count", 0) if isinstance(brief_sum, dict) else 0
+                            
+                            ci_sum = res.stage_summaries.get("generate-content-intelligence", {})
+                            ci_count = ci_sum.get("generated_count", 0) if isinstance(ci_sum, dict) else 0
+                            
+                            storyboard_sum = res.stage_summaries.get("generate-storyboards", {})
+                            storyboard_count = storyboard_sum.get("generated_count", 0) if isinstance(storyboard_sum, dict) else 0
+                            
+                            manifest_sum = res.stage_summaries.get("build-manifests", {})
+                            manifest_count = manifest_sum.get("count", 0) if isinstance(manifest_sum, dict) else 0
+                            
+                            asset_sum = res.stage_summaries.get("generate-assets", {})
+                            if isinstance(asset_sum, dict):
+                                asset_counts = asset_sum.get("counts", {})
+                                total_assets = sum(asset_counts.values()) if isinstance(asset_counts, dict) else 0
+                            else:
+                                asset_counts = {}
+                                total_assets = 0
+
+                            st.write(f"• **Topics Collected:** {collect_count:,}")
+                            st.write(f"• **Topics Scored:** {scored_count:,} accepted / {rejected_count:,} rejected")
+                            st.write(f"• **Briefs Generated:** {brief_count:,}")
+                            st.write(f"• **Content Intelligence Generated:** {ci_count:,}")
+                            st.write(f"• **Storyboards Generated:** {storyboard_count:,}")
+                            st.write(f"• **Assets Generated:** {total_assets:,}")
+                            st.write(f"• **Manifests Built:** {manifest_count:,}")
+                        except Exception:
+                            st.warning("Could not parse all pipeline metrics. Inspect Technical Details below.")
+
+                    with col_assets:
+                        st.markdown("**Generated Asset Outcomes:**")
+                        try:
+                            asset_sum = res.stage_summaries.get("generate-assets", {})
+                            asset_counts = asset_sum.get("counts", {}) if isinstance(asset_sum, dict) else {}
+                            
+                            total_assets = sum(asset_counts.values()) if isinstance(asset_counts, dict) else 0
+                            if total_assets == 0:
+                                st.write("○ Not Generated")
+                            else:
+                                for asset_type, label in [
+                                    ("script", "Script"),
+                                    ("thumbnail", "Thumbnail"),
+                                    ("carousel", "Carousel"),
+                                    ("newsletter", "Newsletter")
+                                ]:
+                                    count = asset_counts.get(asset_type, 0)
+                                    if count > 0:
+                                        st.write(f"✓ **{label}** ({count} generated)")
+                                    else:
+                                        st.write(f"○ **{label}** (Not Generated)")
+                        except Exception:
+                            st.write("○ Not Generated")
+
+                    st.caption("Execution log saved.")
+                    
+                    with st.expander("Technical Details"):
+                        log_name = res.log_path.name if hasattr(res.log_path, 'name') else str(res.log_path)
+                        st.markdown(f"**Log File:** `{log_name}`")
+                        st.json(res.stage_summaries)
+
+                    if res.success:
+                        st.success("Full pipeline completed successfully.")
+                    else:
+                        st.error("Pipeline run failed. Review the stage summaries above.")
                 except Exception as e:
                     status.update(label="Pipeline execution failed.", state="error")
                     st.error(f"Failed to execute pipeline service: {e}")

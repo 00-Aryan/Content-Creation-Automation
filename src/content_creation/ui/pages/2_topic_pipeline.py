@@ -52,7 +52,9 @@ def main() -> None:
             try:
                 timed = client.score_topics()
                 res = timed.result
-                st.write(f"Duration: `{timed.duration_seconds:.2f}s`")
+                from content_creation.utils.formatting import format_duration
+                st.write(f"Duration: `{format_duration(timed.duration_seconds)}`")
+
                 st.write(f"Scored: `{res.scored_count}`")
                 st.write(f"Rejected: `{res.rejected_count}`")
                 status.update(label="Topic scoring completed.", state="complete")

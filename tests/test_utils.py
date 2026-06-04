@@ -91,3 +91,20 @@ class TestConfig:
         # Variable should be loaded into environment
         import os
         assert os.getenv("TEST_VAR") == "env_value"
+
+
+class TestFormatting:
+    """Test formatting utilities."""
+
+    def test_format_duration_less_than_minute(self):
+        from content_creation.utils.formatting import format_duration
+        assert format_duration(45.2) == "45s"
+        assert format_duration(0.0) == "0s"
+        assert format_duration(59.9) == "59s"
+
+    def test_format_duration_more_than_minute(self):
+        from content_creation.utils.formatting import format_duration
+        assert format_duration(226.44) == "3m 46s"
+        assert format_duration(60.0) == "1m 0s"
+        assert format_duration(3600.0) == "60m 0s"
+
