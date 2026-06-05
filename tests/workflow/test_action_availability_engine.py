@@ -514,3 +514,119 @@ class TestQueryAPIs:
             dependencies={"brief": ArtifactLifecycleState.APPROVED},
         )
         assert reason_none is None
+
+
+class TestActionAvailabilityEngineExtended:
+    """Verify new engine APIs and 100% coverage."""
+
+    def test_get_available_actions_detailed(self, engine: ActionAvailabilityEngine):
+        # Trigger the relevant actions loop and check available_actions and blocking_reasons
+        res = engine.get_available_actions(
+            "brief",
+            ArtifactLifecycleState.MISSING,
+            dependencies={"topic": ArtifactLifecycleState.APPROVED},
+        )
+        assert res.allowed is True
+        assert "generate_briefs" in res.available_actions
+        assert any(b.action_id == "approve_brief" for b in res.blocking_reasons)
+        assert res.recommended_action == "generate_briefs"
+
+        # Compare result against list of strings (using __eq__ overload)
+        assert res == ["generate_briefs"]
+        
+        # Test __eq__ default comparison (super().__eq__)
+        assert res != "not a list or ActionAvailabilityResult"
+        assert res == res
+
+    def test_evaluate_dependencies(self, engine: ActionAvailabilityEngine):
+        # generate_briefs
+        eval_gb_pass = engine.evaluate_dependencies("generate_briefs", {"topic": ArtifactLifecycleState.APPROVED})
+        assert eval_gb_pass.passed is True
+        eval_gb_fail = engine.evaluate_dependencies("generate_briefs", {"topic": ArtifactLifecycleState.REJECTED})
+        assert eval_gb_fail.passed is False
+
+        # generate_ci
+        eval_ci_pass = engine.evaluate_dependencies("generate_ci", {"brief": ArtifactLifecycleState.APPROVED})
+        assert eval_ci_pass.passed is True
+        eval_ci_fail = engine.evaluate_dependencies("generate_ci", {"brief": ArtifactLifecycleState.DRAFT})
+        assert eval_ci_fail.passed is False
+
+        # generate_storyboards
+        eval_sb_pass = engine.evaluate_dependencies(
+            "generate_storyboards",
+            {"brief": ArtifactLifecycleState.APPROVED, "content_intelligence": ArtifactLifecycleState.APPROVED},
+        )
+        assert eval_sb_pass.passed is True
+        eval_sb_fail1 = engine.evaluate_dependencies(
+            "generate_storyboards",
+            {"brief": ArtifactLifecycleState.DRAFT, "content_intelligence": ArtifactLifecycleState.APPROVED},
+        )
+        assert eval_sb_fail1.passed is False
+        eval_sb_fail2 = engine.evaluate_dependencies(
+            "generate_storyboards",
+            {"brief": ArtifactLifecycleState.APPROVED, "content_intelligence": ArtifactLifecycleState.FAILED},
+        )
+        assert eval_sb_fail2.passed is False
+
+        # generate_assets
+        eval_ga_pass = engine.evaluate_dependencies("generate_assets", {"storyboard": ArtifactLifecycleState.APPROVED})
+        assert eval_ga_pass.passed is True
+        eval_ga_fail = engine.evaluate_dependencies("generate_assets", {"storyboard": ArtifactLifecycleState.DRAFT})
+        assert eval_ga_fail.passed is False
+
+        # build_manifest
+        eval_bm_pass = engine.evaluate_dependencies("build_manifest", {"brief": ArtifactLifecycleState.APPROVED})
+        assert eval_bm_pass.passed is True
+        eval_bm_fail = engine.evaluate_dependencies("build_manifest", {"brief": ArtifactLifecycleState.MISSING})
+        assert eval_bm_fail.passed is False
+
+        # plan_week
+        eval_pw_pass = engine.evaluate_dependencies("plan_week", {"manifest": ArtifactLifecycleState.APPROVED})
+        assert eval_pw_pass.passed is True
+        eval_pw_fail = engine.evaluate_dependencies("plan_week", {"manifest": ArtifactLifecycleState.DRAFT})
+        assert eval_pw_fail.passed is False
+
+        # dry_run
+        eval_dr_pass = engine.evaluate_dependencies("dry_run", {"weekly_calendar": ArtifactLifecycleState.DRAFT})
+        assert eval_dr_pass.passed is True
+        eval_dr_fail = engine.evaluate_dependencies("dry_run", {"weekly_calendar": ArtifactLifecycleState.MISSING})
+        assert eval_dr_fail.passed is False
+
+        # publish
+        eval_pub_pass = engine.evaluate_dependencies(
+            "publish",
+            {"dry_run": ArtifactLifecycleState.APPROVED, "assets": ArtifactLifecycleState.APPROVED},
+        )
+        assert eval_pub_pass.passed is True
+        eval_pub_fail1 = engine.evaluate_dependencies(
+            "publish",
+            {"dry_run": ArtifactLifecycleState.FAILED, "assets": ArtifactLifecycleState.APPROVED},
+        )
+        assert eval_pub_fail1.passed is False
+        eval_pub_fail2 = engine.evaluate_dependencies(
+            "publish",
+            {"dry_run": ArtifactLifecycleState.APPROVED, "assets": ArtifactLifecycleState.FAILED},
+        )
+        assert eval_pub_fail2.passed is False
+
+        # unhandled action
+        eval_unhandled = engine.evaluate_dependencies("approve_brief", {})
+        assert eval_unhandled.passed is True
+        assert len(eval_unhandled.checks) == 0
+
+    def test_get_next_recommended_actions(self, engine: ActionAvailabilityEngine):
+        recs = engine.get_next_recommended_actions(
+            "brief",
+            ArtifactLifecycleState.MISSING,
+            dependencies={"topic": ArtifactLifecycleState.APPROVED},
+        )
+        assert recs == ["generate_briefs"]
+
+    def test_is_action_available(self, engine: ActionAvailabilityEngine):
+        assert engine.is_action_available(
+            "generate_briefs",
+            "brief",
+            ArtifactLifecycleState.MISSING,
+            dependencies={"topic": ArtifactLifecycleState.APPROVED},
+        )
+

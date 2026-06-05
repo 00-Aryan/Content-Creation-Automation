@@ -30,6 +30,8 @@ from content_creation.workflow.action_availability_engine import (
     ActionAvailabilityResult,
     AvailableAction,
     BlockedAction,
+    DependencyCheck,
+    DependencyEvaluation,
 )
 from content_creation.workflow.workflow_action_executor import (
     WorkflowActionExecutor,
@@ -59,6 +61,8 @@ __all__ = [
     "ActionAvailabilityResult",
     "AvailableAction",
     "BlockedAction",
+    "DependencyCheck",
+    "DependencyEvaluation",
     "WorkflowActionExecutor",
     "ActionExecutionResult",
     "ActionExecutionStatus",

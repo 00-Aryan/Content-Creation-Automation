@@ -1,7 +1,7 @@
 """TopicItem model and schema definitions."""
 
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -88,7 +88,7 @@ class ScoredTopicItem(TopicItem):
     source_quality_score: float = Field(default=0.0, ge=0.0, le=100.0)
     keyword_score: float = Field(default=0.0, ge=0.0, le=100.0)
     quality_score: float = Field(default=0.0, ge=0.0, le=100.0)
-    scoring_timestamp: str = Field(default_factory=lambda: datetime.now().isoformat())
+    scoring_timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     scoring_rules_fired: List[str] = Field(default_factory=list)
     validation_flags: List[str] = Field(default_factory=list)
 

@@ -11,70 +11,41 @@ def test_pipeline_run_service_success_orchestration(tmp_path):
     """Test that PipelineRunService runs all stages sequentially and compiles results upon success."""
     service = PipelineRunService()
 
-    # Mock all inner service calls
-    with patch(
-        "content_creation.application.pipeline_run_service.CollectTopicsService"
-    ) as mock_collect_cls, patch(
-        "content_creation.application.pipeline_run_service.ScoreTopicsService"
-    ) as mock_score_cls, patch(
-        "content_creation.application.pipeline_run_service.BriefGenerationService"
-    ) as mock_brief_cls, patch(
-        "content_creation.application.pipeline_run_service.ContentIntelligenceService"
-    ) as mock_ci_cls, patch(
-        "content_creation.application.pipeline_run_service.StoryboardService"
-    ) as mock_storyboard_cls, patch(
-        "content_creation.application.pipeline_run_service.AssetGenerationService"
-    ) as mock_asset_cls, patch(
-        "content_creation.application.pipeline_run_service.ManifestBuilder"
-    ) as mock_manifest_builder_cls:
+    with patch("content_creation.workflow.workflow_action_executor.WorkflowActionExecutor") as mock_executor_cls:
+        mock_executor = MagicMock()
+        mock_executor_cls.return_value = mock_executor
 
         call_order = []
 
-        # Mock results
-        mock_collect = MagicMock()
-        mock_collect.run.side_effect = lambda *args, **kwargs: (
-            call_order.append("collect") or MagicMock(count=5)
-        )
-        mock_collect_cls.return_value = mock_collect
+        # Mock execute side effect for each action
+        def mock_execute(ctx, action_id, target_artifact_type, target_artifact_id, payload, notes=None):
+            call_order.append(action_id)
+            if action_id == "collect":
+                res = MagicMock(count=5)
+                return MagicMock(success=True, raw_result=res)
+            elif action_id == "score_topics":
+                res = MagicMock(scored_count=3, rejected_count=1)
+                return MagicMock(success=True, raw_result=res)
+            elif action_id == "generate_briefs":
+                res = MagicMock(generated_count=2, skipped_count=0, failures=[])
+                return MagicMock(success=True, raw_result=res)
+            elif action_id == "generate_ci":
+                res = MagicMock(generated_count=2, skipped_count=0, failures=[])
+                return MagicMock(success=True, raw_result=res)
+            elif action_id == "generate_storyboards":
+                res = MagicMock(generated_count=2, skipped_count=0, failures=[])
+                return MagicMock(success=True, raw_result=res)
+            elif action_id == "generate_assets":
+                res = MagicMock(counts={"thumbnail": 1}, skipped_count=0, failed_count=0)
+                return MagicMock(success=True, raw_result=res)
+            elif action_id == "build_all_manifests":
+                res = []
+                return MagicMock(success=True, raw_result=res)
+            elif action_id == "batch_approve":
+                return MagicMock(success=True, raw_result=0)
+            return MagicMock(success=False, blocking_reasons=["Unknown action"])
 
-        mock_score = MagicMock()
-        mock_score.run.side_effect = lambda *args, **kwargs: (
-            call_order.append("score")
-            or MagicMock(scored_count=3, rejected_count=1)
-        )
-        mock_score_cls.return_value = mock_score
-
-        mock_brief = MagicMock()
-        mock_brief.run.side_effect = lambda *args, **kwargs: (
-            call_order.append("brief")
-            or MagicMock(generated_count=2, skipped_count=0, failures=[])
-        )
-        mock_brief_cls.return_value = mock_brief
-
-        mock_ci = MagicMock()
-        mock_ci.run.side_effect = lambda *args, **kwargs: (
-            call_order.append("content_intelligence")
-            or MagicMock(generated_count=2, skipped_count=0, failures=[])
-        )
-        mock_ci_cls.return_value = mock_ci
-
-        mock_storyboard = MagicMock()
-        mock_storyboard.run.side_effect = lambda *args, **kwargs: (
-            call_order.append("storyboard")
-            or MagicMock(generated_count=2, skipped_count=0, failures=[])
-        )
-        mock_storyboard_cls.return_value = mock_storyboard
-
-        mock_asset = MagicMock()
-        mock_asset.run.side_effect = lambda *args, **kwargs: (
-            call_order.append("assets")
-            or MagicMock(counts={"thumbnail": 1}, skipped_count=0, failed_count=0)
-        )
-        mock_asset_cls.return_value = mock_asset
-
-        mock_manifest_builder = MagicMock()
-        mock_manifest_builder.build_all.return_value = []
-        mock_manifest_builder_cls.return_value = mock_manifest_builder
+        mock_executor.execute.side_effect = mock_execute
 
         # Mock storage paths inside context
         mock_storage = MagicMock()
@@ -99,29 +70,80 @@ def test_pipeline_run_service_success_orchestration(tmp_path):
         ]
 
         # Verify the sequence of calls
-        mock_collect.run.assert_called_once_with(ctx, source_filter=None)
-        mock_score.run.assert_called_once_with(ctx)
-        mock_brief.run.assert_called_once_with(
-            ctx, top_n=5, api_key="dummy_key", rate_limit_delay=5.0
-        )
-        mock_ci.run.assert_called_once_with(
-            ctx, top_n=5, api_key="dummy_key", rate_limit_delay=5.0
-        )
-        mock_storyboard.run.assert_called_once_with(
-            ctx, top_n=5, api_key="dummy_key", rate_limit_delay=5.0
-        )
-        mock_asset.run.assert_called_once_with(
-            ctx, top_n=5, api_key="dummy_key", rate_limit_delay=5.0
-        )
-        mock_manifest_builder.build_all.assert_called_once()
-
         assert call_order == [
             "collect",
+            "score_topics",
+            "generate_briefs",
+            "generate_ci",
+            "generate_storyboards",
+            "generate_assets",
+            "build_all_manifests",
+        ]
+
+
+def test_pipeline_run_service_auto_approve(tmp_path):
+    """Test that PipelineRunService runs batch_approve stage if auto_approve is True."""
+    service = PipelineRunService()
+
+    with patch("content_creation.workflow.workflow_action_executor.WorkflowActionExecutor") as mock_executor_cls:
+        mock_executor = MagicMock()
+        mock_executor_cls.return_value = mock_executor
+
+        call_order = []
+
+        def mock_execute(ctx, action_id, target_artifact_type, target_artifact_id, payload, notes=None):
+            call_order.append(action_id)
+            if action_id == "collect":
+                return MagicMock(success=True, raw_result=MagicMock(count=1))
+            elif action_id == "score_topics":
+                return MagicMock(success=True, raw_result=MagicMock(scored_count=1, rejected_count=0))
+            elif action_id == "generate_briefs":
+                return MagicMock(success=True, raw_result=MagicMock(generated_count=1, skipped_count=0, failures=[]))
+            elif action_id == "generate_ci":
+                return MagicMock(success=True, raw_result=MagicMock(generated_count=1, skipped_count=0, failures=[]))
+            elif action_id == "generate_storyboards":
+                return MagicMock(success=True, raw_result=MagicMock(generated_count=1, skipped_count=0, failures=[]))
+            elif action_id == "generate_assets":
+                return MagicMock(success=True, raw_result=MagicMock(counts={"thumbnail": 1}, skipped_count=0, failed_count=0))
+            elif action_id == "build_all_manifests":
+                return MagicMock(success=True, raw_result=[])
+            elif action_id == "batch_approve":
+                return MagicMock(success=True, raw_result=4)
+            return MagicMock(success=False, blocking_reasons=["Unknown action"])
+
+        mock_executor.execute.side_effect = mock_execute
+
+        mock_storage = MagicMock()
+        mock_storage.logs_dir = tmp_path / "logs"
+        ctx = MagicMock(storage=mock_storage)
+
+        # Run
+        result = service.run(
+            ctx, top_n=5, auto_approve=True, api_key="dummy_key"
+        )
+
+        assert isinstance(result, PipelineRunResult)
+        assert result.success is True
+        assert result.stages == [
+            "collect",
             "score",
-            "brief",
-            "content_intelligence",
-            "storyboard",
-            "assets",
+            "generate-briefs",
+            "generate-content-intelligence",
+            "generate-storyboards",
+            "generate-assets",
+            "build-manifests",
+            "batch-approve",
+        ]
+        assert result.stage_summaries["batch-approve"]["approved_count"] == 4
+        assert call_order == [
+            "collect",
+            "score_topics",
+            "generate_briefs",
+            "generate_ci",
+            "generate_storyboards",
+            "generate_assets",
+            "build_all_manifests",
+            "batch_approve",
         ]
 
 
@@ -129,19 +151,12 @@ def test_pipeline_run_service_failure_halts_downstream(tmp_path):
     """Test that PipelineRunService halts downstream execution if a stage raises an exception."""
     service = PipelineRunService()
 
-    with patch(
-        "content_creation.application.pipeline_run_service.CollectTopicsService"
-    ) as mock_collect_cls, patch(
-        "content_creation.application.pipeline_run_service.ScoreTopicsService"
-    ) as mock_score_cls:
+    with patch("content_creation.workflow.workflow_action_executor.WorkflowActionExecutor") as mock_executor_cls:
+        mock_executor = MagicMock()
+        mock_executor_cls.return_value = mock_executor
 
-        # Stage 1 (Collect) throws exception
-        mock_collect = MagicMock()
-        mock_collect.run.side_effect = RuntimeError("Collect failed!")
-        mock_collect_cls.return_value = mock_collect
-
-        mock_score = MagicMock()
-        mock_score_cls.return_value = mock_score
+        # First execution returns failure
+        mock_executor.execute.return_value = MagicMock(success=False, blocking_reasons=["Collect failed!"])
 
         mock_storage = MagicMock()
         mock_storage.logs_dir = tmp_path / "logs"
@@ -156,6 +171,3 @@ def test_pipeline_run_service_failure_halts_downstream(tmp_path):
         assert result.stages == ["collect"]  # Halts after collect stage
         assert result.stage_summaries["collect"]["success"] is False
         assert "Collect failed!" in result.stage_summaries["collect"]["error"]
-
-        # Ensure score stage was never executed
-        mock_score.run.assert_not_called()

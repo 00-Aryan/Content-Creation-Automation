@@ -2,7 +2,7 @@
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, List
 
@@ -30,7 +30,7 @@ class LocalBackend:
     def _verify_writeable(self):
         """Perform a robust writeability check using EAFP."""
         self.base_dir.mkdir(parents=True, exist_ok=True)
-        test_file = self.base_dir / f".write_test_{datetime.now().timestamp()}"
+        test_file = self.base_dir / f".write_test_{datetime.now(timezone.utc).timestamp()}"
         try:
             with open(test_file, "w") as f:
                 f.write("test")
@@ -45,7 +45,7 @@ class LocalBackend:
 
     def save_raw(self, raw_dir: Path, source_id: str, data: Any):
         """Save raw payload with timestamp-based naming."""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         file_path = raw_dir / f"{source_id}_{timestamp}.json"
 
         try:

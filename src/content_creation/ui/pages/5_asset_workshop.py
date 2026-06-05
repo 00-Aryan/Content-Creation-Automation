@@ -301,6 +301,18 @@ def main() -> None:
                         st.write(f"Rejected: `{res.rejected_count}`")
                         status.update(label="Review decisions applied.", state="complete")
                         st.success("Review decisions applied and manifest rebuilt.")
+                        from content_creation.ui.components.notification_panel import render_inline_notification
+                        render_inline_notification(
+                            f"Asset review: {res.approved_count} approved, {res.rejected_count} rejected for topic {topic_id[:8]}",
+                            "success",
+                        )
+                        # Publish SSE event for real-time updates
+                        try:
+                            latest_notifications = client.notification_service.list_recent(limit=1)
+                            if latest_notifications:
+                                client.publish_notification_event(latest_notifications[0])
+                        except Exception:
+                            pass
                         st.rerun()
                     except Exception as e:
                         status.update(label="Review decision update failed.", state="error")

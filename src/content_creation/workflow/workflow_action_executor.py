@@ -128,12 +128,13 @@ class WorkflowActionExecutor:
         dependencies = self._resolve_dependencies(ctx, target_artifact_type, target_artifact_id, action_id, payload)
 
         # 2. Check Action Availability Engine
-        if not self._availability_engine.can_execute_action(
+        if not self._availability_engine.is_action_available(
             action_id, target_artifact_type, current_state, dependencies
         ):
-            blocking_reason = self._availability_engine.explain_blocking_reason(
+            reasons = self._availability_engine.get_blocking_reasons(
                 action_id, target_artifact_type, current_state, dependencies
             )
+            blocking_reason = reasons[0].blocking_message if reasons else "Action blocked by availability engine."
             execution_time = time.perf_counter() - start_time
             return ActionExecutionResult(
                 action_id=action_id,
@@ -174,12 +175,45 @@ class WorkflowActionExecutor:
                 )
 
         # 4. Invoke the target service method
+        correlation_id = payload.get("correlation_id", "default_corr")
+        if action_id == "run_pipeline":
+            try:
+                from content_creation.events.bus import get_event_bus
+                from content_creation.events.factory import create_pipeline_event
+                from content_creation.events.models import EventType
+                bus = get_event_bus()
+                evt = create_pipeline_event(
+                    event_type=EventType.PIPELINE_STARTED,
+                    week_start=target_artifact_id,
+                    operator_id=operator_id,
+                    correlation_id=correlation_id,
+                )
+                bus.publish(evt)
+            except Exception as ex:
+                logger.warning(f"Failed to publish pipeline_started event: {ex}")
+
         try:
             affected_artifacts, raw_result = self._dispatch_to_service(
                 ctx, action_id, target_artifact_type, target_artifact_id, payload, notes
             )
         except Exception as e:
             logger.error(f"Failed to execute action {action_id}: {e}", exc_info=True)
+            if action_id == "run_pipeline":
+                try:
+                    from content_creation.events.bus import get_event_bus
+                    from content_creation.events.factory import create_pipeline_event
+                    from content_creation.events.models import EventType
+                    bus = get_event_bus()
+                    evt = create_pipeline_event(
+                        event_type=EventType.PIPELINE_FAILED,
+                        week_start=target_artifact_id,
+                        operator_id=operator_id,
+                        correlation_id=correlation_id,
+                        error_message=str(e),
+                    )
+                    bus.publish(evt)
+                except Exception as ex:
+                    logger.warning(f"Failed to publish pipeline_failed event: {ex}")
             execution_time = time.perf_counter() - start_time
             return ActionExecutionResult(
                 action_id=action_id,
@@ -194,6 +228,61 @@ class WorkflowActionExecutor:
             )
 
         execution_time = time.perf_counter() - start_time
+
+        try:
+            from content_creation.events.bus import get_event_bus
+            from content_creation.events.factory import create_workflow_event, create_pipeline_event
+            from content_creation.events.models import EventType
+            bus = get_event_bus()
+            event_type = None
+
+            if action_id == "generate_briefs":
+                event_type = EventType.BRIEF_GENERATED
+            elif action_id == "generate_ci":
+                event_type = EventType.CI_GENERATED
+            elif action_id == "generate_storyboards":
+                event_type = EventType.STORYBOARD_GENERATED
+            elif action_id == "generate_assets":
+                event_type = EventType.ASSET_GENERATED
+            elif action_id == "build_manifest":
+                event_type = EventType.MANIFEST_BUILT
+
+            elif action_id == "approve_brief":
+                event_type = EventType.BRIEF_APPROVED
+            elif action_id == "reject_brief":
+                event_type = EventType.BRIEF_REJECTED
+            elif action_id == "approve_storyboard":
+                event_type = EventType.STORYBOARD_APPROVED
+            elif action_id == "reject_storyboard":
+                event_type = EventType.STORYBOARD_REJECTED
+            elif action_id == "approve_asset":
+                event_type = EventType.ASSET_APPROVED
+            elif action_id == "reject_asset":
+                event_type = EventType.ASSET_REJECTED
+
+            elif action_id == "run_pipeline":
+                event_type = EventType.PIPELINE_COMPLETED
+
+            if event_type:
+                if event_type in (EventType.PIPELINE_COMPLETED, EventType.PIPELINE_STARTED):
+                    evt = create_pipeline_event(
+                        event_type=event_type,
+                        week_start=target_artifact_id,
+                        operator_id=operator_id,
+                        correlation_id=correlation_id,
+                    )
+                else:
+                    evt = create_workflow_event(
+                        event_type=event_type,
+                        topic_id=target_artifact_id,
+                        operator_id=operator_id,
+                        correlation_id=correlation_id,
+                        extra_payload=affected_artifacts,
+                    )
+                bus.publish(evt)
+        except Exception as e:
+            logger.warning(f"Failed to publish action success event: {e}")
+
         return ActionExecutionResult(
             action_id=action_id,
             success=True,
@@ -465,40 +554,41 @@ class WorkflowActionExecutor:
             if asset_type != "all":
                 asset_types = [asset_type]
 
-            asset_dirs = {
-                "brief": ctx.storage.briefs_dir,
-                "script": ctx.storage.scripts_dir,
-                "carousel": ctx.storage.carousels_dir,
-                "newsletter": ctx.storage.newsletters_dir,
-                "thumbnail": ctx.storage.thumbnails_dir,
+            list_funcs = {
+                "brief": ctx.storage.list_briefs,
+                "script": ctx.storage.list_scripts,
+                "carousel": ctx.storage.list_carousels,
+                "newsletter": ctx.storage.list_newsletters,
+                "thumbnail": ctx.storage.list_thumbnails,
             }
 
-            import json as json_mod
             approved_count = 0
 
             for atype in asset_types:
-                dir_path = asset_dirs[atype]
-                for file_path in dir_path.glob("*.json"):
-                    try:
-                        with open(file_path, "r") as f:
-                            data = json_mod.load(f)
-                    except Exception:
-                        continue
+                list_func = list_funcs.get(atype)
+                if not list_func:
+                    continue
+                try:
+                    assets = list_func()
+                except Exception:
+                    continue
 
-                    status = data.get("review_status")
+                for asset in assets:
+                    status = asset.review_status.value if hasattr(asset, "review_status") and asset.review_status else None
                     if status in ("approved", "rejected"):
                         continue
 
                     if exclude_incomplete:
+                        asset_dict = asset.model_dump() if hasattr(asset, "model_dump") else asset.dict()
                         has_incomplete = any(
                             v == "needs_review"
-                            for k, v in data.items()
+                            for k, v in asset_dict.items()
                             if k != "review_status" and isinstance(v, str)
                         )
                         if has_incomplete:
                             continue
 
-                    topic_id = file_path.stem
+                    topic_id = asset.topic_id
                     ctx.storage.update_asset_status(atype, topic_id, ReviewStatus.APPROVED)
                     approved_count += 1
 
@@ -625,5 +715,17 @@ class WorkflowActionExecutor:
 
         elif action_id == "publish":
             return {"published_status": "mock_published"}, None
+
+        elif action_id == "run_pipeline":
+            from content_creation.application.pipeline_run_service import PipelineRunService
+            service = PipelineRunService()
+            result = service.run(
+                ctx,
+                top_n=payload.get("top_n", 5),
+                source_filter=payload.get("source"),
+                auto_approve=payload.get("auto_approve", False),
+                api_key=payload.get("api_key"),
+            )
+            return {"log_path": str(result.log_path)}, result
 
         raise ValueError(f"Unknown action_id: {action_id}")

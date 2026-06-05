@@ -88,7 +88,7 @@ class Scorer(ABC):
         Returns:
             A ScoredTopicItem with scoring metadata.
         """
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         total_score = 0.0
         scores: Dict[str, float] = {}
@@ -106,7 +106,7 @@ class Scorer(ABC):
         scored_item = ScoredTopicItem(
             **item.model_dump(),
             priority_score=round(min(total_score, 100.0), 2),
-            scoring_timestamp=datetime.now().isoformat(),
+            scoring_timestamp=datetime.now(timezone.utc).isoformat(),
             scoring_rules_fired=rules_fired,
         )
 

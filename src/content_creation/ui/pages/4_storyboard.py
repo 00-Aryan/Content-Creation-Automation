@@ -280,6 +280,18 @@ def main() -> None:
                                     st.write(f"New Status: `{res.new_status.value}`")
                                     status.update(label="Storyboard review decision applied.", state="complete")
                                     st.success("Storyboard review decision applied successfully.")
+                                    from content_creation.ui.components.notification_panel import render_inline_notification
+                                    render_inline_notification(
+                                        f"Storyboard {sb_review_action.lower()} for topic {topic_id[:8]}",
+                                        "success",
+                                    )
+                                    # Publish SSE event for real-time updates
+                                    try:
+                                        latest_notifications = client.notification_service.list_recent(limit=1)
+                                        if latest_notifications:
+                                            client.publish_notification_event(latest_notifications[0])
+                                    except Exception:
+                                        pass
                                     st.rerun()
                                 except Exception as e:
                                     status.update(label="Storyboard review update failed.", state="error")

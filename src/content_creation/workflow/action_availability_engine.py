@@ -6,7 +6,7 @@ and explains the reasons why, conforming to the canonical Action Registry defini
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from content_creation.shared.enums import ReviewStatus
 from content_creation.workflow.review_transition_engine import ReviewTransitionEngine
@@ -19,7 +19,7 @@ from content_creation.workflow.states import ArtifactLifecycleState
 
 @dataclass(frozen=True)
 class AvailableAction:
-    """Represents an action that can be executed in the current state."""
+    """Represents an action that can be executed in the current state (backward compatibility)."""
     action_id: str
     category: str
     description: str
@@ -27,16 +27,52 @@ class AvailableAction:
 
 @dataclass(frozen=True)
 class BlockedAction:
-    """Represents an action that is currently blocked with a reason code and message."""
+    """Represents an action that is currently blocked with a reason code, message, and recommendation."""
     action_id: str
-    category: str
     blocking_code: str
     blocking_message: str
+    recommendation: str = ""
+    category: str = "SYSTEM"  # backward compatibility
+
+
+@dataclass(frozen=True)
+class DependencyCheck:
+    """Evaluation output of a single dependency check."""
+    dependency_type: str
+    required_state: ArtifactLifecycleState
+    actual_state: ArtifactLifecycleState
+    optional: bool
+    passed: bool
+
+
+@dataclass(frozen=True)
+class DependencyEvaluation:
+    """Aggregated evaluation details of all checks for an action."""
+    action_id: str
+    passed: bool
+    checks: List[DependencyCheck]
 
 
 @dataclass(frozen=True)
 class ActionAvailabilityResult:
-    """The complete result containing both available and blocked actions."""
+    """Canonical result mapping evaluated states to UI actions."""
+    allowed: bool
+    warnings: List[str]
+    blocking_reasons: List[BlockedAction]
+    lifecycle_state: ArtifactLifecycleState
+    available_actions: List[str]
+    recommended_action: Optional[str]
+    dependency_status: Dict[str, ArtifactLifecycleState]
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, list):
+            return self.available_actions == other
+        return super().__eq__(other)
+
+
+@dataclass(frozen=True)
+class OldActionAvailabilityResult:
+    """Result container for backward compatibility in tests."""
     available_actions: List[AvailableAction]
     blocked_actions: List[BlockedAction]
 
@@ -119,6 +155,27 @@ BLOCKING_MESSAGES = {
     "BLOCKED_DRY_RUN_FAILED": "Scheduled post failed publishing validation checks.",
     "BLOCKED_ALREADY_TERMINAL": "The artifact is already in a terminal state.",
     "BLOCKED_UNAPPROVED_ASSET": "The asset scheduled for this post is not approved.",
+    "BLOCKED_INVALID_STATE": "The target artifact is in an invalid state for this action.",
+    "BLOCKED_MANIFEST_NOT_READY": "The topic manifest is not fully approved and compiled.",
+}
+
+BLOCKING_RECOMMENDATIONS = {
+    "BLOCKED_TOPIC_REJECTED": "Select a different topic from the staged pool.",
+    "BLOCKED_MISSING_SCORED_TOPIC": "Run the `score-topics` command on this topic first.",
+    "BLOCKED_BRIEF_MISSING": "Generate the brief first.",
+    "BLOCKED_BRIEF_NOT_APPROVED": "Review the brief and set status to APPROVED.",
+    "BLOCKED_STORYBOARD_MISSING": "Generate the storyboard first.",
+    "BLOCKED_STORYBOARD_NOT_APPROVED": "Review the storyboard and set status to APPROVED.",
+    "BLOCKED_ASSET_ALREADY_EXISTS": "Archive the asset or provide an override flag.",
+    "BLOCKED_DEPENDENCY_REJECTED": "Revise the brief or generate a new one.",
+    "BLOCKED_NO_READY_MANIFESTS": "Review and approve topic assets to compile manifests.",
+    "BLOCKED_MISSING_CALENDAR": "Generate the calendar by planning the week first.",
+    "BLOCKED_DRY_RUN_FAILED": "Fix scheduling conflicts or unapproved assets shown in report.",
+    "BLOCKED_UNAPPROVED_ASSET": "Review and approve the asset for publication.",
+    "BLOCKED_ALREADY_TERMINAL": "Revise/regenerate the asset to reopen it.",
+    "BLOCKED_INVALID_TRANSITION": "Follow standard progression: DRAFT -> NEEDS_REVIEW -> APPROVED.",
+    "BLOCKED_INVALID_STATE": "Re-stage the item or select a valid state.",
+    "BLOCKED_MANIFEST_NOT_READY": "Run manifest generation or approve all child assets first.",
 }
 
 LIFECYCLE_TO_REVIEW = {
@@ -141,79 +198,252 @@ class ActionAvailabilityEngine:
         """Initialise the engine with a transition engine."""
         self._transition_engine = transition_engine or ReviewTransitionEngine()
 
-    def get_actions_result(
-        self,
-        artifact_type: str,
-        current_state: ArtifactLifecycleState,
-        dependencies: Optional[Dict[str, ArtifactLifecycleState]] = None,
-    ) -> ActionAvailabilityResult:
-        """Compute all available and blocked actions for a given artifact state.
-
-        Parameters
-        ----------
-        artifact_type : str
-            The type of artifact (e.g., "brief", "storyboard", "assets", "manifest", "weekly_calendar").
-        current_state : ArtifactLifecycleState
-            The current lifecycle state of this artifact.
-        dependencies : dict[str, ArtifactLifecycleState], optional
-            States of upstream dependencies.
-
-        Returns
-        -------
-        ActionAvailabilityResult
-        """
-        deps = dependencies or {}
-        available: List[AvailableAction] = []
-        blocked: List[BlockedAction] = []
-
-        # Find actions related to this artifact type
-        relevant_actions = self._get_relevant_actions_for_type(artifact_type)
-
-        for action_id in relevant_actions:
-            blocking_code = self._check_blocking_reason(
-                action_id, artifact_type, current_state, deps
-            )
-            meta = ACTION_METADATA[action_id]
-            if blocking_code is None:
-                available.append(
-                    AvailableAction(
-                        action_id=action_id,
-                        category=meta["category"],
-                        description=meta["description"],
-                    )
-                )
-            else:
-                msg = BLOCKING_MESSAGES.get(blocking_code, "Action is blocked.")
-                blocked.append(
-                    BlockedAction(
-                        action_id=action_id,
-                        category=meta["category"],
-                        blocking_code=blocking_code,
-                        blocking_message=msg,
-                    )
-                )
-
-        return ActionAvailabilityResult(available_actions=available, blocked_actions=blocked)
-
     def get_available_actions(
         self,
         artifact_type: str,
         current_state: ArtifactLifecycleState,
         dependencies: Optional[Dict[str, ArtifactLifecycleState]] = None,
-    ) -> List[AvailableAction]:
-        """Return lists of available actions."""
-        res = self.get_actions_result(artifact_type, current_state, dependencies)
-        return res.available_actions
+    ) -> ActionAvailabilityResult:
+        """Determines the complete availability profile of the target artifact."""
+        deps = dependencies or {}
+        relevant_actions = self._get_relevant_actions_for_type(artifact_type)
+        
+        available_actions = []
+        blocking_reasons = []
+        
+        for action_id in relevant_actions:
+            reasons = self.get_blocking_reasons(action_id, artifact_type, current_state, deps)
+            if not reasons:
+                available_actions.append(action_id)
+            else:
+                blocking_reasons.extend(reasons)
+                
+        rec_actions = self.get_next_recommended_actions(artifact_type, current_state, deps)
+        rec_action = rec_actions[0] if rec_actions else None
+        
+        allowed = len(available_actions) > 0
+        
+        return ActionAvailabilityResult(
+            allowed=allowed,
+            warnings=[],
+            blocking_reasons=blocking_reasons,
+            lifecycle_state=current_state,
+            available_actions=available_actions,
+            recommended_action=rec_action,
+            dependency_status=deps,
+        )
 
-    def get_blocked_actions(
+    def is_action_available(
         self,
+        action_id: str,
+        artifact_type: str,
+        current_state: ArtifactLifecycleState,
+        dependencies: Optional[Dict[str, ArtifactLifecycleState]] = None,
+    ) -> bool:
+        """Shorthand check to see if an action is allowed."""
+        deps = dependencies or {}
+        blocking_code = self._check_blocking_reason(action_id, artifact_type, current_state, deps)
+        return blocking_code is None
+
+    def evaluate_dependencies(
+        self,
+        action_id: str,
+        dependencies: Optional[Dict[str, ArtifactLifecycleState]] = None,
+    ) -> DependencyEvaluation:
+        """Compares actual dependency states against registered action prerequisites."""
+        deps = dependencies or {}
+        checks = []
+        passed = True
+
+        if action_id == "generate_briefs":
+            topic_state = deps.get("topic", ArtifactLifecycleState.MISSING)
+            check_passed = topic_state not in {ArtifactLifecycleState.REJECTED, ArtifactLifecycleState.MISSING}
+            checks.append(
+                DependencyCheck(
+                    dependency_type="topic",
+                    required_state=ArtifactLifecycleState.DRAFT,
+                    actual_state=topic_state,
+                    optional=False,
+                    passed=check_passed
+                )
+            )
+            if not check_passed:
+                passed = False
+
+        elif action_id == "generate_ci":
+            brief_state = deps.get("brief", ArtifactLifecycleState.MISSING)
+            check_passed = brief_state == ArtifactLifecycleState.APPROVED
+            checks.append(
+                DependencyCheck(
+                    dependency_type="brief",
+                    required_state=ArtifactLifecycleState.APPROVED,
+                    actual_state=brief_state,
+                    optional=False,
+                    passed=check_passed
+                )
+            )
+            if not check_passed:
+                passed = False
+
+        elif action_id == "generate_storyboards":
+            brief_state = deps.get("brief", ArtifactLifecycleState.MISSING)
+            brief_passed = brief_state == ArtifactLifecycleState.APPROVED
+            checks.append(
+                DependencyCheck(
+                    dependency_type="brief",
+                    required_state=ArtifactLifecycleState.APPROVED,
+                    actual_state=brief_state,
+                    optional=False,
+                    passed=brief_passed
+                )
+            )
+            if not brief_passed:
+                passed = False
+
+            ci_state = deps.get("content_intelligence", ArtifactLifecycleState.MISSING)
+            ci_passed = ci_state not in {ArtifactLifecycleState.MISSING, ArtifactLifecycleState.FAILED}
+            checks.append(
+                DependencyCheck(
+                    dependency_type="content_intelligence",
+                    required_state=ArtifactLifecycleState.APPROVED,
+                    actual_state=ci_state,
+                    optional=False,
+                    passed=ci_passed
+                )
+            )
+            if not ci_passed:
+                passed = False
+
+        elif action_id == "generate_assets":
+            storyboard_state = deps.get("storyboard", ArtifactLifecycleState.MISSING)
+            check_passed = storyboard_state == ArtifactLifecycleState.APPROVED
+            checks.append(
+                DependencyCheck(
+                    dependency_type="storyboard",
+                    required_state=ArtifactLifecycleState.APPROVED,
+                    actual_state=storyboard_state,
+                    optional=False,
+                    passed=check_passed
+                )
+            )
+            if not check_passed:
+                passed = False
+
+        elif action_id == "build_manifest":
+            brief_state = deps.get("brief", ArtifactLifecycleState.MISSING)
+            check_passed = brief_state != ArtifactLifecycleState.MISSING
+            checks.append(
+                DependencyCheck(
+                    dependency_type="brief",
+                    required_state=ArtifactLifecycleState.APPROVED,
+                    actual_state=brief_state,
+                    optional=False,
+                    passed=check_passed
+                )
+            )
+            if not check_passed:
+                passed = False
+
+        elif action_id == "plan_week":
+            manifest_state = deps.get("manifest", ArtifactLifecycleState.MISSING)
+            check_passed = manifest_state == ArtifactLifecycleState.APPROVED
+            checks.append(
+                DependencyCheck(
+                    dependency_type="manifest",
+                    required_state=ArtifactLifecycleState.APPROVED,
+                    actual_state=manifest_state,
+                    optional=False,
+                    passed=check_passed
+                )
+            )
+            if not check_passed:
+                passed = False
+
+        elif action_id == "dry_run":
+            calendar_state = deps.get("weekly_calendar", ArtifactLifecycleState.MISSING)
+            check_passed = calendar_state != ArtifactLifecycleState.MISSING
+            checks.append(
+                DependencyCheck(
+                    dependency_type="weekly_calendar",
+                    required_state=ArtifactLifecycleState.DRAFT,
+                    actual_state=calendar_state,
+                    optional=False,
+                    passed=check_passed
+                )
+            )
+            if not check_passed:
+                passed = False
+
+        elif action_id == "publish":
+            dry_run_state = deps.get("dry_run", ArtifactLifecycleState.MISSING)
+            dr_passed = dry_run_state == ArtifactLifecycleState.APPROVED
+            checks.append(
+                DependencyCheck(
+                    dependency_type="dry_run",
+                    required_state=ArtifactLifecycleState.APPROVED,
+                    actual_state=dry_run_state,
+                    optional=False,
+                    passed=dr_passed
+                )
+            )
+            if not dr_passed:
+                passed = False
+
+            assets_state = deps.get("assets", ArtifactLifecycleState.MISSING)
+            assets_passed = assets_state == ArtifactLifecycleState.APPROVED
+            checks.append(
+                DependencyCheck(
+                    dependency_type="assets",
+                    required_state=ArtifactLifecycleState.APPROVED,
+                    actual_state=assets_state,
+                    optional=False,
+                    passed=assets_passed
+                )
+            )
+            if not assets_passed:
+                passed = False
+
+        return DependencyEvaluation(action_id=action_id, passed=passed, checks=checks)
+
+    def get_blocking_reasons(
+        self,
+        action_id: str,
         artifact_type: str,
         current_state: ArtifactLifecycleState,
         dependencies: Optional[Dict[str, ArtifactLifecycleState]] = None,
     ) -> List[BlockedAction]:
-        """Return lists of blocked actions."""
-        res = self.get_actions_result(artifact_type, current_state, dependencies)
-        return res.blocked_actions
+        """Queries the exact reasons why a specific action is blocked."""
+        deps = dependencies or {}
+        blocking_code = self._check_blocking_reason(action_id, artifact_type, current_state, deps)
+        if blocking_code:
+            message = BLOCKING_MESSAGES.get(blocking_code, "Action is blocked.")
+            recommendation = BLOCKING_RECOMMENDATIONS.get(blocking_code, "Check dependency requirements.")
+            meta = ACTION_METADATA.get(action_id, {"category": "SYSTEM"})
+            return [
+                BlockedAction(
+                    action_id=action_id,
+                    blocking_code=blocking_code,
+                    blocking_message=message,
+                    recommendation=recommendation,
+                    category=meta["category"],
+                )
+            ]
+        return []
+
+    def get_next_recommended_actions(
+        self,
+        artifact_type: str,
+        current_state: ArtifactLifecycleState,
+        dependencies: Optional[Dict[str, ArtifactLifecycleState]] = None,
+    ) -> List[str]:
+        """Determine next recommended actions for the operator."""
+        deps = dependencies or {}
+        rec = self.get_next_recommended_action(artifact_type, current_state, deps)
+        return [rec] if rec else []
+
+    # ------------------------------------------------------------------
+    # Compatibility Methods for existing code and tests
+    # ------------------------------------------------------------------
 
     def can_execute_action(
         self,
@@ -222,10 +452,8 @@ class ActionAvailabilityEngine:
         current_state: ArtifactLifecycleState,
         dependencies: Optional[Dict[str, ArtifactLifecycleState]] = None,
     ) -> bool:
-        """Check if a specific action can be executed."""
-        deps = dependencies or {}
-        blocking_code = self._check_blocking_reason(action_id, artifact_type, current_state, deps)
-        return blocking_code is None
+        """Backward compatibility: alias for is_action_available."""
+        return self.is_action_available(action_id, artifact_type, current_state, dependencies)
 
     def explain_blocking_reason(
         self,
@@ -234,12 +462,56 @@ class ActionAvailabilityEngine:
         current_state: ArtifactLifecycleState,
         dependencies: Optional[Dict[str, ArtifactLifecycleState]] = None,
     ) -> Optional[str]:
-        """Return the user-friendly blocking message if blocked, else None."""
+        """Backward compatibility: returns user-friendly blocking message."""
+        reasons = self.get_blocking_reasons(action_id, artifact_type, current_state, dependencies)
+        return reasons[0].blocking_message if reasons else None
+
+    def get_actions_result(
+        self,
+        artifact_type: str,
+        current_state: ArtifactLifecycleState,
+        dependencies: Optional[Dict[str, ArtifactLifecycleState]] = None,
+    ) -> OldActionAvailabilityResult:
+        """Backward compatibility: returns the old ActionsAvailabilityResult format for tests."""
         deps = dependencies or {}
-        blocking_code = self._check_blocking_reason(action_id, artifact_type, current_state, deps)
-        if blocking_code:
-            return BLOCKING_MESSAGES.get(blocking_code, "Action is blocked.")
-        return None
+        relevant_actions = self._get_relevant_actions_for_type(artifact_type)
+        
+        available = []
+        blocked = []
+        
+        for action_id in relevant_actions:
+            reasons = self.get_blocking_reasons(action_id, artifact_type, current_state, deps)
+            meta = ACTION_METADATA.get(action_id, {"category": "SYSTEM", "description": ""})
+            if not reasons:
+                available.append(
+                    AvailableAction(
+                        action_id=action_id,
+                        category=meta["category"],
+                        description=meta["description"],
+                    )
+                )
+            else:
+                for r in reasons:
+                    blocked.append(
+                        BlockedAction(
+                            action_id=action_id,
+                            category=meta["category"],
+                            blocking_code=r.blocking_code,
+                            blocking_message=r.blocking_message,
+                            recommendation=r.recommendation,
+                        )
+                    )
+        return OldActionAvailabilityResult(available_actions=available, blocked_actions=blocked)
+
+    def get_blocked_actions(
+        self,
+        artifact_type: str,
+        current_state: ArtifactLifecycleState,
+        dependencies: Optional[Dict[str, ArtifactLifecycleState]] = None,
+    ) -> List[BlockedAction]:
+        """Backward compatibility: returns lists of blocked actions."""
+        res = self.get_actions_result(artifact_type, current_state, dependencies)
+        return res.blocked_actions
 
     def get_next_recommended_action(
         self,
@@ -247,24 +519,12 @@ class ActionAvailabilityEngine:
         current_state: ArtifactLifecycleState,
         dependencies: Optional[Dict[str, ArtifactLifecycleState]] = None,
     ) -> Optional[str]:
-        """Determine the single next recommended action for the operator.
-
-        Parameters
-        ----------
-        artifact_type : str
-        current_state : ArtifactLifecycleState
-        dependencies : dict[str, ArtifactLifecycleState], optional
-
-        Returns
-        -------
-        str, optional
-            The action_id of the recommended next action, or None.
-        """
+        """Backward compatibility: returns recommended action."""
         deps = dependencies or {}
         
         if artifact_type == "brief":
             if current_state in {ArtifactLifecycleState.MISSING, ArtifactLifecycleState.FAILED, ArtifactLifecycleState.REJECTED}:
-                if self.can_execute_action("generate_briefs", "brief", current_state, deps):
+                if self.is_action_available("generate_briefs", "brief", current_state, deps):
                     return "generate_briefs"
             elif current_state in {ArtifactLifecycleState.DRAFT, ArtifactLifecycleState.NEEDS_REVIEW, ArtifactLifecycleState.REVIEWED}:
                 return "approve_brief"
@@ -273,14 +533,14 @@ class ActionAvailabilityEngine:
 
         elif artifact_type == "content_intelligence":
             if current_state in {ArtifactLifecycleState.MISSING, ArtifactLifecycleState.FAILED}:
-                if self.can_execute_action("generate_ci", "content_intelligence", current_state, deps):
+                if self.is_action_available("generate_ci", "content_intelligence", current_state, deps):
                     return "generate_ci"
             elif current_state == ArtifactLifecycleState.APPROVED:
                 return "generate_storyboards"
 
         elif artifact_type == "storyboard":
             if current_state in {ArtifactLifecycleState.MISSING, ArtifactLifecycleState.FAILED, ArtifactLifecycleState.REJECTED}:
-                if self.can_execute_action("generate_storyboards", "storyboard", current_state, deps):
+                if self.is_action_available("generate_storyboards", "storyboard", current_state, deps):
                     return "generate_storyboards"
             elif current_state in {ArtifactLifecycleState.DRAFT, ArtifactLifecycleState.NEEDS_REVIEW, ArtifactLifecycleState.REVIEWED}:
                 return "approve_storyboard"
@@ -289,7 +549,7 @@ class ActionAvailabilityEngine:
 
         elif artifact_type == "assets":
             if current_state in {ArtifactLifecycleState.MISSING, ArtifactLifecycleState.FAILED, ArtifactLifecycleState.REJECTED}:
-                if self.can_execute_action("generate_assets", "assets", current_state, deps):
+                if self.is_action_available("generate_assets", "assets", current_state, deps):
                     return "generate_assets"
             elif current_state in {ArtifactLifecycleState.DRAFT, ArtifactLifecycleState.NEEDS_REVIEW, ArtifactLifecycleState.REVIEWED}:
                 return "approve_asset"
@@ -298,20 +558,20 @@ class ActionAvailabilityEngine:
 
         elif artifact_type == "manifest":
             if current_state != ArtifactLifecycleState.APPROVED:
-                if self.can_execute_action("build_manifest", "manifest", current_state, deps):
+                if self.is_action_available("build_manifest", "manifest", current_state, deps):
                     return "build_manifest"
             else:
                 return "plan_week"
 
         elif artifact_type == "weekly_calendar":
             if current_state == ArtifactLifecycleState.MISSING:
-                if self.can_execute_action("plan_week", "weekly_calendar", current_state, deps):
+                if self.is_action_available("plan_week", "weekly_calendar", current_state, deps):
                     return "plan_week"
             elif current_state == ArtifactLifecycleState.DRAFT:
-                if self.can_execute_action("dry_run", "weekly_calendar", current_state, deps):
+                if self.is_action_available("dry_run", "weekly_calendar", current_state, deps):
                     return "dry_run"
             elif current_state == ArtifactLifecycleState.APPROVED:
-                if self.can_execute_action("publish", "weekly_calendar", current_state, deps):
+                if self.is_action_available("publish", "weekly_calendar", current_state, deps):
                     return "publish"
 
         return None

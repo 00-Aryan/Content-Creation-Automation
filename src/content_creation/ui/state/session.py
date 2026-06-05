@@ -10,6 +10,8 @@ def init_session_state() -> None:
         "selected_topic_id": None,
         "selected_brief_id": None,
         "filters": {"status": "all", "category": "all"},
+        "nc_page": 1,
+        "notification_unread_count": 0,
     }
     for key, value in defaults.items():
         if key not in st.session_state:

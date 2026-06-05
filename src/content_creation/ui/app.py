@@ -10,6 +10,12 @@ if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
 from content_creation.ui.components.status import render_header, render_api_health, render_metric_cards
+from content_creation.ui.components.notification_panel import (
+    render_notification_badge,
+    render_notification_center,
+    render_notification_summary_panel,
+)
+from content_creation.ui.components.sse_client import render_sse_client, render_notification_badge_live
 from content_creation.ui.services.client import ServiceClient
 from content_creation.ui.state.session import init_session_state
 
@@ -29,14 +35,34 @@ def main() -> None:
     
     # 3. Sidebar status checking
     render_api_health(client.is_generation_available())
+
+    # 4. SSE client connection (real-time updates)
+    try:
+        render_sse_client(sse_port=client.sse_port)
+    except Exception:
+        pass
+
+    # 5. Sidebar notification badge (live via SSE)
+    try:
+        unread_count = client.get_notification_unread_count()
+        st.session_state["notification_unread_count"] = unread_count
+        render_notification_badge_live(unread_count, sse_port=client.sse_port)
+    except Exception:
+        render_notification_badge(0)
     
-    # 4. Render main layout
+    # 6. Render main layout
     render_header()
     try:
         render_metric_cards(client.get_metric_counts())
     except Exception as e:
         st.error(f"Error querying pipeline metrics: {e}")
         render_metric_cards({})
+
+    # 6. Notification Summary Panel
+    try:
+        render_notification_summary_panel(client.notification_service)
+    except Exception as e:
+        st.warning(f"Notification summary unavailable: {e}")
     
     st.markdown("---")
     st.markdown("### 🎛️ E2E Pipeline Orchestration")
@@ -162,6 +188,13 @@ def main() -> None:
             st.info("No completed workflow stage activities logged yet.")
     else:
         st.info("No pipeline activity recorded.")
+
+    # 7. Notification Center
+    st.markdown("---")
+    try:
+        render_notification_center(client.notification_service)
+    except Exception as e:
+        st.warning(f"Notification center unavailable: {e}")
 
 
 if __name__ == "__main__":

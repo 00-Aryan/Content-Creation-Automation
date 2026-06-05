@@ -1,7 +1,7 @@
 """Service for executing the end-to-end content factory pipeline."""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import logging
 from pathlib import Path
@@ -45,7 +45,7 @@ class PipelineRunService:
         api_key: Optional[str] = None,
     ) -> PipelineRunResult:
         """Executes all stages of the pipeline and records progress to a PipelineLogger."""
-        log_filename = f"pipeline_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jsonl"
+        log_filename = f"pipeline_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.jsonl"
         log_path = ctx.storage.logs_dir / log_filename
 
         # Ensure directories exist
@@ -60,10 +60,20 @@ class PipelineRunService:
         with pl.stage("collect") as stage_ctx:
             stages_executed.append("collect")
             try:
-                service = CollectTopicsService()
-                res = service.run(ctx, source_filter=source_filter)
-                stage_ctx["items"] = res.count
-                summaries["collect"] = {"count": res.count, "success": True}
+                from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+                executor = WorkflowActionExecutor()
+                res = executor.execute(
+                    ctx,
+                    "collect",
+                    "topic",
+                    "all",
+                    {"source": source_filter}
+                )
+                if not res.success:
+                    raise RuntimeError(f"Collect failed: {res.blocking_reasons}")
+                collect_res = res.raw_result
+                stage_ctx["items"] = collect_res.count
+                summaries["collect"] = {"count": collect_res.count, "success": True}
             except Exception as e:
                 stage_ctx["status"] = "error"
                 stage_ctx["error"] = str(e)
@@ -75,12 +85,22 @@ class PipelineRunService:
             with pl.stage("score") as stage_ctx:
                 stages_executed.append("score")
                 try:
-                    service = ScoreTopicsService()
-                    res = service.run(ctx)
-                    stage_ctx["items"] = res.scored_count
+                    from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+                    executor = WorkflowActionExecutor()
+                    res = executor.execute(
+                        ctx,
+                        "score_topics",
+                        "topic",
+                        "all",
+                        {"limit": None}
+                    )
+                    if not res.success:
+                        raise RuntimeError(f"Score failed: {res.blocking_reasons}")
+                    score_res = res.raw_result
+                    stage_ctx["items"] = score_res.scored_count
                     summaries["score"] = {
-                        "scored_count": res.scored_count,
-                        "rejected_count": res.rejected_count,
+                        "scored_count": score_res.scored_count,
+                        "rejected_count": score_res.rejected_count,
                         "success": True,
                     }
                 except Exception as e:
@@ -94,18 +114,26 @@ class PipelineRunService:
             with pl.stage("generate-briefs") as stage_ctx:
                 stages_executed.append("generate-briefs")
                 try:
-                    service = BriefGenerationService()
-                    res = service.run(
+                    from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+                    executor = WorkflowActionExecutor()
+                    res = executor.execute(
                         ctx,
-                        top_n=top_n,
-                        api_key=api_key,
-                        rate_limit_delay=5.0,
+                        "generate_briefs",
+                        "brief",
+                        "all",
+                        {
+                            "top_n": top_n,
+                            "api_key": api_key,
+                        }
                     )
-                    stage_ctx["items"] = res.generated_count
+                    if not res.success:
+                        raise RuntimeError(f"Brief generation failed: {res.blocking_reasons}")
+                    brief_res = res.raw_result
+                    stage_ctx["items"] = brief_res.generated_count
                     summaries["generate-briefs"] = {
-                        "generated_count": res.generated_count,
-                        "skipped_count": res.skipped_count,
-                        "failed_count": len(res.failures),
+                        "generated_count": brief_res.generated_count,
+                        "skipped_count": brief_res.skipped_count,
+                        "failed_count": len(brief_res.failures),
                         "success": True,
                     }
                 except Exception as e:
@@ -119,18 +147,26 @@ class PipelineRunService:
             with pl.stage("generate-content-intelligence") as stage_ctx:
                 stages_executed.append("generate-content-intelligence")
                 try:
-                    service = ContentIntelligenceService()
-                    res = service.run(
+                    from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+                    executor = WorkflowActionExecutor()
+                    res = executor.execute(
                         ctx,
-                        top_n=top_n,
-                        api_key=api_key,
-                        rate_limit_delay=5.0,
+                        "generate_ci",
+                        "content_intelligence",
+                        "all",
+                        {
+                            "top_n": top_n,
+                            "api_key": api_key,
+                        }
                     )
-                    stage_ctx["items"] = res.generated_count
+                    if not res.success:
+                        raise RuntimeError(f"Content Intelligence generation failed: {res.blocking_reasons}")
+                    ci_res = res.raw_result
+                    stage_ctx["items"] = ci_res.generated_count
                     summaries["generate-content-intelligence"] = {
-                        "generated_count": res.generated_count,
-                        "skipped_count": res.skipped_count,
-                        "failed_count": len(res.failures),
+                        "generated_count": ci_res.generated_count,
+                        "skipped_count": ci_res.skipped_count,
+                        "failed_count": len(ci_res.failures),
                         "success": True,
                     }
                 except Exception as e:
@@ -147,18 +183,26 @@ class PipelineRunService:
             with pl.stage("generate-storyboards") as stage_ctx:
                 stages_executed.append("generate-storyboards")
                 try:
-                    service = StoryboardService()
-                    res = service.run(
+                    from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+                    executor = WorkflowActionExecutor()
+                    res = executor.execute(
                         ctx,
-                        top_n=top_n,
-                        api_key=api_key,
-                        rate_limit_delay=5.0,
+                        "generate_storyboards",
+                        "storyboard",
+                        "all",
+                        {
+                            "top_n": top_n,
+                            "api_key": api_key,
+                        }
                     )
-                    stage_ctx["items"] = res.generated_count
+                    if not res.success:
+                        raise RuntimeError(f"Storyboard generation failed: {res.blocking_reasons}")
+                    sb_res = res.raw_result
+                    stage_ctx["items"] = sb_res.generated_count
                     summaries["generate-storyboards"] = {
-                        "generated_count": res.generated_count,
-                        "skipped_count": res.skipped_count,
-                        "failed_count": len(res.failures),
+                        "generated_count": sb_res.generated_count,
+                        "skipped_count": sb_res.skipped_count,
+                        "failed_count": len(sb_res.failures),
                         "success": True,
                     }
                 except Exception as e:
@@ -175,19 +219,27 @@ class PipelineRunService:
             with pl.stage("generate-assets") as stage_ctx:
                 stages_executed.append("generate-assets")
                 try:
-                    service = AssetGenerationService()
-                    res = service.run(
+                    from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+                    executor = WorkflowActionExecutor()
+                    res = executor.execute(
                         ctx,
-                        top_n=top_n,
-                        api_key=api_key,
-                        rate_limit_delay=5.0,
+                        "generate_assets",
+                        "assets",
+                        "all",
+                        {
+                            "top_n": top_n,
+                            "api_key": api_key,
+                        }
                     )
-                    asset_count = sum(res.counts.values())
+                    if not res.success:
+                        raise RuntimeError(f"Asset generation failed: {res.blocking_reasons}")
+                    asset_res = res.raw_result
+                    asset_count = sum(asset_res.counts.values())
                     stage_ctx["items"] = asset_count
                     summaries["generate-assets"] = {
-                        "counts": res.counts,
-                        "skipped_count": res.skipped_count,
-                        "failed_count": res.failed_count,
+                        "counts": asset_res.counts,
+                        "skipped_count": asset_res.skipped_count,
+                        "failed_count": asset_res.failed_count,
                         "success": True,
                     }
                 except Exception as e:
@@ -201,10 +253,18 @@ class PipelineRunService:
             with pl.stage("build-manifests") as stage_ctx:
                 stages_executed.append("build-manifests")
                 try:
-                    builder = ManifestBuilder(ctx.storage)
-                    manifests = builder.build_all()
-                    for m in manifests:
-                        ctx.storage.save_manifest(m)
+                    from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+                    executor = WorkflowActionExecutor()
+                    res = executor.execute(
+                        ctx,
+                        "build_all_manifests",
+                        "manifest",
+                        "all",
+                        {}
+                    )
+                    if not res.success:
+                        raise RuntimeError(f"Manifest build failed: {res.blocking_reasons}")
+                    manifests = res.raw_result
                     stage_ctx["items"] = len(manifests)
                     summaries["build-manifests"] = {
                         "count": len(manifests),
@@ -221,38 +281,21 @@ class PipelineRunService:
             with pl.stage("batch-approve") as stage_ctx:
                 stages_executed.append("batch-approve")
                 try:
-                    asset_dirs = {
-                        "brief": ctx.storage.briefs_dir,
-                        "script": ctx.storage.scripts_dir,
-                        "carousel": ctx.storage.carousels_dir,
-                        "newsletter": ctx.storage.newsletters_dir,
-                        "thumbnail": ctx.storage.thumbnails_dir,
-                    }
-
-                    approve_count = 0
-                    for atype, adir in asset_dirs.items():
-                        for fp in adir.glob("*.json"):
-                            try:
-                                with open(fp, "r") as f:
-                                    data = json.load(f)
-                                if data.get("review_status") in (
-                                    "approved",
-                                    "rejected",
-                                ):
-                                    continue
-                                ctx.storage.update_asset_status(
-                                    atype, fp.stem, ReviewStatus.APPROVED
-                                )
-                                approve_count += 1
-                            except Exception:
-                                pass
-
-                    # Rebuild manifests to reflect approved status
-                    builder = ManifestBuilder(ctx.storage)
-                    manifests = builder.build_all()
-                    for m in manifests:
-                        ctx.storage.save_manifest(m)
-
+                    from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+                    executor = WorkflowActionExecutor()
+                    res = executor.execute(
+                        ctx,
+                        "batch_approve",
+                        "assets",
+                        "all",
+                        {
+                            "asset_type": "all",
+                            "exclude_incomplete": False,
+                        }
+                    )
+                    if not res.success:
+                        raise RuntimeError(f"Auto-approve batch approval failed: {res.blocking_reasons}")
+                    approve_count = res.raw_result
                     stage_ctx["items"] = approve_count
                     summaries["batch-approve"] = {
                         "approved_count": approve_count,

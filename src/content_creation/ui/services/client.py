@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 import os
 from pathlib import Path
+import sqlite3
 import time
 from typing import Optional
 import streamlit as st
@@ -18,6 +19,13 @@ from content_creation.application.pipeline_run_service import PipelineRunService
 from content_creation.application.asset_review_service import AssetReviewService
 from content_creation.application.brief_review_service import BriefReviewService
 from content_creation.application.storyboard_review_service import StoryboardReviewService
+from content_creation.notifications.schema import create_notification_schema
+from content_creation.notifications.sqlite_repository import SQLiteNotificationRepository
+from content_creation.notifications.service import NotificationService
+from content_creation.notifications.maintenance import NotificationMaintenanceService
+from content_creation.notifications.streaming.connection_manager import ConnectionManager
+from content_creation.notifications.streaming.publisher import NotificationPublisher
+from content_creation.notifications.streaming.server import NotificationSSEServer
 
 
 @dataclass(frozen=True)
@@ -54,6 +62,56 @@ def get_context() -> ApplicationContext:
     return ApplicationContext.create(data_dir, source_dir=source_dir)
 
 
+@st.cache_resource
+def get_notification_db() -> sqlite3.Connection:
+    """Bootstraps and caches the notification SQLite database connection."""
+    root_env = os.environ.get("CONTENT_FACTORY_ROOT")
+    if root_env:
+        data_dir = Path(root_env)
+    else:
+        data_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
+        if not (data_dir / "config").exists():
+            data_dir = Path.cwd()
+
+    db_path = data_dir / "data" / "notifications.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(db_path), timeout=10, check_same_thread=False)
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA busy_timeout=5000;")
+    create_notification_schema(conn)
+    return conn
+
+
+def get_notification_service() -> NotificationService:
+    """Returns a cached NotificationService instance."""
+    conn = get_notification_db()
+    repo = SQLiteNotificationRepository(conn)
+    return NotificationService(repo)
+
+
+def get_notification_maintenance() -> NotificationMaintenanceService:
+    """Returns a cached NotificationMaintenanceService instance."""
+    conn = get_notification_db()
+    repo = SQLiteNotificationRepository(conn)
+    return NotificationMaintenanceService(repo)
+
+
+@st.cache_resource
+def get_sse_infrastructure() -> dict:
+    """Bootstraps and caches the SSE infrastructure (server, manager, publisher)."""
+    conn = get_notification_db()
+    repo = SQLiteNotificationRepository(conn)
+    manager = ConnectionManager()
+    publisher = NotificationPublisher(repo, manager)
+    server = NotificationSSEServer(connection_manager=manager, port=8502)
+    server.start()
+    return {
+        "server": server,
+        "manager": manager,
+        "publisher": publisher,
+    }
+
+
 class ServiceClient:
     """Provides UI access to the concrete backend application services."""
 
@@ -61,6 +119,8 @@ class ServiceClient:
         self.ctx = get_context()
         from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
         self.executor = WorkflowActionExecutor()
+        # Initialize SSE infrastructure
+        self._sse = get_sse_infrastructure()
 
     def is_generation_available(self) -> bool:
         """Verifies if the generation service credentials are configured on the backend."""
@@ -393,3 +453,52 @@ class ServiceClient:
     def list_workflow_states(self) -> list:
         workflow_files = list(self.ctx.workflow._dir.glob("*.json"))
         return [self.ctx.workflow.load_state(path.stem) for path in workflow_files]
+
+    # --- Notification Methods ---
+
+    @property
+    def notification_service(self) -> NotificationService:
+        """Returns the NotificationService for notification operations."""
+        return get_notification_service()
+
+    @property
+    def notification_maintenance(self) -> NotificationMaintenanceService:
+        """Returns the NotificationMaintenanceService for cleanup operations."""
+        return get_notification_maintenance()
+
+    def get_notification_unread_count(self) -> int:
+        """Returns the current unread notification count."""
+        return self.notification_service.unread_count()
+
+    def get_notification_summary(self):
+        """Returns the notification summary for dashboard display."""
+        return self.notification_service.summary()
+
+    # --- SSE Streaming Methods ---
+
+    @property
+    def sse_publisher(self) -> NotificationPublisher:
+        """Returns the NotificationPublisher for SSE event publishing."""
+        return self._sse["publisher"]
+
+    @property
+    def sse_connection_manager(self) -> ConnectionManager:
+        """Returns the ConnectionManager for SSE client tracking."""
+        return self._sse["manager"]
+
+    @property
+    def sse_port(self) -> int:
+        """Returns the SSE server port."""
+        return self._sse["server"].port
+
+    def publish_notification_event(self, notification) -> None:
+        """Publish a notification event to SSE subscribers."""
+        self.sse_publisher.on_notification_created(notification)
+
+    def publish_read_event(self, notification_id) -> None:
+        """Publish a notification read event to SSE subscribers."""
+        self.sse_publisher.on_notification_read(notification_id)
+
+    def publish_archive_event(self, notification_id) -> None:
+        """Publish a notification archived event to SSE subscribers."""
+        self.sse_publisher.on_notification_archived(notification_id)

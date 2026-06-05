@@ -144,6 +144,76 @@ def main() -> int:
     review_assets_parser = subparsers.add_parser("review-assets", help="Interactively review assets for a topic")
     review_assets_parser.add_argument("--topic-id", type=str, required=True, help="Topic ID to review assets for")
 
+    # Event timeline command
+    event_timeline_parser = subparsers.add_parser("event-timeline", help="View recent events from the event store")
+    event_timeline_parser.add_argument("--category", type=str, help="Filter by category (workflow, review, job, lock, recovery, pipeline)")
+    event_timeline_parser.add_argument("--limit", type=int, default=20, help="Maximum number of events to show")
+    event_timeline_parser.add_argument("--entity-type", type=str, help="Filter by entity type")
+    event_timeline_parser.add_argument("--entity-id", type=str, help="Filter by entity ID")
+    event_timeline_parser.add_argument("--correlation-id", type=str, help="Filter by correlation ID")
+
+    # Event stats command
+    subparsers.add_parser("event-stats", help="Show event store statistics")
+
+    # Event replay command
+    event_replay_parser = subparsers.add_parser("event-replay", help="Replay events from the event store")
+    event_replay_parser.add_argument("--category", type=str, help="Replay events from a specific category")
+    event_replay_parser.add_argument("--correlation-id", type=str, help="Replay events by correlation ID")
+    event_replay_parser.add_argument("--entity-type", type=str, help="Replay events by entity type")
+    event_replay_parser.add_argument("--entity-id", type=str, help="Replay events by entity ID")
+    event_replay_parser.add_argument("--dry-run", action="store_true", help="Inspect events without re-emitting")
+    event_replay_parser.add_argument("--limit", type=int, default=100, help="Maximum number of events to replay")
+
+    # Event cleanup command
+    event_cleanup_parser = subparsers.add_parser("event-cleanup", help="Run event store retention cleanup")
+    event_cleanup_parser.add_argument("--category", type=str, help="Cleanup events from a specific category")
+    event_cleanup_parser.add_argument("--dry-run", action="store_true", help="Preview cleanup without deleting")
+
+    # Metrics commands
+    metrics_kpi_parser = subparsers.add_parser("metrics-kpi", help="Show KPI metrics from the metrics store")
+    metrics_kpi_parser.add_argument("--days", type=int, default=30, help="Lookback period in days")
+
+    metrics_summary_parser = subparsers.add_parser("metrics-summary", help="Show telemetry summary")
+    metrics_summary_parser.add_argument("--days", type=int, default=30, help="Lookback period in days")
+
+    metrics_query_parser = subparsers.add_parser("metrics-query", help="Query metrics from the store")
+    metrics_query_parser.add_argument("--name", type=str, help="Filter by metric name")
+    metrics_query_parser.add_argument("--type", type=str, choices=["counter", "gauge", "histogram", "timer"], help="Filter by metric type")
+    metrics_query_parser.add_argument("--limit", type=int, default=20, help="Maximum number of results")
+
+    metrics_cleanup_parser = subparsers.add_parser("metrics-cleanup", help="Run metrics store retention cleanup")
+    metrics_cleanup_parser.add_argument("--dry-run", action="store_true", help="Preview cleanup without deleting")
+
+    metrics_rebuild_parser = subparsers.add_parser("metrics-rebuild", help="Rebuild metrics from event store")
+    metrics_rebuild_parser.add_argument("--dry-run", action="store_true", help="Preview rebuild without writing")
+
+    # Audit commands
+    audit_query_parser = subparsers.add_parser("audit-query", help="Query audit trail records")
+    audit_query_parser.add_argument("--limit", type=int, default=20, help="Maximum number of results")
+    audit_query_parser.add_argument("--entity-type", type=str, help="Filter by entity type")
+    audit_query_parser.add_argument("--action", type=str, help="Filter by action type")
+    audit_query_parser.add_argument("--actor-id", type=str, help="Filter by actor ID")
+    audit_query_parser.add_argument("--event-type", type=str, help="Filter by event type")
+    audit_query_parser.add_argument("--severity", type=str, choices=["INFO", "WARNING", "ERROR", "CRITICAL"], help="Filter by severity")
+    audit_query_parser.add_argument("--source", type=str, choices=["workflow", "review", "job", "lock", "recovery", "pipeline", "system"], help="Filter by source")
+    audit_query_parser.add_argument("--start", type=str, help="Start date (YYYY-MM-DD)")
+    audit_query_parser.add_argument("--end", type=str, help="End date (YYYY-MM-DD)")
+
+    audit_entity_parser = subparsers.add_parser("audit-entity", help="Search audit trail by entity")
+    audit_entity_parser.add_argument("--entity-type", type=str, required=True, help="Entity type (brief, job, asset, etc.)")
+    audit_entity_parser.add_argument("--entity-id", type=str, help="Specific entity ID")
+    audit_entity_parser.add_argument("--limit", type=int, default=20, help="Maximum number of results")
+
+    audit_actor_parser = subparsers.add_parser("audit-actor", help="Search audit trail by actor")
+    audit_actor_parser.add_argument("--actor-id", type=str, required=True, help="Actor ID to search for")
+    audit_actor_parser.add_argument("--limit", type=int, default=20, help="Maximum number of results")
+
+    audit_report_parser = subparsers.add_parser("audit-report", help="Generate compliance reports from audit trail")
+    audit_report_parser.add_argument("--type", type=str, choices=["operator", "decision", "job", "incident", "summary"], required=True, help="Report type")
+
+    audit_rebuild_parser = subparsers.add_parser("audit-rebuild", help="Rebuild audit trail from event store")
+    audit_rebuild_parser.add_argument("--dry-run", action="store_true", help="Preview rebuild without writing")
+
     args = None
     try:
         args = parser.parse_args()
@@ -372,13 +442,27 @@ def main() -> int:
                 print("⚠ Auto-approve enabled — assets will be marked approved without human inspection.")
 
             ctx = ApplicationContext.create(base_dir)
-            run_result = PipelineRunService().run(
-                ctx=ctx,
-                top_n=args.top,
-                source_filter=args.source if args.source else None,
-                auto_approve=args.auto_approve,
-                api_key=api_key,
+            from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
+            executor = WorkflowActionExecutor()
+            
+            res = executor.execute(
+                ctx,
+                "run_pipeline",
+                "manifest",
+                "all",
+                {
+                    "top_n": args.top,
+                    "source": args.source if args.source else None,
+                    "auto_approve": args.auto_approve,
+                    "api_key": api_key,
+                }
             )
+            
+            if not res.success:
+                print(f"Pipeline execution failed: {res.blocking_reasons}")
+                return 1
+                
+            run_result = res.raw_result
 
             print(f"Pipeline log: {run_result.log_path}\n")
 
@@ -443,21 +527,25 @@ def main() -> int:
 
             # Run Stages 7, 8, 9 only if the service run succeeded
             if run_result.success:
-                storage = ctx.storage
-                
                 # Stage 7: Plan week
                 with pl.stage("plan-week") as s_ctx:
                     try:
-                        from content_creation.planning.planner import PostingPlanner
-                        publishing_config_path = base_dir / "config" / "publishing.yaml"
-                        today = datetime.now().date()
+                        today = datetime.now(timezone.utc).date()
                         days_until_monday = (7 - today.weekday()) % 7
                         if days_until_monday == 0:
                             days_until_monday = 7
                         week_start_date = today + timedelta(days=days_until_monday)
-                        planner = PostingPlanner(storage, publishing_config_path)
-                        calendar = planner.plan_week(week_start_date)
-                        storage.save_calendar(calendar)
+                        week_start_str = week_start_date.isoformat()
+                        res_plan = executor.execute(
+                            ctx,
+                            "plan_week",
+                            "weekly_calendar",
+                            week_start_str,
+                            {"week_start_date": week_start_date}
+                        )
+                        if not res_plan.success:
+                            raise RuntimeError(f"Plan week failed: {res_plan.blocking_reasons}")
+                        calendar = res_plan.raw_result
                         s_ctx["items"] = calendar.total_posts
                         print(f"[plan-week] {calendar.total_posts} posts scheduled")
                     except Exception as e:
@@ -468,19 +556,24 @@ def main() -> int:
                 # Stage 8: Dry run
                 with pl.stage("dry-run") as s_ctx:
                     try:
-                        from content_creation.planning.dryrun import DryRunValidator
-                        publishing_config_path = base_dir / "config" / "publishing.yaml"
-                        calendars = storage.list_calendars()
-                        if calendars:
-                            latest_cal = max(calendars, key=lambda c: c.week_start)
-                            validator = DryRunValidator(storage, publishing_config_path)
-                            report = validator.run(latest_cal)
-                            storage.save_dryrun(report)
-                            s_ctx["items"] = report.ready_count
-                            print(f"[dry-run] ✓ {report.ready_count} ready, ⚠ {report.warning_count} warnings, ✗ {report.blocked_count} blocked")
-                        else:
-                            s_ctx["items"] = 0
-                            print("[dry-run] No calendar found")
+                        today = datetime.now(timezone.utc).date()
+                        days_until_monday = (7 - today.weekday()) % 7
+                        if days_until_monday == 0:
+                            days_until_monday = 7
+                        week_start_date = today + timedelta(days=days_until_monday)
+                        week_start_str = week_start_date.isoformat()
+                        res_val = executor.execute(
+                            ctx,
+                            "dry_run",
+                            "weekly_calendar",
+                            week_start_str,
+                            {"week_start": week_start_str}
+                        )
+                        if not res_val.success:
+                            raise RuntimeError(f"Dry run failed: {res_val.blocking_reasons}")
+                        report = res_val.raw_result
+                        s_ctx["items"] = report.ready_count
+                        print(f"[dry-run] ✓ {report.ready_count} ready, ⚠ {report.warning_count} warnings, ✗ {report.blocked_count} blocked")
                     except Exception as e:
                         s_ctx["status"] = "error"
                         s_ctx["error"] = str(e)
@@ -489,32 +582,24 @@ def main() -> int:
                 # Stage 9: Init analytics
                 with pl.stage("init-analytics") as s_ctx:
                     try:
-                        from content_creation.models.analytics import PostAnalytics, PerformanceSnapshot
-                        calendars = storage.list_calendars()
-                        if calendars:
-                            latest_cal = max(calendars, key=lambda c: c.week_start)
-                            count = 0
-                            for post in latest_cal.posts:
-                                post_id = f"{post.topic_id}_{post.format}_{latest_cal.week_start}"
-                                if storage.get_analytics(post_id) is not None:
-                                    continue
-                                analytics = PostAnalytics(
-                                    post_id=post_id,
-                                    topic_id=post.topic_id,
-                                    topic_title=post.topic_title,
-                                    format=post.format,
-                                    asset_path=post.asset_path,
-                                    source_url=post.source_url,
-                                    week_start=latest_cal.week_start,
-                                    last_updated=datetime.now(timezone.utc).isoformat(),
-                                )
-                                storage.save_analytics(analytics)
-                                count += 1
-                            s_ctx["items"] = count
-                            print(f"[init-analytics] {count} records created")
-                        else:
-                            s_ctx["items"] = 0
-                            print("[init-analytics] No calendar found")
+                        today = datetime.now(timezone.utc).date()
+                        days_until_monday = (7 - today.weekday()) % 7
+                        if days_until_monday == 0:
+                            days_until_monday = 7
+                        week_start_date = today + timedelta(days=days_until_monday)
+                        week_start_str = week_start_date.isoformat()
+                        res_analytics = executor.execute(
+                            ctx,
+                            "init_analytics",
+                            "weekly_calendar",
+                            week_start_str,
+                            {"week_start": week_start_str}
+                        )
+                        if not res_analytics.success:
+                            raise RuntimeError(f"Init analytics failed: {res_analytics.blocking_reasons}")
+                        count = int(res_analytics.affected_artifacts.get("initialized_count", "0"))
+                        s_ctx["items"] = count
+                        print(f"[init-analytics] {count} records created")
                     except Exception as e:
                         s_ctx["status"] = "error"
                         s_ctx["error"] = str(e)
@@ -592,7 +677,7 @@ def main() -> int:
                     return 1
             else:
                 # Default to next Monday
-                today = datetime.now().date()
+                today = datetime.now(timezone.utc).date()
                 days_until_monday = (7 - today.weekday()) % 7
                 if days_until_monday == 0:
                     days_until_monday = 7
@@ -676,7 +761,7 @@ Generated: {generated_at}
                     return 1
             else:
                 # Default to next Monday
-                today = datetime.now().date()
+                today = datetime.now(timezone.utc).date()
                 days_until_monday = (7 - today.weekday()) % 7
                 if days_until_monday == 0:
                     days_until_monday = 7
@@ -760,7 +845,7 @@ Generated: {generated_at}
                     return 1
             else:
                 # Default to next Monday
-                today = datetime.now().date()
+                today = datetime.now(timezone.utc).date()
                 days_until_monday = (7 - today.weekday()) % 7
                 if days_until_monday == 0:
                     days_until_monday = 7
@@ -1028,6 +1113,634 @@ Generated: {generated_at}
             except KeyboardInterrupt:
                 print("\nReview interrupted.")
                 return 130
+
+        elif args.command == "event-timeline":
+            from content_creation.events.store import (
+                SQLiteEventRepository,
+                EventTimelineService,
+            )
+
+            db_path = base_dir / "data" / "events.db"
+            if not db_path.exists():
+                print("No event store found. Events will appear after running pipeline actions.")
+                return 0
+
+            repo = SQLiteEventRepository(str(db_path))
+            try:
+                service = EventTimelineService(repository=repo)
+
+                if args.correlation_id:
+                    events = service.timeline_for_correlation(args.correlation_id)
+                elif args.entity_type and args.entity_id:
+                    events = service.entity_history(args.entity_type, args.entity_id, limit=args.limit)
+                elif args.entity_type:
+                    events = service.entity_history(args.entity_type, "__all__", limit=args.limit)
+                else:
+                    page = service.recent_events(
+                        page_size=args.limit,
+                        category=args.category,
+                    )
+                    events = page.events
+
+                if not events:
+                    print("No events found.")
+                    return 0
+
+                print(f"\n{'Timestamp':<20} {'Event':<25} {'Category':<12} {'Source':<20} {'Entity':<15}")
+                print("-" * 92)
+                for e in events:
+                    ts = e.created_at.strftime("%Y-%m-%d %H:%M:%S")
+                    entity = f"{e.entity_type}:{e.entity_id[:12]}" if e.entity_type else "-"
+                    print(f"{ts:<20} {e.event_name:<25} {e.category:<12} {e.source:<20} {entity:<15}")
+
+                print(f"\nTotal: {len(events)} events")
+                return 0
+            finally:
+                repo.close()
+
+        elif args.command == "event-stats":
+            from content_creation.events.store import (
+                SQLiteEventRepository,
+                EventMaintenanceService,
+            )
+
+            db_path = base_dir / "data" / "events.db"
+            if not db_path.exists():
+                print("No event store found.")
+                return 0
+
+            repo = SQLiteEventRepository(str(db_path))
+            try:
+                service = EventMaintenanceService(repository=repo)
+                stats = service.storage_stats()
+
+                print("\n=== Event Store Statistics ===")
+                for category, count in sorted(stats.items()):
+                    print(f"  {category:<15} {count:>6} events")
+                print("-" * 25)
+                print(f"  {'TOTAL':<15} {stats.get('total', 0):>6} events")
+                return 0
+            finally:
+                repo.close()
+
+        elif args.command == "event-replay":
+            from content_creation.events.store import (
+                SQLiteEventRepository,
+                EventReplayEngine,
+            )
+            from content_creation.events.bus import InMemoryEventBus
+
+            db_path = base_dir / "data" / "events.db"
+            if not db_path.exists():
+                print("No event store found.")
+                return 0
+
+            repo = SQLiteEventRepository(str(db_path))
+            try:
+                bus = InMemoryEventBus()
+                engine = EventReplayEngine(repository=repo, bus=bus)
+
+                dry_run_label = " (dry-run)" if args.dry_run else ""
+
+                if args.correlation_id:
+                    events = engine.replay_by_correlation(args.correlation_id, dry_run=args.dry_run)
+                    print(f"Replayed {len(events)} events for correlation {args.correlation_id}{dry_run_label}")
+                elif args.entity_type and args.entity_id:
+                    events = engine.replay_by_entity(args.entity_type, args.entity_id, dry_run=args.dry_run)
+                    print(f"Replayed {len(events)} events for {args.entity_type}:{args.entity_id}{dry_run_label}")
+                elif args.category:
+                    events = engine.replay_by_category(args.category, limit=args.limit, dry_run=args.dry_run)
+                    print(f"Replayed {len(events)} events from category '{args.category}'{dry_run_label}")
+                else:
+                    events = engine.replay_all(limit=args.limit, dry_run=args.dry_run)
+                    print(f"Replayed {len(events)} events{dry_run_label}")
+
+                if events and args.dry_run:
+                    print(f"\n{'Timestamp':<20} {'Event':<25} {'Entity':<15}")
+                    print("-" * 60)
+                    for e in events[:20]:
+                        ts = e.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                        entity = f"{e.entity_type}:{e.entity_id[:12]}" if e.entity_type else "-"
+                        print(f"{ts:<20} {e.event_type.value:<25} {entity:<15}")
+                    if len(events) > 20:
+                        print(f"  ... and {len(events) - 20} more")
+
+                return 0
+            finally:
+                repo.close()
+
+        elif args.command == "event-cleanup":
+            from content_creation.events.store import (
+                SQLiteEventRepository,
+                EventMaintenanceService,
+            )
+
+            db_path = base_dir / "data" / "events.db"
+            if not db_path.exists():
+                print("No event store found.")
+                return 0
+
+            repo = SQLiteEventRepository(str(db_path))
+            try:
+                service = EventMaintenanceService(repository=repo)
+
+                if args.dry_run:
+                    stats = service.storage_stats()
+                    print("Dry-run mode — no events will be deleted.")
+                    print(f"\nCurrent event counts:")
+                    for cat, count in sorted(stats.items()):
+                        print(f"  {cat:<15} {count:>6}")
+                else:
+                    if args.category:
+                        deleted = service.cleanup_expired(category=args.category)
+                        print(f"Deleted {deleted} expired events from category '{args.category}'")
+                    else:
+                        summary = service.enforce_retention()
+                        total = sum(summary.values())
+                        print(f"Retention enforcement complete: {total} events deleted")
+                        if summary:
+                            for cat, count in summary.items():
+                                print(f"  {cat}: {count} deleted")
+
+                return 0
+            finally:
+                repo.close()
+
+        elif args.command == "metrics-kpi":
+            from content_creation.metrics import (
+                SQLiteMetricRepository,
+                KPICatalog,
+            )
+
+            db_path = base_dir / "data" / "metrics.db"
+            if not db_path.exists():
+                print("No metrics store found. Run pipeline actions first to generate metrics.")
+                return 0
+
+            repo = SQLiteMetricRepository(str(db_path))
+            try:
+                from datetime import timedelta
+                end = datetime.now(timezone.utc)
+                start = end - timedelta(days=args.days)
+
+                catalog = KPICatalog(repo)
+                kpis = catalog.calculate_all(start=start, end=end)
+
+                print(f"\n=== KPI Report (last {args.days} days) ===\n")
+
+                print("Workflow KPIs:")
+                for name in ["briefs_generated", "storyboards_generated", "assets_generated", "approval_rate", "rejection_rate"]:
+                    kpi = kpis[name]
+                    print(f"  {name:<25} {kpi.value:>8.1f} {kpi.unit}")
+
+                print("\nJob KPIs:")
+                for name in ["jobs_started", "jobs_completed", "jobs_failed", "job_success_rate", "job_retries", "average_job_runtime"]:
+                    kpi = kpis[name]
+                    print(f"  {name:<25} {kpi.value:>8.1f} {kpi.unit}")
+
+                print("\nSystem KPIs:")
+                for name in ["lock_contentions", "zombie_recoveries", "stale_lock_expirations"]:
+                    kpi = kpis[name]
+                    print(f"  {name:<25} {kpi.value:>8.1f} {kpi.unit}")
+
+                print("\nPipeline KPIs:")
+                for name in ["pipelines_completed", "pipelines_failed", "pipeline_success_rate"]:
+                    kpi = kpis[name]
+                    print(f"  {name:<25} {kpi.value:>8.1f} {kpi.unit}")
+
+                return 0
+            finally:
+                repo.close()
+
+        elif args.command == "metrics-summary":
+            from content_creation.metrics import (
+                SQLiteMetricRepository,
+                TelemetryService,
+            )
+            from content_creation.events.store import SQLiteEventRepository
+
+            metrics_db = base_dir / "data" / "metrics.db"
+            events_db = base_dir / "data" / "events.db"
+
+            metrics_repo = None
+            event_repo = None
+            try:
+                if metrics_db.exists():
+                    metrics_repo = SQLiteMetricRepository(str(metrics_db))
+                if events_db.exists():
+                    event_repo = SQLiteEventRepository(str(events_db))
+
+                if metrics_repo is None:
+                    print("No metrics store found.")
+                    return 0
+
+                from datetime import timedelta
+                end = datetime.now(timezone.utc)
+                start = end - timedelta(days=args.days)
+
+                service = TelemetryService(
+                    metrics_repository=metrics_repo,
+                    event_repository=event_repo,
+                )
+                summary = service.full_summary(start=start, end=end)
+
+                print(f"\n=== Telemetry Summary (last {args.days} days) ===\n")
+
+                sys = summary["system"]
+                print("System:")
+                print(f"  Events stored:    {sys.total_events_stored}")
+                print(f"  Metrics stored:   {sys.total_metrics_stored}")
+
+                wf = summary["workflow"]
+                print("\nWorkflow:")
+                print(f"  Briefs generated:     {wf.briefs_generated}")
+                print(f"  Storyboards:          {wf.storyboards_generated}")
+                print(f"  Assets generated:     {wf.assets_generated}")
+                print(f"  Approval rate:        {wf.approval_rate:.1f}%")
+
+                jobs = summary["jobs"]
+                print("\nJobs:")
+                print(f"  Started:          {jobs.jobs_started}")
+                print(f"  Completed:        {jobs.jobs_completed}")
+                print(f"  Failed:           {jobs.jobs_failed}")
+                print(f"  Success rate:     {jobs.success_rate:.1f}%")
+                print(f"  Avg runtime:      {jobs.average_runtime_seconds:.1f}s")
+
+                rel = summary["reliability"]
+                print("\nReliability:")
+                print(f"  Lock contentions:     {rel.lock_contentions}")
+                print(f"  Zombie recoveries:    {rel.zombie_recoveries}")
+                print(f"  Pipeline success:     {rel.pipeline_success_rate:.1f}%")
+
+                return 0
+            finally:
+                if metrics_repo:
+                    metrics_repo.close()
+                if event_repo:
+                    event_repo.close()
+
+        elif args.command == "metrics-query":
+            from content_creation.metrics import (
+                SQLiteMetricRepository,
+                MetricType,
+            )
+
+            db_path = base_dir / "data" / "metrics.db"
+            if not db_path.exists():
+                print("No metrics store found.")
+                return 0
+
+            repo = SQLiteMetricRepository(str(db_path))
+            try:
+                metric_type = None
+                if args.type:
+                    metric_type = MetricType(args.type)
+
+                results = repo.query_metrics(
+                    metric_name=args.name,
+                    metric_type=metric_type,
+                    limit=args.limit,
+                )
+
+                if not results:
+                    print("No metrics found.")
+                    return 0
+
+                print(f"\n{'Timestamp':<20} {'Metric':<30} {'Type':<10} {'Value':>10}")
+                print("-" * 70)
+                for r in results:
+                    ts = r.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"{ts:<20} {r.metric_name:<30} {r.metric_type.value:<10} {r.value:>10.2f}")
+
+                print(f"\nTotal: {len(results)} metrics")
+                return 0
+            finally:
+                repo.close()
+
+        elif args.command == "metrics-cleanup":
+            from content_creation.metrics import (
+                SQLiteMetricRepository,
+                MetricsMaintenanceService,
+            )
+
+            db_path = base_dir / "data" / "metrics.db"
+            if not db_path.exists():
+                print("No metrics store found.")
+                return 0
+
+            repo = SQLiteMetricRepository(str(db_path))
+            try:
+                service = MetricsMaintenanceService(repository=repo)
+
+                if args.dry_run:
+                    stats = service.storage_stats()
+                    print("Dry-run mode — no metrics will be deleted.")
+                    print(f"\nCurrent metrics: {stats['total_metrics']}")
+                    print(f"Retention: {stats['retention_days']} days")
+                else:
+                    result = service.enforce_retention()
+                    print(f"Deleted {result['deleted']} expired metrics")
+
+                return 0
+            finally:
+                repo.close()
+
+        elif args.command == "metrics-rebuild":
+            from content_creation.metrics import (
+                SQLiteMetricRepository,
+                MetricsSubscriber,
+            )
+            from content_creation.events.store import (
+                SQLiteEventRepository,
+                EventReplayEngine,
+            )
+            from content_creation.events.bus import InMemoryEventBus
+
+            metrics_db = base_dir / "data" / "metrics.db"
+            events_db = base_dir / "data" / "events.db"
+
+            if not events_db.exists():
+                print("No event store found. Cannot rebuild metrics.")
+                return 0
+
+            event_repo = SQLiteEventRepository(str(events_db))
+            metric_repo = SQLiteMetricRepository(str(metrics_db))
+            try:
+                if args.dry_run:
+                    event_count = event_repo.count_events()
+                    metric_count = metric_repo.count_metrics()
+                    print("Dry-run mode — no metrics will be written.")
+                    print(f"Events in store: {event_count}")
+                    print(f"Current metrics: {metric_count}")
+                    print(f"\nReplay would process {event_count} events.")
+                else:
+                    # Clear existing metrics
+                    from datetime import timedelta
+                    deleted = metric_repo.delete_expired(
+                        datetime.now(timezone.utc) + timedelta(days=365)
+                    )
+                    print(f"Cleared {deleted} existing metrics.")
+
+                    # Replay events to rebuild
+                    replay_bus = InMemoryEventBus()
+                    MetricsSubscriber(repository=metric_repo, bus=replay_bus)
+                    engine = EventReplayEngine(repository=event_repo, bus=replay_bus)
+                    replayed = engine.replay_all()
+
+                    print(f"Replayed {len(replayed)} events.")
+                    print(f"Metrics store now has {metric_repo.count_metrics()} metrics.")
+
+                return 0
+            finally:
+                event_repo.close()
+                metric_repo.close()
+
+        elif args.command == "audit-query":
+            from content_creation.audit import (
+                SQLiteAuditRepository,
+                AuditQueryService,
+            )
+
+            db_path = base_dir / "data" / "audit.db"
+            if not db_path.exists():
+                print("No audit store found. Run pipeline actions first to generate audit records.")
+                return 0
+
+            repo = SQLiteAuditRepository(str(db_path))
+            try:
+                service = AuditQueryService(repository=repo)
+
+                start_dt = None
+                end_dt = None
+                if args.start:
+                    start_dt = datetime.strptime(args.start, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                if args.end:
+                    end_dt = datetime.strptime(args.end, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+
+                from content_creation.audit.models import AuditSeverity as AS, AuditSource
+                severity = AS(args.severity) if args.severity else None
+                source = AuditSource(args.source) if args.source else None
+
+                records = service.search_records(
+                    query=args.action or args.event_type,
+                    entity_type=args.entity_type,
+                    actor_id=args.actor_id,
+                )
+
+                # Apply additional filters
+                if args.severity:
+                    records = [r for r in records if r.severity == severity]
+                if args.source:
+                    records = [r for r in records if r.source == source]
+                if start_dt:
+                    records = [r for r in records if r.timestamp >= start_dt]
+                if end_dt:
+                    records = [r for r in records if r.timestamp <= end_dt]
+
+                records = records[:args.limit]
+
+                if not records:
+                    print("No audit records found.")
+                    return 0
+
+                print(f"\n{'Timestamp':<20} {'Action':<20} {'Entity':<20} {'Actor':<15} {'Severity':<10}")
+                print("-" * 85)
+                for r in records:
+                    ts = r.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                    entity = f"{r.entity_type}:{r.entity_id[:12]}" if r.entity_type else "-"
+                    print(f"{ts:<20} {r.action_type:<20} {entity:<20} {r.actor_id[:15]:<15} {r.severity.value:<10}")
+
+                print(f"\nTotal: {len(records)} audit records")
+                return 0
+            finally:
+                repo.close()
+
+        elif args.command == "audit-entity":
+            from content_creation.audit import (
+                SQLiteAuditRepository,
+                AuditQueryService,
+            )
+
+            db_path = base_dir / "data" / "audit.db"
+            if not db_path.exists():
+                print("No audit store found.")
+                return 0
+
+            repo = SQLiteAuditRepository(str(db_path))
+            try:
+                service = AuditQueryService(repository=repo)
+                records = service.search_by_entity(args.entity_type, args.entity_id)
+                records = records[:args.limit]
+
+                if not records:
+                    print(f"No audit records found for {args.entity_type}" + (f":{args.entity_id}" if args.entity_id else ""))
+                    return 0
+
+                print(f"\nAudit Trail for {args.entity_type}" + (f":{args.entity_id}" if args.entity_id else "") + ":")
+                print(f"{'Timestamp':<20} {'Action':<20} {'Actor':<15} {'Severity':<10}")
+                print("-" * 65)
+                for r in records:
+                    ts = r.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                    print(f"{ts:<20} {r.action_type:<20} {r.actor_id[:15]:<15} {r.severity.value:<10}")
+
+                print(f"\nTotal: {len(records)} records")
+                return 0
+            finally:
+                repo.close()
+
+        elif args.command == "audit-actor":
+            from content_creation.audit import (
+                SQLiteAuditRepository,
+                AuditQueryService,
+            )
+
+            db_path = base_dir / "data" / "audit.db"
+            if not db_path.exists():
+                print("No audit store found.")
+                return 0
+
+            repo = SQLiteAuditRepository(str(db_path))
+            try:
+                service = AuditQueryService(repository=repo)
+                records = service.search_by_actor(args.actor_id)
+                records = records[:args.limit]
+
+                if not records:
+                    print(f"No audit records found for actor '{args.actor_id}'")
+                    return 0
+
+                print(f"\nAudit Trail for Actor: {args.actor_id}")
+                print(f"{'Timestamp':<20} {'Action':<20} {'Entity':<20} {'Severity':<10}")
+                print("-" * 70)
+                for r in records:
+                    ts = r.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                    entity = f"{r.entity_type}:{r.entity_id[:12]}" if r.entity_type else "-"
+                    print(f"{ts:<20} {r.action_type:<20} {entity:<20} {r.severity.value:<10}")
+
+                print(f"\nTotal: {len(records)} records")
+                return 0
+            finally:
+                repo.close()
+
+        elif args.command == "audit-report":
+            from content_creation.audit import (
+                SQLiteAuditRepository,
+                ComplianceReportService,
+            )
+
+            db_path = base_dir / "data" / "audit.db"
+            if not db_path.exists():
+                print("No audit store found.")
+                return 0
+
+            repo = SQLiteAuditRepository(str(db_path))
+            try:
+                service = ComplianceReportService(repository=repo)
+
+                if args.type == "summary":
+                    s = service.compliance_summary()
+                    print("\n=== Compliance Summary ===")
+                    print(f"  Total audit records:     {s.total_audit_records}")
+                    print(f"  Active actors:           {s.actors_active}")
+                    print(f"  Unique entities:         {s.unique_entities}")
+                    print(f"  Critical events:         {s.critical_events}")
+                    print(f"  Retention period:        {s.retention_period_days} days")
+
+                elif args.type == "operator":
+                    reports = service.operator_activity_report()
+                    if not reports:
+                        print("No operator activity found.")
+                        return 0
+                    print("\n=== Operator Activity Report ===")
+                    print(f"{'Actor ID':<15} {'Actions':>8} {'First Seen':<20} {'Last Seen':<20}")
+                    print("-" * 65)
+                    for r in reports:
+                        first = r.first_action.strftime("%Y-%m-%d %H:%M") if r.first_action else "-"
+                        last = r.last_action.strftime("%Y-%m-%d %H:%M") if r.last_action else "-"
+                        print(f"{r.actor_id[:15]:<15} {r.total_actions:>8} {first:<20} {last:<20}")
+
+                elif args.type == "decision":
+                    report = service.workflow_decision_report()
+                    print("\n=== Workflow Decision Report ===")
+                    print(f"  Total decisions:    {report.total_decisions}")
+                    print(f"  Approvals:          {report.approvals}")
+                    print(f"  Rejections:         {report.rejections}")
+                    print(f"  Approval rate:      {report.approval_rate:.1f}%")
+
+                elif args.type == "job":
+                    report = service.job_execution_report()
+                    print("\n=== Job Execution Report ===")
+                    print(f"  Total jobs:         {report.total_jobs}")
+                    print(f"  Completed:          {report.completed}")
+                    print(f"  Failed:             {report.failed}")
+                    print(f"  Success rate:       {report.success_rate:.1f}%")
+
+                elif args.type == "incident":
+                    timeline = service.incident_timeline()
+                    print("\n=== Incident Timeline ===")
+                    print(f"  Critical events:    {timeline.total_critical}")
+                    print(f"  Warning events:     {timeline.total_warning}")
+                    if timeline.events:
+                        print(f"\n{'Timestamp':<20} {'Action':<20} {'Severity':<10} {'Entity':<20}")
+                        print("-" * 70)
+                        for r in timeline.events[:20]:
+                            ts = r.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                            entity = f"{r.entity_type}:{r.entity_id[:12]}" if r.entity_type else "-"
+                            print(f"{ts:<20} {r.action_type:<20} {r.severity.value:<10} {entity:<20}")
+
+                return 0
+            finally:
+                repo.close()
+
+        elif args.command == "audit-rebuild":
+            from content_creation.audit import (
+                SQLiteAuditRepository,
+                AuditSubscriber,
+            )
+            from content_creation.events.store import (
+                SQLiteEventRepository,
+                EventReplayEngine,
+            )
+            from content_creation.events.bus import InMemoryEventBus
+
+            events_db = base_dir / "data" / "events.db"
+            audit_db = base_dir / "data" / "audit.db"
+
+            if not events_db.exists():
+                print("No event store found. Cannot rebuild audit trail.")
+                return 0
+
+            event_repo = SQLiteEventRepository(str(events_db))
+            audit_repo = SQLiteAuditRepository(str(audit_db))
+            try:
+                if args.dry_run:
+                    event_count = event_repo.count_events()
+                    audit_count = audit_repo.count_records()
+                    print("Dry-run mode — no audit records will be written.")
+                    print(f"Events in store: {event_count}")
+                    print(f"Current audit records: {audit_count}")
+                    print(f"\nReplay would process {event_count} events.")
+                else:
+                    # Clear existing audit records
+                    from datetime import timedelta
+                    deleted = audit_repo.delete_expired(
+                        datetime.now(timezone.utc) + timedelta(days=365)
+                    )
+                    print(f"Cleared {deleted} existing audit records.")
+
+                    # Replay events to rebuild audit trail
+                    replay_bus = InMemoryEventBus()
+                    AuditSubscriber(repository=audit_repo, bus=replay_bus)
+                    engine = EventReplayEngine(repository=event_repo, bus=replay_bus)
+                    replayed = engine.replay_all()
+
+                    print(f"Replayed {len(replayed)} events.")
+                    print(f"Audit store now has {audit_repo.count_records()} records.")
+
+                return 0
+            finally:
+                event_repo.close()
+                audit_repo.close()
 
         else:
             parser.print_help()
