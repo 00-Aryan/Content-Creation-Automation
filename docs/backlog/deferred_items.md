@@ -72,3 +72,8 @@ Phase 10.4 Audit — Risk R-006
 **Priority:** Low
 
 **Target Phase:** Multi-User Deployment
+
+
+google/genai/types.py
+DeprecationWarning:
+'_UnionGenericAlias' is deprecated
