@@ -126,6 +126,13 @@ class AuditRecord:
     source: AuditSource = AuditSource.WORKFLOW
     severity: AuditSeverity = AuditSeverity.INFO
 
+    def __post_init__(self) -> None:
+        """Automatically redact secrets in audit metadata and states."""
+        from content_creation.security.redaction import redact_mapping, redact_text
+        object.__setattr__(self, "metadata", redact_mapping(self.metadata))
+        object.__setattr__(self, "previous_state", redact_text(self.previous_state))
+        object.__setattr__(self, "new_state", redact_text(self.new_state))
+
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to a dictionary for API responses."""
         return {

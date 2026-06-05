@@ -82,3 +82,8 @@ class WorkflowEvent:
     entity_id: str
     severity: EventSeverity
     payload: Dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        """Automatically redact secrets in the payload upon event instantiation."""
+        from content_creation.security.redaction import redact_mapping
+        object.__setattr__(self, "payload", redact_mapping(self.payload))

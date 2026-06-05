@@ -58,5 +58,31 @@ When tasked with executing a development phase, agents must follow the Plan-Act-
 
 ## 7. Security Rules
 - **API Keys**: Never hardcode API keys or credentials. Use environment variables managed via `python-dotenv`.
-- **Data Safety**: Ensure SQLite database files (`.db`) or local JSON storage keys are excluded from git.
+- **Data Safety**: Ensure SQLite database files (`.db`), local JSON storage keys, and credentials/secrets are excluded from git. The following files/patterns must be ignored:
+  - `.env` and `.env.*` (except `.env.example`)
+  - `*.pem`, `*.key`, `*.crt`
+  - `secrets.toml`, `.streamlit/secrets.toml`
+  - `data/secrets/`
+  - `credentials.json`, `token.json`
 - **Terminal Safety**: AI agents must only execute verified commands. No commands accessing external networks (e.g., `curl`, `wget`) should be executed without explicit user supervision.
+
+## 8. Project Control Rules
+
+Before any implementation:
+1. Read `docs/project/CURRENT_STATE.md`
+2. Read `docs/project/NEXT_ACTION.md`
+3. Read `docs/project/PHASES.md`
+4. Read `docs/project/BACKLOG.md`
+5. Read `docs/project/RISKS.md`
+
+After any phase:
+1. Run tests
+2. Update `docs/project/PHASES.md`
+3. Update `docs/project/CURRENT_STATE.md`
+4. Update `docs/project/NEXT_ACTION.md`
+5. Update `docs/project/BACKLOG.md` if findings appeared
+6. Update `docs/project/RISKS.md` if risks appeared
+7. Create phase report
+
+Do not start a new phase if `docs/project/NEXT_ACTION.md` conflicts with the user request. Ask for confirmation.
+

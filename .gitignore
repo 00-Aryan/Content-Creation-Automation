@@ -137,3 +137,16 @@ Thumbs.db
 data/
 logs/
 *.log
+
+# Secrets & credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets.toml
+.streamlit/secrets.toml
+data/secrets/
+credentials.json
+token.json

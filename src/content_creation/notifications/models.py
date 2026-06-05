@@ -48,3 +48,9 @@ class Notification:
     event_id: Optional[UUID] = None
     entity_type: Optional[str] = None
     entity_id: Optional[str] = None
+
+    def __post_init__(self) -> None:
+        """Automatically redact secrets in notification title and message."""
+        from content_creation.security.redaction import redact_text
+        self.title = redact_text(self.title)
+        self.message = redact_text(self.message)

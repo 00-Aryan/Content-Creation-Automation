@@ -9,6 +9,41 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from content_creation.security.redaction import redact_mapping, redact_text
+
+
+class RedactingFormatter(logging.Formatter):
+    """Logging Formatter that redacts secrets from format results."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        orig_msg = record.msg
+        orig_args = record.args
+
+        # Redact the message if it's a string
+        if isinstance(record.msg, str):
+            record.msg = redact_text(record.msg)
+
+        # Redact arguments if they are strings
+        if record.args:
+            if isinstance(record.args, dict):
+                record.args = {
+                    k: redact_text(str(v)) if isinstance(v, str) else v
+                    for k, v in record.args.items()
+                }
+            elif isinstance(record.args, tuple):
+                record.args = tuple(
+                    redact_text(str(v)) if isinstance(v, str) else v
+                    for v in record.args
+                )
+
+        try:
+            formatted = super().format(record)
+        finally:
+            record.msg = orig_msg
+            record.args = orig_args
+
+        return formatted
+
 
 def setup_logging(
     level: int = logging.INFO,
@@ -34,7 +69,7 @@ def setup_logging(
     # Remove existing handlers to avoid duplicates
     root_logger.handlers.clear()
 
-    formatter = logging.Formatter(format_string)
+    formatter = RedactingFormatter(format_string)
 
     # Console handler
     console_handler = logging.StreamHandler(sys.stdout)
@@ -74,12 +109,13 @@ class PipelineLogger:
         self.entries: list = []
 
     def log(self, stage: str, event: str, details: Optional[Dict[str, Any]] = None, duration_s: Optional[float] = None):
+        redacted_details = redact_mapping(details) if details else {}
         entry = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "stage": stage,
             "event": event,
             "duration_s": duration_s,
-            "details": details or {},
+            "details": redacted_details,
         }
         self.entries.append(entry)
         with open(self.log_path, "a") as f:
@@ -95,7 +131,7 @@ class PipelineLogger:
             yield result
         except Exception as e:
             result["status"] = "error"
-            result["error"] = str(e)
+            result["error"] = redact_text(str(e))
             raise
         finally:
             duration = time.time() - start
