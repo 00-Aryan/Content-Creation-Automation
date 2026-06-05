@@ -353,24 +353,27 @@ class TestSQLiteEventRepository:
 
     def test_thread_safety(self, tmp_db_path):
         repo = SQLiteEventRepository(tmp_db_path)
-        errors: List[Exception] = []
+        try:
+            errors: List[Exception] = []
 
-        def save_events():
-            try:
-                for _ in range(10):
-                    event = _make_event()
-                    repo.save_event(EventRecord.from_workflow_event(event))
-            except Exception as e:
-                errors.append(e)
+            def save_events():
+                try:
+                    for _ in range(10):
+                        event = _make_event()
+                        repo.save_event(EventRecord.from_workflow_event(event))
+                except Exception as e:
+                    errors.append(e)
 
-        threads = [threading.Thread(target=save_events) for _ in range(5)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
+            threads = [threading.Thread(target=save_events) for _ in range(5)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
 
-        assert errors == []
-        assert repo.count_events() == 50
+            assert errors == []
+            assert repo.count_events() == 50
+        finally:
+            repo.close()
 
 
 # ======================================================================
@@ -810,76 +813,83 @@ class TestEventPersistenceIntegration:
         """Test complete lifecycle: emit → persist → query → replay."""
         bus = InMemoryEventBus()
         event_repo = SQLiteEventRepository(tmp_db_path)
+        try:
+            # Subscribe persistence
+            subscriber = EventPersistenceSubscriber(repository=event_repo, bus=bus)
 
-        # Subscribe persistence
-        subscriber = EventPersistenceSubscriber(repository=event_repo, bus=bus)
+            # Emit events
+            for i in range(5):
+                event = _make_event(payload={"step": i})
+                bus.publish(event)
 
-        # Emit events
-        for i in range(5):
-            event = _make_event(payload={"step": i})
-            bus.publish(event)
+            assert event_repo.count_events() == 5
 
-        assert event_repo.count_events() == 5
+            # Query timeline
+            timeline = EventTimelineService(repository=event_repo)
+            page = timeline.recent_events(page_size=10)
+            assert page.total == 5
 
-        # Query timeline
-        timeline = EventTimelineService(repository=event_repo)
-        page = timeline.recent_events(page_size=10)
-        assert page.total == 5
+            # Replay
+            replay_bus = InMemoryEventBus()
+            replayed_events: List[WorkflowEvent] = []
+            replay_bus.subscribe_wildcard("*", lambda e: replayed_events.append(e))
 
-        # Replay
-        replay_bus = InMemoryEventBus()
-        replayed_events: List[WorkflowEvent] = []
-        replay_bus.subscribe_wildcard("*", lambda e: replayed_events.append(e))
+            engine = EventReplayEngine(repository=event_repo, bus=replay_bus)
+            replayed = engine.replay_all()
+            assert len(replayed) == 5
+            assert len(replayed_events) == 5
 
-        engine = EventReplayEngine(repository=event_repo, bus=replay_bus)
-        replayed = engine.replay_all()
-        assert len(replayed) == 5
-        assert len(replayed_events) == 5
-
-        subscriber.shutdown()
+            subscriber.shutdown()
+        finally:
+            event_repo.close()
 
     def test_retention_enforcement(self, tmp_db_path):
         """Test that retention cleanup works end-to-end."""
         event_repo = SQLiteEventRepository(tmp_db_path)
+        try:
+            # Add old events
+            old_time = datetime(2020, 1, 1, tzinfo=timezone.utc)
+            for i in range(5):
+                record = EventRecord(
+                    event_id=uuid4(), event_name=f"old_{i}", category="lock",
+                    source="test", correlation_id="", entity_type="", entity_id="",
+                    payload_json="{}", created_at=old_time,
+                )
+                event_repo.save_event(record)
 
-        # Add old events
-        old_time = datetime(2020, 1, 1, tzinfo=timezone.utc)
-        for i in range(5):
-            record = EventRecord(
-                event_id=uuid4(), event_name=f"old_{i}", category="lock",
-                source="test", correlation_id="", entity_type="", entity_id="",
-                payload_json="{}", created_at=old_time,
-            )
-            event_repo.save_event(record)
+            # Add recent events
+            for i in range(3):
+                event_repo.save_event(EventRecord.from_workflow_event(_make_event()))
 
-        # Add recent events
-        for i in range(3):
-            event_repo.save_event(EventRecord.from_workflow_event(_make_event()))
-
-        service = EventMaintenanceService(repository=event_repo)
-        deleted = service.cleanup_expired(category="lock")
-        assert deleted == 5
-        assert event_repo.count_events() == 3
+            service = EventMaintenanceService(repository=event_repo)
+            deleted = service.cleanup_expired(category="lock")
+            assert deleted == 5
+            assert event_repo.count_events() == 3
+        finally:
+            event_repo.close()
 
     def test_correlation_tracking(self, tmp_db_path):
         """Test that correlated events can be tracked together."""
         bus = InMemoryEventBus()
         event_repo = SQLiteEventRepository(tmp_db_path)
-        subscriber = EventPersistenceSubscriber(repository=event_repo, bus=bus)
+        try:
+            subscriber = EventPersistenceSubscriber(repository=event_repo, bus=bus)
 
-        correlation_id = str(uuid4())
+            correlation_id = str(uuid4())
 
-        # Emit correlated events
-        bus.publish(_make_event(EventType.BRIEF_GENERATED, correlation_id=correlation_id))
-        bus.publish(_make_event(EventType.STORYBOARD_GENERATED, correlation_id=correlation_id))
-        bus.publish(_make_event(EventType.ASSET_GENERATED, correlation_id=correlation_id))
+            # Emit correlated events
+            bus.publish(_make_event(EventType.BRIEF_GENERATED, correlation_id=correlation_id))
+            bus.publish(_make_event(EventType.STORYBOARD_GENERATED, correlation_id=correlation_id))
+            bus.publish(_make_event(EventType.ASSET_GENERATED, correlation_id=correlation_id))
 
-        # Query by correlation
-        events = event_repo.list_by_correlation(correlation_id)
-        assert len(events) == 3
-        assert all(e.correlation_id == correlation_id for e in events)
+            # Query by correlation
+            events = event_repo.list_by_correlation(correlation_id)
+            assert len(events) == 3
+            assert all(e.correlation_id == correlation_id for e in events)
 
-        subscriber.shutdown()
+            subscriber.shutdown()
+        finally:
+            event_repo.close()
 
 
 # ======================================================================
@@ -1012,33 +1022,35 @@ class TestEdgeCases:
 
     def test_concurrent_reads_and_writes(self, tmp_db_path):
         repo = SQLiteEventRepository(tmp_db_path)
-        errors: List[Exception] = []
+        try:
+            errors: List[Exception] = []
 
-        def writer():
-            try:
-                for i in range(20):
-                    repo.save_event(EventRecord.from_workflow_event(_make_event()))
-            except Exception as e:
-                errors.append(e)
+            def writer():
+                try:
+                    for i in range(20):
+                        repo.save_event(EventRecord.from_workflow_event(_make_event()))
+                except Exception as e:
+                    errors.append(e)
 
-        def reader():
-            try:
-                for _ in range(10):
-                    repo.list_events(limit=5)
-                    repo.count_events()
-            except Exception as e:
-                errors.append(e)
+            def reader():
+                try:
+                    for _ in range(10):
+                        repo.list_events(limit=5)
+                        repo.count_events()
+                except Exception as e:
+                    errors.append(e)
 
-        threads = [threading.Thread(target=writer) for _ in range(3)]
-        threads += [threading.Thread(target=reader) for _ in range(3)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
+            threads = [threading.Thread(target=writer) for _ in range(3)]
+            threads += [threading.Thread(target=reader) for _ in range(3)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
 
-        assert errors == []
-        assert repo.count_events() == 60
-        repo.close()
+            assert errors == []
+            assert repo.count_events() == 60
+        finally:
+            repo.close()
 
     def test_large_payload_persistence(self, repo):
         large_payload = {"data": "x" * 10000, "nested": {"key": list(range(100))}}

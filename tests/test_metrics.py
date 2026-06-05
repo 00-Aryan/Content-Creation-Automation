@@ -317,32 +317,39 @@ class TestSQLiteMetricRepository:
 
     def test_thread_safety(self, tmp_db_path):
         repo = SQLiteMetricRepository(tmp_db_path)
-        errors: List[Exception] = []
+        try:
+            errors: List[Exception] = []
 
-        def save_metrics():
-            try:
-                for _ in range(10):
-                    repo.save_metric(MetricRecord.counter("test"))
-            except Exception as e:
-                errors.append(e)
+            def save_metrics():
+                try:
+                    for _ in range(10):
+                        repo.save_metric(MetricRecord.counter("test"))
+                except Exception as e:
+                    errors.append(e)
 
-        threads = [threading.Thread(target=save_metrics) for _ in range(5)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
+            threads = [threading.Thread(target=save_metrics) for _ in range(5)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
 
-        assert errors == []
-        assert repo.count_metrics() == 50
+            assert errors == []
+            assert repo.count_metrics() == 50
+        finally:
+            repo.close()
 
     def test_close(self, tmp_db_path):
         repo = SQLiteMetricRepository(tmp_db_path)
-        repo.save_metric(MetricRecord.counter("test"))
-        repo.close()
+        try:
+            repo.save_metric(MetricRecord.counter("test"))
+        finally:
+            repo.close()
         # Should be able to create new repo on same path
         repo2 = SQLiteMetricRepository(tmp_db_path)
-        assert repo2.count_metrics() == 1
-        repo2.close()
+        try:
+            assert repo2.count_metrics() == 1
+        finally:
+            repo2.close()
 
     def test_close_idempotent(self, tmp_db_path):
         repo = SQLiteMetricRepository(tmp_db_path)
@@ -860,69 +867,78 @@ class TestMetricsIntegration:
         """Test complete lifecycle: emit event -> persist -> metric -> KPI -> telemetry."""
         event_repo = SQLiteEventRepository(tmp_db_path)
         metric_repo = SQLiteMetricRepository(tmp_db_path)
-        bus = InMemoryEventBus()
+        try:
+            bus = InMemoryEventBus()
 
-        # Subscribe metrics
-        metrics_sub = MetricsSubscriber(repository=metric_repo, bus=bus)
+            # Subscribe metrics
+            metrics_sub = MetricsSubscriber(repository=metric_repo, bus=bus)
 
-        # Emit events
-        bus.publish(_make_event(EventType.BRIEF_GENERATED))
-        bus.publish(_make_event(EventType.JOB_COMPLETED, payload={"duration_seconds": 3.0}))
-        bus.publish(_make_event(EventType.PIPELINE_COMPLETED))
+            # Emit events
+            bus.publish(_make_event(EventType.BRIEF_GENERATED))
+            bus.publish(_make_event(EventType.JOB_COMPLETED, payload={"duration_seconds": 3.0}))
+            bus.publish(_make_event(EventType.PIPELINE_COMPLETED))
 
-        # Verify metrics
-        assert metric_repo.count_metrics() >= 3
+            # Verify metrics
+            assert metric_repo.count_metrics() >= 3
 
-        # Calculate KPIs
-        catalog = KPICatalog(metric_repo)
-        kpis = catalog.calculate_all()
-        assert kpis["briefs_generated"].value >= 1
-        assert kpis["jobs_completed"].value >= 1
+            # Calculate KPIs
+            catalog = KPICatalog(metric_repo)
+            kpis = catalog.calculate_all()
+            assert kpis["briefs_generated"].value >= 1
+            assert kpis["jobs_completed"].value >= 1
 
-        # Telemetry
-        telemetry = TelemetryService(
-            metrics_repository=metric_repo,
-            event_repository=event_repo,
-        )
-        summary = telemetry.full_summary()
-        assert summary["workflow"].briefs_generated >= 1
+            # Telemetry
+            telemetry = TelemetryService(
+                metrics_repository=metric_repo,
+                event_repository=event_repo,
+            )
+            summary = telemetry.full_summary()
+            assert summary["workflow"].briefs_generated >= 1
 
-        metrics_sub.shutdown()
+            metrics_sub.shutdown()
+        finally:
+            event_repo.close()
+            metric_repo.close()
 
     def test_concurrent_metrics(self, tmp_db_path):
         """Test concurrent metric writes."""
         metric_repo = SQLiteMetricRepository(tmp_db_path)
-        errors: List[Exception] = []
+        try:
+            errors: List[Exception] = []
 
-        def write_metrics():
-            try:
-                for _ in range(10):
-                    metric_repo.save_metric(MetricRecord.counter("concurrent_test"))
-            except Exception as e:
-                errors.append(e)
+            def write_metrics():
+                try:
+                    for _ in range(10):
+                        metric_repo.save_metric(MetricRecord.counter("concurrent_test"))
+                except Exception as e:
+                    errors.append(e)
 
-        threads = [threading.Thread(target=write_metrics) for _ in range(5)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
+            threads = [threading.Thread(target=write_metrics) for _ in range(5)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
 
-        assert errors == []
-        assert metric_repo.count_metrics() == 50
+            assert errors == []
+            assert metric_repo.count_metrics() == 50
+        finally:
+            metric_repo.close()
 
     def test_maintenance_after_writes(self, tmp_db_path):
         """Test maintenance works after writes."""
         metric_repo = SQLiteMetricRepository(tmp_db_path)
+        try:
+            # Add old metrics
+            old = MetricRecord(
+                metric_id=uuid4(), metric_name="old", metric_type=MetricType.COUNTER,
+                value=1.0, timestamp=datetime(2020, 1, 1, tzinfo=timezone.utc),
+            )
+            metric_repo.save_metric(old)
+            metric_repo.save_metric(MetricRecord.counter("recent"))
 
-        # Add old metrics
-        old = MetricRecord(
-            metric_id=uuid4(), metric_name="old", metric_type=MetricType.COUNTER,
-            value=1.0, timestamp=datetime(2020, 1, 1, tzinfo=timezone.utc),
-        )
-        metric_repo.save_metric(old)
-        metric_repo.save_metric(MetricRecord.counter("recent"))
-
-        service = MetricsMaintenanceService(repository=metric_repo)
-        deleted = service.cleanup_expired()
-        assert deleted == 1
-        assert metric_repo.count_metrics() == 1
+            service = MetricsMaintenanceService(repository=metric_repo)
+            deleted = service.cleanup_expired()
+            assert deleted == 1
+            assert metric_repo.count_metrics() == 1
+        finally:
+            metric_repo.close()

@@ -347,31 +347,38 @@ class TestSQLiteAuditRepository:
 
     def test_thread_safety(self, tmp_db_path):
         repo = SQLiteAuditRepository(tmp_db_path)
-        errors: List[Exception] = []
+        try:
+            errors: List[Exception] = []
 
-        def write_records():
-            try:
-                for _ in range(10):
-                    repo.create_record(_make_audit_record())
-            except Exception as e:
-                errors.append(e)
+            def write_records():
+                try:
+                    for _ in range(10):
+                        repo.create_record(_make_audit_record())
+                except Exception as e:
+                    errors.append(e)
 
-        threads = [threading.Thread(target=write_records) for _ in range(5)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
+            threads = [threading.Thread(target=write_records) for _ in range(5)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
 
-        assert errors == []
-        assert repo.count_records() == 50
+            assert errors == []
+            assert repo.count_records() == 50
+        finally:
+            repo.close()
 
     def test_close(self, tmp_db_path):
         repo = SQLiteAuditRepository(tmp_db_path)
-        repo.create_record(_make_audit_record())
-        repo.close()
+        try:
+            repo.create_record(_make_audit_record())
+        finally:
+            repo.close()
         repo2 = SQLiteAuditRepository(tmp_db_path)
-        assert repo2.count_records() == 1
-        repo2.close()
+        try:
+            assert repo2.count_records() == 1
+        finally:
+            repo2.close()
 
     def test_close_idempotent(self, tmp_db_path):
         repo = SQLiteAuditRepository(tmp_db_path)
@@ -699,48 +706,55 @@ class TestAuditIntegration:
         """Test complete lifecycle: emit event -> audit record -> query -> report."""
         event_repo = SQLiteEventRepository(tmp_db_path)
         audit_repo = SQLiteAuditRepository(tmp_db_path)
-        bus = InMemoryEventBus()
+        try:
+            bus = InMemoryEventBus()
 
-        persist_sub = EventPersistenceSubscriber(repository=event_repo, bus=bus)
-        audit_sub = AuditSubscriber(repository=audit_repo, bus=bus)
+            persist_sub = EventPersistenceSubscriber(repository=event_repo, bus=bus)
+            audit_sub = AuditSubscriber(repository=audit_repo, bus=bus)
 
-        # Emit events
-        bus.publish(_make_event(EventType.BRIEF_GENERATED))
-        bus.publish(_make_event(EventType.BRIEF_APPROVED))
-        bus.publish(_make_event(EventType.JOB_COMPLETED))
+            # Emit events
+            bus.publish(_make_event(EventType.BRIEF_GENERATED))
+            bus.publish(_make_event(EventType.BRIEF_APPROVED))
+            bus.publish(_make_event(EventType.JOB_COMPLETED))
 
-        persist_sub.shutdown()
-        audit_sub.shutdown()
+            persist_sub.shutdown()
+            audit_sub.shutdown()
 
-        # Query
-        query_service = AuditQueryService(repository=audit_repo)
-        page = query_service.recent_records()
-        assert page.total >= 3
+            # Query
+            query_service = AuditQueryService(repository=audit_repo)
+            page = query_service.recent_records()
+            assert page.total >= 3
 
-        # Compliance report
-        compliance = ComplianceReportService(repository=audit_repo)
-        summary = compliance.compliance_summary()
-        assert summary.total_audit_records >= 3
+            # Compliance report
+            compliance = ComplianceReportService(repository=audit_repo)
+            summary = compliance.compliance_summary()
+            assert summary.total_audit_records >= 3
 
-        decision_report = compliance.workflow_decision_report()
-        assert decision_report.approvals >= 1
+            decision_report = compliance.workflow_decision_report()
+            assert decision_report.approvals >= 1
+        finally:
+            event_repo.close()
+            audit_repo.close()
 
     def test_concurrent_writes(self, tmp_db_path):
         repo = SQLiteAuditRepository(tmp_db_path)
-        errors: List[Exception] = []
+        try:
+            errors: List[Exception] = []
 
-        def write_records():
-            try:
-                for _ in range(10):
-                    repo.create_record(_make_audit_record())
-            except Exception as e:
-                errors.append(e)
+            def write_records():
+                try:
+                    for _ in range(10):
+                        repo.create_record(_make_audit_record())
+                except Exception as e:
+                    errors.append(e)
 
-        threads = [threading.Thread(target=write_records) for _ in range(5)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
+            threads = [threading.Thread(target=write_records) for _ in range(5)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
 
-        assert errors == []
-        assert repo.count_records() == 50
+            assert errors == []
+            assert repo.count_records() == 50
+        finally:
+            repo.close()
