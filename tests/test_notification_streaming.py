@@ -14,6 +14,25 @@ from uuid import uuid4
 import pytest
 
 
+def _local_sockets_available() -> bool:
+    """Return whether this environment permits binding local test sockets."""
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sock.bind(("127.0.0.1", 0))
+        finally:
+            sock.close()
+    except OSError:
+        return False
+    return True
+
+
+requires_local_socket = pytest.mark.skipif(
+    not _local_sockets_available(),
+    reason="local socket creation is unavailable in this test environment",
+)
+
+
 def _sse_connect_and_read(port: int, read_timeout: float = 2.0) -> tuple:
     """Connect to SSE endpoint and read initial data with timeout.
 
@@ -62,6 +81,7 @@ def _sse_connect_and_read(port: int, read_timeout: float = 2.0) -> tuple:
 
     return sock, initial_data.decode(errors="replace")
 
+
 from content_creation.notifications.models import (
     Notification,
     NotificationCategory,
@@ -69,15 +89,18 @@ from content_creation.notifications.models import (
     NotificationStatus,
 )
 from content_creation.notifications.schema import create_notification_schema
-from content_creation.notifications.sqlite_repository import SQLiteNotificationRepository
-from content_creation.notifications.streaming.connection_manager import ConnectionManager
+from content_creation.notifications.sqlite_repository import (
+    SQLiteNotificationRepository,
+)
+from content_creation.notifications.streaming.connection_manager import (
+    ConnectionManager,
+)
 from content_creation.notifications.streaming.models import (
     NotificationStreamEvent,
     StreamEventType,
 )
 from content_creation.notifications.streaming.publisher import NotificationPublisher
 from content_creation.notifications.streaming.server import NotificationSSEServer
-
 
 # ======================================================================
 # FIXTURES
@@ -166,9 +189,7 @@ class TestNotificationStreamEvent:
         assert data["title"] == "Failed"
 
     def test_to_sse_event(self) -> None:
-        evt = NotificationStreamEvent(
-            event_type=StreamEventType.UNREAD_COUNT_UPDATED
-        )
+        evt = NotificationStreamEvent(event_type=StreamEventType.UNREAD_COUNT_UPDATED)
         assert evt.to_sse_event() == "unread_count_updated"
 
     def test_immutable(self) -> None:
@@ -345,7 +366,9 @@ class TestNotificationPublisher:
         events = []
         while not client.event_queue.empty():
             events.append(client.event_queue.get_nowait())
-        read_events = [e for e in events if e.event_type == StreamEventType.NOTIFICATION_READ]
+        read_events = [
+            e for e in events if e.event_type == StreamEventType.NOTIFICATION_READ
+        ]
         assert len(read_events) == 1
 
     def test_on_notification_archived(
@@ -363,7 +386,9 @@ class TestNotificationPublisher:
         events = []
         while not client.event_queue.empty():
             events.append(client.event_queue.get_nowait())
-        archive_events = [e for e in events if e.event_type == StreamEventType.NOTIFICATION_ARCHIVED]
+        archive_events = [
+            e for e in events if e.event_type == StreamEventType.NOTIFICATION_ARCHIVED
+        ]
         assert len(archive_events) == 1
 
     def test_publisher_does_not_mutate_state(
@@ -414,6 +439,7 @@ class TestNotificationPublisher:
 
 
 class TestNotificationSSEServer:
+    @requires_local_socket
     def test_server_start_stop(self) -> None:
         server = NotificationSSEServer(port=18502)
         server.start()
@@ -422,6 +448,7 @@ class TestNotificationSSEServer:
         server.stop()
         assert server.is_running is False
 
+    @requires_local_socket
     def test_server_health_endpoint(self) -> None:
         server = NotificationSSEServer(port=18503)
         server.start()
@@ -438,6 +465,7 @@ class TestNotificationSSEServer:
         finally:
             server.stop()
 
+    @requires_local_socket
     def test_server_404(self) -> None:
         server = NotificationSSEServer(port=18504)
         server.start()
@@ -451,6 +479,7 @@ class TestNotificationSSEServer:
         finally:
             server.stop()
 
+    @requires_local_socket
     def test_server_sse_connection(self) -> None:
         manager = ConnectionManager()
         server = NotificationSSEServer(connection_manager=manager, port=18505)
@@ -464,6 +493,7 @@ class TestNotificationSSEServer:
         finally:
             server.stop()
 
+    @requires_local_socket
     def test_server_broadcasts_to_connected_client(self) -> None:
         manager = ConnectionManager()
         server = NotificationSSEServer(connection_manager=manager, port=18506)
@@ -498,6 +528,7 @@ class TestNotificationSSEServer:
         finally:
             server.stop()
 
+    @requires_local_socket
     def test_server_multiple_clients(self) -> None:
         manager = ConnectionManager()
         server = NotificationSSEServer(connection_manager=manager, port=18507)
@@ -535,6 +566,7 @@ class TestNotificationSSEServer:
         finally:
             server.stop()
 
+    @requires_local_socket
     def test_server_heartbeat(self) -> None:
         """Test that heartbeats are sent periodically."""
         manager = ConnectionManager()
@@ -552,6 +584,7 @@ class TestNotificationSSEServer:
         finally:
             server.stop()
 
+    @requires_local_socket
     def test_server_cleanup_loop(self) -> None:
         """Test cleanup loop removes stale clients."""
         manager = ConnectionManager()
@@ -571,6 +604,7 @@ class TestNotificationSSEServer:
         finally:
             server.stop()
 
+    @requires_local_socket
     def test_server_shutdown_event(self) -> None:
         """Test server shutdown event is set on stop."""
         server = NotificationSSEServer(port=18513)
@@ -580,6 +614,7 @@ class TestNotificationSSEServer:
         server.stop()
         assert server.is_shutting_down is True
 
+    @requires_local_socket
     def test_server_already_running(self) -> None:
         """Test starting server when already running."""
         server = NotificationSSEServer(port=18514)
@@ -599,6 +634,7 @@ class TestNotificationSSEServer:
         server.stop()
         assert server.is_running is False
 
+    @requires_local_socket
     def test_server_client_disconnect(self) -> None:
         """Test server handles client disconnect gracefully."""
         manager = ConnectionManager()
@@ -618,6 +654,7 @@ class TestNotificationSSEServer:
         finally:
             server.stop()
 
+    @requires_local_socket
     def test_server_health_with_clients(self) -> None:
         """Test health endpoint shows correct client count."""
         manager = ConnectionManager()
@@ -641,6 +678,7 @@ class TestNotificationSSEServer:
         finally:
             server.stop()
 
+    @requires_local_socket
     def test_server_sse_no_connection_manager(self) -> None:
         """Test SSE endpoint returns 500 when connection manager is missing."""
         server = NotificationSSEServer(port=18518)
@@ -653,7 +691,9 @@ class TestNotificationSSEServer:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(5.0)
             sock.connect(("localhost", 18518))
-            sock.sendall(b"GET /events HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+            sock.sendall(
+                b"GET /events HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"
+            )
             time.sleep(0.5)
             data = sock.recv(4096).decode(errors="replace")
             assert "500" in data
@@ -662,6 +702,7 @@ class TestNotificationSSEServer:
             server.stop()
 
 
+@requires_local_socket
 class TestSSEIntegration:
     def test_full_lifecycle(
         self,
@@ -680,7 +721,9 @@ class TestSSEIntegration:
             sock, _ = _sse_connect_and_read(18510, read_timeout=0.5)
 
             # Create notification
-            n = _make_notification(title="Integration Test", category=NotificationCategory.JOB)
+            n = _make_notification(
+                title="Integration Test", category=NotificationCategory.JOB
+            )
             repo.create_notification(n)
 
             # Publisher observes the notification
