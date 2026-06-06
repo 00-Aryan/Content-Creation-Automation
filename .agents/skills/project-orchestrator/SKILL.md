@@ -1,3 +1,8 @@
+---
+name: project-orchestrator
+description: Coordinate project state, roadmap, current phase, next actions, backlog, and cross-document consistency.
+---
+
 # Skill: Project Orchestrator
 
 ## Name

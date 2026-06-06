@@ -1,3 +1,8 @@
+---
+name: backlog-manager
+description: Create, update, classify, and prioritize backlog items with severity, phase target, status, and acceptance criteria.
+---
+
 # Skill: Backlog Manager
 
 ## Name

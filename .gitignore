@@ -153,3 +153,4 @@ secrets.toml
 data/secrets/
 credentials.json
 token.json
+.codex/settings.local.json

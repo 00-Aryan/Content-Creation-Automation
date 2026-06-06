@@ -1,28 +1,133 @@
-# Skill: Security Audit
+---
+name: security-audit
+description: Run a focused security audit for code, configuration, secrets exposure, unsafe execution paths, dependencies, and trust boundaries.
+---
 
-## Name
-security-audit
+# SKILL: security-audit
+## Trigger: `$security-audit`
 
-## Description
-Performs standard security and credential safety scans across the codebase, configuration files, and git history to prevent secret leakage.
+Read this file completely before executing.
+This skill is READ-ONLY. It changes nothing.
 
-## Goal
-Identify any hardcoded secrets, API keys, credentials, or insecure logging/telemetry practices. Classify risks without attempting automatic remediation.
+---
 
-## Procedure
-1. **Source Scanning**: Search config files (`.env`, `pyproject.toml`, YAMLs) and code bases for patterns matching keys, tokens, or credentials (e.g., `sk-`, `AIzaSy`, `GEMINI_API_KEY=`, etc.).
-2. **Log & Telemetry Check**: Verify that event handlers, logger configurations, audit stores, and metrics repositories do not log or store parameter values containing sensitive data.
-3. **Database Verification**: Ensure SQLite database files (`.db`) are ignored in git and contain no plain-text secrets or passwords.
-4. **Risk Classification**: Classify identified items (e.g., Critical: active credential in codebase; Medium: credential key name in code but value loaded via env; Low: mock token in tests).
-5. **No Remediation**: Compile findings. Do NOT modify files or attempt to rewrite git history unless explicitly authorized.
+## PURPOSE
 
-## Constraints
-- **Zero Modification**: This is a read-only audit. Never attempt to "fix" or delete a secret automatically, as it could break environments or lose data.
-- **Reporting Discretion**: Report vulnerabilities directly and securely.
+Run a local security scan and produce findings.
+Covers: committed secrets, secret loading patterns, gitignore gaps, agent file risks.
 
-## Output Format
-A security report with:
-- **Audit Scope**: Directory and files scanned.
-- **Findings Table**: List of vulnerabilities showing file path, line number, category, description, and severity (Critical, High, Medium, Low).
-- **Insecure Logging Check**: Statement verifying event payloads and logging structures are safe.
-- **Recommended Action**: Proposed remediation steps for the user's manual approval.
+---
+
+## EXECUTION SEQUENCE
+
+### Step 1 — Git history scan
+
+```bash
+# Scan for Gemini API key patterns in full history
+git log --all --full-diff -p -- "*.py" "*.yaml" "*.yml" "*.env" "*.json" \
+  | grep -E "AIza[A-Za-z0-9_-]{20,}" | head -20
+
+# Check if .env was ever committed
+git log --all --oneline -- .env
+
+# Check for sk- patterns (OpenAI/generic)
+git log --all -p | grep -E "sk-[a-zA-Z0-9]{20,}" | head -10
+```
+
+Note findings. Do NOT print the actual key values if found — print only the
+file path and commit hash.
+
+---
+
+### Step 2 — Working tree scan
+
+```bash
+# Check for non-empty fallbacks on environment variable reads
+grep -rn 'os\.environ\.get.*"[A-Za-z]' src/ --include="*.py" | \
+  grep -v "# test" | grep -v "test_" | head -20
+
+# Check for import-time secret reading (dangerous pattern)
+grep -rn 'API_KEY\s*=\s*os\.' src/ --include="*.py" | head -20
+
+# Check config files for embedded values
+grep -rn "AIza\|Bearer \|sk-\|api_key:" config/ prompts/ docs/ --include="*.yaml" --include="*.yml" --include="*.md" | head -20
+
+# Check agent instruction files
+grep -rn "AIza\|GEMINI_API_KEY\|api_key" .claude/ .github/agents/ .codex/ 2>/dev/null | head -20
+```
+
+---
+
+### Step 3 — Gitignore coverage check
+
+```bash
+# Test that .env is ignored
+git check-ignore -v .env && echo ".env: IGNORED (good)" || echo ".env: NOT IGNORED (bad)"
+
+# Test database file coverage
+for f in jobs.db events.db audit.db metrics.db app.db; do
+  git check-ignore -v "$f" && echo "$f: IGNORED" || echo "$f: NOT IGNORED — RISK"
+done
+
+# Test that data/ is ignored
+git check-ignore -v data/test.json && echo "data/: IGNORED (good)" || echo "data/: NOT IGNORED (bad)"
+```
+
+---
+
+### Step 4 — Check .env.example exists
+
+```bash
+test -f .env.example && echo ".env.example: EXISTS (good)" || echo ".env.example: MISSING (bad)"
+```
+
+---
+
+### Step 5 — Check for pre-commit hooks
+
+```bash
+test -f .pre-commit-config.yaml && echo "pre-commit: CONFIGURED (good)" || echo "pre-commit: NOT CONFIGURED (risk)"
+test -d .github/workflows && ls .github/workflows/ || echo "GitHub Actions: NO WORKFLOWS (risk)"
+```
+
+---
+
+### Step 6 — Produce security scan report
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+$security-audit REPORT
+Date: <today>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SCAN 1 — Git History:      CLEAN | FINDINGS (<count>)
+SCAN 2 — Working Tree:     CLEAN | FINDINGS (<count>)
+SCAN 3 — Gitignore:        ADEQUATE | GAPS (<list>)
+SCAN 4 — .env.example:     EXISTS | MISSING
+SCAN 5 — Pre-commit/CI:    CONFIGURED | NOT CONFIGURED
+
+━━ FINDINGS ━━━━━━━━━━━━━━━━━━━━━━━━
+
+[List each finding with: location, what was found, severity]
+[Never print the actual secret value — only the location]
+
+━━ CLEAN ITEMS ━━━━━━━━━━━━━━━━━━━━━
+
+[List what was scanned and found clean]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+If CRITICAL findings are found (actual committed secrets):
+- Immediately state: "ROTATE THIS KEY NOW — do not wait"
+- Reference the exact commit hash where the key appeared
+- Do not attempt to fix — only report
+
+---
+
+## WHAT NOT TO DO
+
+- Do NOT print actual secret values in output
+- Do NOT attempt to fix findings — only report
+- Do NOT modify .gitignore, source files, or any file
+- Do NOT commit anything

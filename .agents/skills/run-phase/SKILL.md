@@ -1,3 +1,8 @@
+---
+name: run-phase
+description: Execute a defined project phase from the roadmap while preserving scope, constraints, validation, and audit trail.
+---
+
 # Skill: Run Phase
 
 ## Name

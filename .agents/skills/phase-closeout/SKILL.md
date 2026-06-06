@@ -1,3 +1,8 @@
+---
+name: phase-closeout
+description: Close a project phase by verifying deliverables, tests, docs, risks, and next-phase readiness.
+---
+
 # Skill: Phase Closeout
 
 ## Name

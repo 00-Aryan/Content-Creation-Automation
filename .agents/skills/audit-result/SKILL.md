@@ -1,3 +1,8 @@
+---
+name: audit-result
+description: Convert audit findings into structured results with severity, evidence, impact, recommendation, and follow-up action.
+---
+
 # Skill: Audit Result
 
 ## Name

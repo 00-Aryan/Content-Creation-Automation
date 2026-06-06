@@ -1,3 +1,8 @@
+---
+name: code-review
+description: Review current code changes for correctness, maintainability, test coverage, regressions, and architectural drift.
+---
+
 # Skill: Code Review
 
 ## Name

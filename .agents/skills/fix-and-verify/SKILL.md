@@ -1,3 +1,8 @@
+---
+name: fix-and-verify
+description: Fix a scoped defect, run relevant verification, and report the exact change, proof, and remaining risk.
+---
+
 # Skill: Fix and Verify
 
 ## Name

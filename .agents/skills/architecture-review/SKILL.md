@@ -1,3 +1,8 @@
+---
+name: architecture-review
+description: Review architecture, module boundaries, coupling, dependency flow, and maintainability risks.
+---
+
 # Skill: Architecture Review
 
 ## Name
