@@ -1,88 +1,213 @@
-# AGENTS.md — Agent Instruction Set & Governance Manual
+# AGENTS.md — Content Creation Automation Platform
+## Master Agent Instructions (Claude Code · Codex · Gemini CLI)
 
-This document provides stable guidance and instructions for autonomous AI agents (such as Antigravity, Codex, and Claude-style agents) working on the Content Creation Automation platform.
+Read this file completely before taking any action.
+This document governs ALL agents working in this repository.
 
-## 1. Project Overview
-The Content Creation Automation platform is an editorial-first, source-grounded content factory designed for educational ML/AI material. It implements a structured multi-stage pipeline:
-`Topic Ingestion -> Scoring -> Briefs -> Content Intelligence -> Storyboards -> Assets -> Manifests -> Calendar Planning -> Verification`
-This pipeline is driven by a custom workflow engine, job queuing system, event broker, notification layer (including SSE streaming), metrics collection, and audit logging.
+---
 
-## 2. Setup & Test Commands
-All development must use the following standard commands:
-- **Environment Setup**:
-  ```bash
-  uv sync --all-extras --dev
-  ```
-- **Run Full Test Suite**:
-  ```bash
-  uv run pytest
-  ```
-- **Run Quality & Lint Checks**:
-  ```bash
-  uv run black --check src tests
-  uv run isort --check-only src tests
-  uv run mypy src
-  ```
+## 1. WHAT THIS PROJECT IS
 
-## 3. Core Architectural Boundaries & Rules
-Agents must strictly respect the following engineering and architectural constraints:
+A production-grade, source-grounded AI pipeline that transforms ML/AI research
+into educational content assets for students. Every claim is traceable to source.
+Every asset requires human approval. No auto-publishing. No hallucination.
 
-1. **UI Decoupling**: The UI layer (e.g., Streamlit views) must not access database repositories, raw file stores, or low-level components directly. All operations must go through the appropriate API, service, or mediator layers.
-2. **Worker Decoupling**: Workers in the job queue system must not call upstream or downstream services directly. They must use specified interfaces and state managers.
-3. **Action Execution Gate**: All workflow actions must be routed through and executed by the `WorkflowActionExecutor`. Direct state modification is prohibited.
-4. **Availability Guard**: The `ActionAvailabilityEngine` acts as the final gate to determine if a workflow action is currently valid for a given topic or asset state.
-5. **State Transition Ownership**: The `ReviewTransitionEngine` uniquely owns and manages all review and approval state transitions.
-6. **Subscribers are Read-Only**: Event subscribers must never mutate workflow state. They are strictly side-effect handlers (e.g., logging, notifying).
-7. **Event-Driven Telemetry**: All metrics, notifications, and audit records must originate from published events, maintaining the audit trail decoupled from the core business logic.
-8. **Secret Protection**: Secrets (e.g., API keys, database credentials) must never be logged, persisted in databases or files, or included in event payloads.
-9. **Refactoring Discipline**: No broad or structural refactors of existing components without explicit phase approval. Work must remain scoped to the assigned task.
+**Primary goal:** Reliable, observable, maintainable pipeline — not feature volume.
 
-## 4. Phase Workflow & Execution
-When tasked with executing a development phase, agents must follow the Plan-Act-Validate cycle:
-1. **Plan**: Inspect current implementation, read relevant schemas, and document the proposed changes before editing code.
-2. **Act**: Implement minimal, surgical changes. Keep changes clean and fully typed.
-3. **Validate**: Run the full test suite (`uv run pytest`) and verify that zero regressions are introduced.
-4. **Report**: Create a phase execution report detailing files modified, tests run, and validation outcomes.
+**Current state:** Read `WORK_QUEUE.md` for the active phase and next task.
+Read `TASK_SPEC.md` for the latest milestone summary.
+Read `docs/project-context.md` for long-term vision.
 
-## 5. Coding & Style Rules (Do's & Don'ts)
-- **DO** write explicit type hints for all function parameters and return types.
-- **DO** use `datetime.now(timezone.utc)` for time-aware UTC datetimes. Never use `datetime.utcnow()`.
-- **DO** use standard Python `logging` for observability.
-- **DO NOT** use SQLAlchemy or any alternate ORM. Use the Supabase client directly where database access is required.
-- **DO NOT** add new packages to `pyproject.toml` without documentation and explicit user approval.
-- **DO NOT** leave bare `except:` statements. Always catch specific exceptions and handle or log them properly.
+---
 
-## 6. Commit Rules
-- All commits should be small and logical.
-- Commit messages must follow conventional commits formatting (e.g., `feat(workflow): add action availability gates` or `fix(db): resolve connection pool leak`).
+## 2. BEFORE YOU DO ANYTHING
 
-## 7. Security Rules
-- **API Keys**: Never hardcode API keys or credentials. Use environment variables managed via `python-dotenv`.
-- **Data Safety**: Ensure SQLite database files (`.db`), local JSON storage keys, and credentials/secrets are excluded from git. The following files/patterns must be ignored:
-  - `.env` and `.env.*` (except `.env.example`)
-  - `*.pem`, `*.key`, `*.crt`
-  - `secrets.toml`, `.streamlit/secrets.toml`
-  - `data/secrets/`
-  - `credentials.json`, `token.json`
-- **Terminal Safety**: AI agents must only execute verified commands. No commands accessing external networks (e.g., `curl`, `wget`) should be executed without explicit user supervision.
+### Set environment first — every session, no exceptions
 
-## 8. Project Control Rules
+export UV_CACHE_DIR=/tmp/uv-cache
 
-Before any implementation:
-1. Read `docs/project/CURRENT_STATE.md`
-2. Read `docs/project/NEXT_ACTION.md`
-3. Read `docs/project/PHASES.md`
-4. Read `docs/project/BACKLOG.md`
-5. Read `docs/project/RISKS.md`
+### Classify the task before running anything else
 
-After any phase:
-1. Run tests
-2. Update `docs/project/PHASES.md`
-3. Update `docs/project/CURRENT_STATE.md`
-4. Update `docs/project/NEXT_ACTION.md`
-5. Update `docs/project/BACKLOG.md` if findings appeared
-6. Update `docs/project/RISKS.md` if risks appeared
-7. Create phase report
+Read the task card's Scope section.
 
-Do not start a new phase if `docs/project/NEXT_ACTION.md` conflicts with the user request. Ask for confirmation.
+Type A — any .py file in scope → source code task
+Type B — only .md, .yaml, .yml, .gitignore, .txt, .json, .toml → docs/config task
 
+### Type A tasks only — run baseline
+
+export UV_CACHE_DIR=/tmp/uv-cache
+uv run python -m pytest --tb=no -q 2>&1 | tail -3
+
+Must show ≥ 950 passed. 16 known failures in test_notification_streaming.py
+are pre-existing — they do not block execution.
+
+If output is a filesystem error: try mkdir -p /tmp/uv-cache and retry once.
+If it still fails, report and stop.
+
+### Type B tasks — no baseline required
+
+Proceed directly to implementation.
+
+### Branch check (all tasks)
+
+git branch --show-current
+Must be main. If not, report and stop.
+
+---
+
+## 3. ABSOLUTE DO NOT RULES
+
+These override everything else. No exceptions, no rationalizations.
+
+**Architecture:**
+- Do NOT change workflow semantics or business logic without explicit approval
+- Do NOT bypass WorkflowActionExecutor, ActionAvailabilityEngine, or ReviewTransitionEngine
+- Do NOT call repositories or services directly from the Streamlit UI layer
+- Do NOT add Streamlit imports into domain or infrastructure layers
+- Do NOT introduce external queues (Celery, Redis, RabbitMQ, Kafka) without approval
+- Do NOT change Pydantic model fields without updating all dependent code and tests
+
+**Secrets:**
+- Do NOT print, log, or include any environment variable VALUE in any output
+- Do NOT add fallback values to `os.environ.get("GEMINI_API_KEY", "...")` calls
+- Do NOT commit a `.env` file under any circumstances
+- Do NOT embed API keys, tokens, or credentials in any source file, config, or prompt
+- Do NOT run `printenv`, `env`, `echo $VARIABLE` in any skill or command
+
+**Scope:**
+- Do NOT modify files outside the current task's declared scope
+- Do NOT refactor opportunistically — fix only what the task specifies
+- Do NOT add features during audit or security phases
+- Do NOT silently change architecture
+
+**Testing:**
+- Do NOT commit if the test suite count dropped
+- Do NOT skip tests to make a commit pass
+- Do NOT modify tests to make them pass if the underlying code is broken
+
+---
+
+## 4. MANDATORY WORKFLOW FOR EVERY TASK
+
+```
+READ task card (docs/tasks/task_NNN.md)
+    ↓
+VERIFY scope — list exact files you will touch
+    ↓
+IMPLEMENT — surgical changes only, nothing beyond task scope
+    ↓
+VALIDATE — run the commands in the task card's Validation section
+    ↓
+CONFIRM test count ≥ baseline
+    ↓
+UPDATE task status in WORK_QUEUE.md → DONE
+    ↓
+COMMIT using the exact message format in the task card
+    ↓
+REPORT: files changed, test count before/after, what was done
+```
+
+If any step fails, stop. Update task status to BLOCKED. Report the failure.
+Do not attempt the next task.
+
+---
+
+## 5. COMMIT MESSAGE FORMAT
+
+```
+type(scope): description (TASK-NNN)
+```
+
+Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `security`
+
+Examples:
+```
+docs(security): add .env.example template (TASK-001)
+fix(gitignore): add *.db rules for Phase 11+ databases (TASK-002)
+feat(ci): add GitHub Actions secret scan workflow (TASK-004)
+```
+
+Never commit without a task reference unless it is a hotfix.
+
+---
+
+## 6. SKILL REFERENCE
+
+Available skills (trigger with `$skill-name`):
+
+| Skill | Trigger | Purpose |
+|---|---|---|
+| run-next-task | `$run-next-task` | Execute next PENDING task from WORK_QUEUE |
+| new-phase | `$new-phase` | Convert phase description into task cards + update queue |
+| drift-check | `$drift-check` | Verify project has not drifted from stated goals |
+| fix-and-continue | `$fix-and-continue TASK-NNN` | Apply one approved remediation item |
+| security-audit | `$security-audit` | Run read-only secret and security scan |
+
+Skill files: `.claude/skills/<name>/SKILL.md`
+Codex users: same files are mirrored in `.codex/skills/<name>/SKILL.md`
+
+---
+
+## 7. DOCUMENT MAP
+
+| Document | Purpose | Update frequency |
+|---|---|---|
+| `AGENTS.md` | This file — agent rules | When rules change |
+| `WORK_QUEUE.md` | Live ordered task queue | Every task completion |
+| `docs/tasks/task_NNN.md` | Individual task specs | Created per task, updated on status change |
+| `docs/backlog/issues.md` | Open issues and known problems | When issues are found or closed |
+| `docs/backlog/remediation_backlog.md` | Security and tech debt items | After each audit |
+| `docs/architecture/phase*_security_audit.md` | Audit reports | After each audit phase |
+| `TASK_SPEC.md` | Project state snapshot | After each milestone |
+| `CLAUDE.md` | Claude Code specific constraints | When coding standards change |
+| `GEMINI.md` | Gemini CLI specific constraints | When Gemini rules change |
+
+---
+
+## 8. FROZEN SCOPES
+
+These files/modules must NOT be modified without explicit written approval:
+
+```
+src/content_creation/models/        — all Pydantic models
+src/content_creation/generation/    — all generators
+prompts/                            — all prompt templates
+docs/schema.md                      — data contracts
+```
+
+If a task requires touching a frozen scope, stop. Request approval first.
+Record the approval in the task card before proceeding.
+
+---
+
+## 9. VALIDATION AND COMMIT
+
+export UV_CACHE_DIR=/tmp/uv-cache
+
+Full test suite (Type A tasks only):
+uv run python -m pytest --tb=short -q 2>&1 | tail -5
+
+Commit method — GitHub MCP ONLY:
+Local .git is read-only. Use mcp__github.push_files for all commits.
+Never use git commit, git add, or git push.
+
+mcp__github.push_files parameters:
+  owner:   "00-Aryan"
+  repo:    "Content-Creation-Automation"
+  branch:  "main"
+  message: <exact task card commit message>
+  files:   [only files in task scope]
+
+---
+
+## 10. GOAL GUARDIAN CHECK
+
+Before completing any task, ask:
+
+1. Does this change serve the project goal (reliable, source-grounded content pipeline)?
+2. Does this change stay within the declared task scope?
+3. Does this change preserve or improve test coverage?
+4. Does this change respect all frozen scopes?
+5. Does this change expose any secrets or credentials?
+
+If any answer is NO — stop, do not commit, report the conflict.
