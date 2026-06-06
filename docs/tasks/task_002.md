@@ -1,10 +1,10 @@
 # TASK-002: Extend `.gitignore` to cover Phase 11+ database files
 
 **Phase:** 11.9.3
-**Status:** PENDING
+**Status:** DONE
 **Priority:** HIGH
 **Created:** 2026-06-06
-**Completed:** —
+**Completed:** 2026-06-07
 **Requires approval:** NO
 
 ## Source References
