@@ -1,7 +1,7 @@
 # TASK-003: Add SecretScrubberFilter to `utils/logger.py`
 
 **Phase:** 11.9.3
-**Status:** PENDING
+**Status:** BLOCKED
 **Priority:** MEDIUM
 **Created:** 2026-06-06
 **Completed:** —
@@ -91,3 +91,7 @@ None
 ```
 security(logger): add SecretScrubberFilter to strip credentials from logs (TASK-003)
 ```
+
+## Blocker
+
+2026-06-07: Scope mismatch — task card targets `src/content_creation/utils/logger.py`, but that file does not exist in the repository. The existing module appears to be `src/content_creation/utils/logging.py`; however, all other `.py` files are explicitly out of scope and the task card says no files should be created.
