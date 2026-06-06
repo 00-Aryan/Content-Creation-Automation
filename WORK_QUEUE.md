@@ -2,7 +2,7 @@
 
 **Current Phase:** 11.9.3 — Security Remediation & CI/CD
 **Last updated:** 2026-06-05
-**Baseline test count:** 125 (v0.1.0)
+**Baseline test count:** 950 passed (16 known failing in test_notification_streaming.py — pre-existing, non-blocking)
 
 ---
 
