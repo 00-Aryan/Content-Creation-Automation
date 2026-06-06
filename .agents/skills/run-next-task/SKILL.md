@@ -1,64 +1,140 @@
+---
+name: run-next-task
+description: Execute exactly one runnable task from WORK_QUEUE using GitHub MCP-only commits.
+---
+
 # SKILL: run-next-task
 ## Trigger: $run-next-task
 
-## ENVIRONMENT SETUP — Run first every session
-export UV_CACHE_DIR=/tmp/uv-cache
+Execute exactly one runnable task from WORK_QUEUE.md.
 
-## STEP 1 — Find the next task
+Use this skill only in normal task-execution mode.
+
+Do not run this skill from review, repair, stash-review, or preservation branches.
+
+---
+
+## Required preflight
+
+1. Set cache:
+
+    export UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/uv-cache}"
+    mkdir -p "$UV_CACHE_DIR"
+
+2. Confirm branch:
+
+    git branch --show-current
+
+Required branch: main.
+
+3. Confirm clean worktree:
+
+    git status --short
+
+Required output: no output.
+
+If branch is not main or worktree is dirty, stop and report. Do not clean, stash, restore, or commit locally.
+
+---
+
+## Find task
+
 Open WORK_QUEUE.md.
-Find first row where Status=PENDING and all Depends On are DONE.
-If none: report "No runnable tasks" and stop.
-Open the task card at the path shown. If missing: report and stop.
 
-## STEP 2 — Classify the task
-Read Scope → Files to modify and Files to create.
-Type A: any .py file → source code task → run baseline in Step 3
-Type B: only .md/.yaml/.yml/.gitignore/.txt/.json/.toml → skip to Step 4
+Find the first task where:
 
-## STEP 3 — Baseline (Type A only)
-export UV_CACHE_DIR=/tmp/uv-cache
-uv run python -m pytest --tb=no -q 2>&1 | tail -3
-Must show ≥ 950 passed.
-16 known failures in test_notification_streaming.py are pre-existing, not a blocker.
+- Status is PENDING
+- dependencies are DONE
 
-## STEP 4 — Scope check
-List every file you will touch. Each must appear in the task card scope.
-Frozen scopes (need approval note in task card before touching):
-  src/content_creation/models/
-  src/content_creation/generation/
-  prompts/
+Open the referenced docs/tasks/task_NNN.md task card.
 
-## STEP 5 — Implement
-Execute task card implementation steps exactly. Nothing more.
+If no runnable task exists, report "No runnable tasks" and stop.
 
-## STEP 6 — Validate
-Run every command in the task card Validation section.
-Type A: re-run pytest and confirm passing count >= baseline.
+---
 
-## STEP 7 — Commit via GitHub MCP
-Use mcp__github.push_files:
-  owner: "00-Aryan"
-  repo: "Content-Creation-Automation"
-  branch: "main"
-  message: <exact commit message from task card>
-  files: [only files listed in task scope — read content from disk]
-Do NOT include WORK_QUEUE.md or task card in this push.
+## Classify task
 
-## STEP 8 — Update task status via GitHub MCP
-Push in a second mcp__github.push_files call:
-  message: "chore(queue): mark TASK-NNN done"
-  files: [WORK_QUEUE.md with status→DONE, docs/tasks/task_NNN.md with Status→DONE and Completed→today]
+Type A:
 
-## STEP 9 — Report
-Task: TASK-NNN — <title>
-Type: A | B
-Status: DONE | BLOCKED
-Files changed: <list>
-Tests: <before>→<after> (Type A only)
-Committed: mcp__github.push_files
-Next: run $run-next-task again
+- any Python source file
+- any test file
+- any behavior-changing code
 
-## WHAT NOT TO DO
-Never use git add, git commit, or git push.
-Never include files outside task scope in any MCP push.
-Never auto-start the next task.
+Type B:
+
+- docs/config/task-control files only
+
+Type A requires baseline tests before edits:
+
+    uv run python -m pytest --tb=no -q 2>&1 | tail -3
+
+Type B skips baseline unless task card requires it.
+
+---
+
+## Scope rule
+
+Touch only files listed in the task card.
+
+Frozen scopes require explicit task-card approval:
+
+- src/content_creation/models/
+- src/content_creation/generation/
+- prompts/
+- docs/schema.md
+
+---
+
+## Validate
+
+Run every validation command in the task card.
+
+Always run:
+
+    git diff --check
+
+For Type A, confirm final test count does not decrease from baseline.
+
+Do not expose environment variable values.
+
+---
+
+## Commit rule
+
+Agents must not create local commits or push through local Git.
+
+Use GitHub MCP only:
+
+    mcp__github.push_files
+
+Implementation push:
+
+- owner: 00-Aryan
+- repo: Content-Creation-Automation
+- branch: main
+- message: exact task-card commit message
+- files: only task-scope implementation files
+
+Queue/status push:
+
+- message: chore(queue): mark TASK-NNN done
+- files: WORK_QUEUE.md and docs/tasks/task_NNN.md
+
+If GitHub MCP fails, stop and report. Do not fall back to local Git.
+
+---
+
+## Report
+
+Report:
+
+- task id and title
+- Type A or Type B
+- status DONE or BLOCKED
+- files changed
+- validations run
+- baseline/final tests if Type A
+- GitHub MCP commit messages
+- next step
+
+Do not auto-start another task.
