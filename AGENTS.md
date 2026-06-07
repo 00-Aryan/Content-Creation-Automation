@@ -390,25 +390,29 @@ Never create a task-related commit without a task reference unless the user expl
 
 ---
 
-## 11. Skill Reference
+## 11. SKILL SYSTEM
 
-Available skills:
+Skills live in: `.agents/skills/<name>/SKILL.md`
+Trigger in Codex or Antigravity: `$<skill-name>`
 
-| Skill | Trigger | Purpose |
-|---|---|---|
-| run-next-task | `$run-next-task` | Execute the next runnable PENDING task from `WORK_QUEUE.md` |
-| new-phase | `$new-phase` | Convert a phase description into task cards and queue updates |
-| drift-check | `$drift-check` | Verify project has not drifted from stated goals |
-| fix-and-continue | `$fix-and-continue TASK-NNN` | Apply one approved remediation item |
-| security-audit | `$security-audit` | Run read-only secret and security checks |
+Active skills:
+| Skill              | Trigger                    | Role                          |
+|--------------------|----------------------------|-------------------------------|
+| run-next-task      | $run-next-task             | Execute next queued task      |
+| new-phase          | $new-phase <description>   | Create task cards for a phase |
+| drift-check        | $drift-check               | Health + goal alignment check |
+| security-audit     | $security-audit            | Secret and security scan      |
+| fix-and-continue   | $fix-and-continue TASK-NNN | Apply one approved fix        |
+| code-review        | $code-review <path>        | Review a file or module       |
 
-Skill file locations:
+For automated local execution (no agent session needed):
+  ./run-tasks.sh        — run next task
+  ./run-tasks.sh --all  — run all pending tasks
+  ./run-tasks.sh --dry  — preview without executing
 
-- Canonical agent skills: `.agents/skills/<name>/SKILL.md`
-- Codex-compatible mirrors: `.codex/skills/<name>/SKILL.md` or `.codex/skills/<name>/skill_<name>.md`
-- Claude-specific skill directories are not canonical in this repository unless explicitly reintroduced.
+Commit method: run-tasks.sh uses local git commit + git push.
+No MCP commits needed when running via run-tasks.sh.
 
-When skill instructions conflict with this file, `AGENTS.md` wins.
 
 ---
 
