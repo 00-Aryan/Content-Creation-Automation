@@ -1,10 +1,10 @@
 # TASK-007: Add Gitleaks secret scan to CI workflow
 
 **Phase:** 11.9.3
-**Status:** PENDING
+**Status:** DONE
 **Priority:** HIGH
 **Created:** 2026-06-06
-**Completed:** —
+**Completed:** 2026-06-07
 **Requires approval:** NO
 
 ## Objective
@@ -38,6 +38,9 @@ All source files, existing `test` job in the workflow
 ```bash
 python3 -c "import yaml; d=yaml.safe_load(open('.github/workflows/ci.yml')); assert 'secret-scan' in d['jobs']; print('PASS')"
 ```
+
+## Success Criteria
+- [x] `.github/workflows/ci.yml` defines a `secret-scan` job
 
 ## Depends On
 TASK-006

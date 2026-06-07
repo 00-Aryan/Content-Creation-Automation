@@ -27,7 +27,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-004 | Add `SECURITY.md` disclosure policy | DONE | LOW | None | [→](docs/tasks/task_004.md) |
 | TASK-005 | Update `GEMINI.md` with security constraints | DONE | LOW | None | [→](docs/tasks/task_005.md) |
 | TASK-006 | Add GitHub Actions CI workflow (tests on push) | DONE | HIGH | None | [→](docs/tasks/task_006.md) |
-| TASK-007 | Add Gitleaks secret scan to CI workflow | PENDING | HIGH | TASK-006 | [→](docs/tasks/task_007.md) |
+| TASK-007 | Add Gitleaks secret scan to CI workflow | DONE | HIGH | TASK-006 | [→](docs/tasks/task_007.md) |
 | TASK-008 | Add `.pre-commit-config.yaml` with detect-secrets | PENDING | MEDIUM | None | [→](docs/tasks/task_008.md) |
 
 ---
@@ -39,6 +39,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-004 | Add `SECURITY.md` disclosure policy | 2026-06-07 | docs(security): add SECURITY.md responsible disclosure policy (TASK-004) |
 | TASK-005 | Update `GEMINI.md` with security constraints | 2026-06-07 | docs(security): add security constraints to GEMINI.md (TASK-005) |
 | TASK-006 | Add GitHub Actions CI workflow (tests on push) | 2026-06-07 | feat(ci): add GitHub Actions test suite workflow (TASK-006) |
+| TASK-007 | Add Gitleaks secret scan to CI workflow | 2026-06-07 | security(ci): add Gitleaks secret scanning job to CI workflow (TASK-007) |
 
 ---
 
