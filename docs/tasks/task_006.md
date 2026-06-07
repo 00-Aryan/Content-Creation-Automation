@@ -1,10 +1,10 @@
 # TASK-006: Add GitHub Actions CI workflow for test suite
 
 **Phase:** 11.9.3
-**Status:** PENDING
+**Status:** DONE
 **Priority:** HIGH
 **Created:** 2026-06-06
-**Completed:** —
+**Completed:** 2026-06-07
 **Requires approval:** NO
 
 ## Objective
@@ -49,6 +49,9 @@ jobs:
 ```bash
 python3 -c "import yaml; d=yaml.safe_load(open('.github/workflows/ci.yml')); assert 'test' in d['jobs']; print('PASS')"
 ```
+
+## Success Criteria
+- [x] `.github/workflows/ci.yml` exists and defines a `test` job
 
 ## Depends On
 None
