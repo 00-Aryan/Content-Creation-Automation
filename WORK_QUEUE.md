@@ -29,6 +29,11 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-006 | Add GitHub Actions CI workflow (tests on push) | DONE | HIGH | None | [→](docs/tasks/task_006.md) |
 | TASK-007 | Add Gitleaks secret scan to CI workflow | DONE | HIGH | TASK-006 | [→](docs/tasks/task_007.md) |
 | TASK-008 | Add `.pre-commit-config.yaml` with detect-secrets | DONE | MEDIUM | None | [→](docs/tasks/task_008.md) |
+| TASK-009 | Update TASK_SPEC.md to Phase 11.9.4 | DONE    | HIGH | None | [→](docs/tasks/task_009.md) |
+| TASK-010 | Add Makefile with dev commands | PENDING | HIGH | TASK-009 | [→](docs/tasks/task_010.md) |
+| TASK-011 | Add return type hints to cli.py | PENDING | MEDIUM | None | [→](docs/tasks/task_011.md) |
+| TASK-012 | Create docs/project-context.md | PENDING | HIGH | None | [→](docs/tasks/task_012.md) |
+| TASK-013 | Run drift-check post Phase 11.9.3 | PENDING | MEDIUM | TASK-009,TASK-010,TASK-011,TASK-012 | [→](docs/tasks/task_013.md) |
 
 ---
 
