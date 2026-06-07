@@ -1,4 +1,7 @@
 # AGENTS.md — Content Creation Automation Platform
+Skill location: .agents/skills/<name>/SKILL.md
+Trigger with $<name> in Codex.
+
 ## Master Agent Instructions
 
 Read this file completely before taking any action.
@@ -30,177 +33,25 @@ Current-state documents:
 
 ---
 
-## 2. Operating Modes
+## 2. BEFORE YOU DO ANYTHING
 
-Agents must first determine which mode they are operating in.
-
-### 2.1 Normal task-execution mode
-
-This mode applies when running:
-
-- `$run-next-task`
-- a task from `WORK_QUEUE.md`
-- a specific `docs/tasks/task_NNN.md` task
-- any implementation, validation, or queue-update task
-
-Requirements:
-
-- Branch must be `main`.
-- Worktree must be clean before starting.
-- Task scope must come from the task card.
-- All commits must use GitHub MCP.
-- Do not use local `git add`, `git commit`, or `git push`.
-
-### 2.2 Review / repair / preservation mode
-
-This mode applies when the user is reviewing a stash, worktree, migration branch, or repair branch.
-
-Examples:
-
-- `review/stashed-work`
-- `repair/*`
-- `audit/*`
-- temporary worktrees created with `git worktree`
-
-Allowed:
-
-- Inspect files.
-- Edit governance/docs/config files explicitly requested by the user.
-- Clean scratch files.
-- Prepare a reviewed set of files for later preservation.
-
-Not allowed:
-
-- Do not run `$run-next-task`.
-- Do not update `WORK_QUEUE.md` as if a normal task completed.
-- Do not mark task cards DONE unless explicitly instructed.
-- Do not assume the review branch is suitable for normal task execution.
-- Do not commit locally.
-
-If preserving reviewed work, use GitHub MCP only, or report the exact files ready for MCP push.
-
----
-
-## 3. Session Setup and Preflight
-
-Run preflight in this order.
-
-### 3.1 Set environment
-
-Run at the start of every session:
-
-```bash
-export UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/uv-cache}"
+export UV_CACHE_DIR=/tmp/uv-cache
 mkdir -p "$UV_CACHE_DIR"
-```
 
-### 3.2 Confirm branch
+Classify the task from its Scope section before doing anything else:
+  Type A — any .py file in scope → run pytest baseline after setup
+  Type B — only .md/.yaml/.yml/.gitignore/.txt/.json/.toml → skip pytest entirely
 
-```bash
-git branch --show-current
-```
+Type A baseline:
+  uv run python -m pytest --tb=no -q 2>&1 | tail -3
+  Must show ≥ 950 passed.
+  16 failures in test_notification_streaming.py are pre-existing — not a blocker.
 
-For normal task-execution mode, required branch:
+Branch check (all tasks):
+  git branch --show-current → must be "main"
 
-```text
-main
-```
-
-If running normal task execution and the branch is not `main`, stop and report.
-
-For review / repair / preservation mode, non-main branches are allowed when explicitly created for review, such as:
-
-```text
-review/stashed-work
-```
-
-In that case, do not run `$run-next-task`.
-
-### 3.3 Confirm worktree state
-
-```bash
-git status --short
-```
-
-For normal task-execution mode, required output is no output.
-
-If the worktree is dirty during normal task execution, stop and report. Do not stash, restore, clean, commit, or discard files unless the user explicitly instructs you to do so.
-
-For review / repair / preservation mode, a dirty worktree may be expected. In that case, report the dirty files and classify them before making changes.
-
----
-
-## 4. Task Classification
-
-Before running validations or making edits, classify the task.
-
-### 4.1 Type A — source-code task
-
-A task is Type A if any of the following are in scope:
-
-- `.py` source files
-- test files
-- behavior changes
-- models
-- services
-- repositories
-- UI code
-- CLI code
-- workflow engine code
-- infrastructure code
-- database logic
-- migration logic
-
-Type A tasks require baseline tests before implementation.
-
-### 4.2 Type B — docs/config task
-
-A task is Type B if only these file types are in scope:
-
-- `.md`
-- `.yaml`
-- `.yml`
-- `.gitignore`
-- `.txt`
-- `.json`
-- `.toml`
-- task-control files
-- documentation-only files
-- agent skill files
-
-Type B tasks do not require a full baseline test run unless the task card explicitly requires it.
-
----
-
-## 5. Baseline Test Rule
-
-### Type A tasks
-
-Run before implementation:
-
-```bash
-uv run python -m pytest --tb=no -q 2>&1 | tail -3
-```
-
-Record the baseline result.
-
-The final passing count must not decrease compared with the baseline unless the task card explicitly documents an accepted change.
-
-If the test run fails because of filesystem or cache setup, run:
-
-```bash
-mkdir -p /tmp/uv-cache
-```
-
-Then retry once.
-
-If it still fails, stop and report.
-
-### Type B tasks
-
-No baseline test run is required unless the task card explicitly requires it.
-
-Still run every validation command listed in the task card.
+Worktree state: IGNORE. Local files are always dirty because all commits go
+via GitHub MCP. This is expected behaviour, not an error condition.
 
 ---
 
@@ -363,81 +214,20 @@ Do not mark queue tasks DONE from a review branch unless the user explicitly ins
 
 ---
 
-## 9. Commit Method — GitHub MCP Only
+## COMMIT METHOD — GitHub MCP only
 
-Use `mcp__github.push_files` for all commits.
+All commits use mcp__github.push_files. Never use git add, git commit, or git push.
+Local .git is read-only in the Codex sandbox — bash git will always fail.
 
-Standard parameters:
+One task = one commit. Include task scope files + WORK_QUEUE.md + task card in one push.
+Commit message comes from the task card exactly — do not paraphrase.
 
-```text
-owner:   "00-Aryan"
-repo:    "Content-Creation-Automation"
-branch:  "main"
-message: <exact task card commit message>
-files:   [only files in task scope]
-```
-
-Task implementation push:
-
-```text
-message: <exact task card commit message>
-files:   [only implementation files declared in the task scope]
-```
-
-Task status push:
-
-```text
-message: "chore(queue): mark TASK-NNN done"
-files:   ["WORK_QUEUE.md", "docs/tasks/task_NNN.md"]
-```
-
-For preservation or repair pushes without a task card, use a clear hotfix/governance message, for example:
-
-```text
-docs(agents): align agent workflow governance with MCP commits
-test(notification): skip socket streaming tests when local sockets unavailable
-docs(security): update phase 11.9.2 security audit report
-```
-
-Do not include unrelated files in any push.
-
-If a required deletion cannot be represented through the available MCP operation, stop and report that deletion support is unavailable. Do not silently leave remote state inconsistent.
-
----
-
-## 10. Commit Message Format
-
-Use the exact commit message from the task card.
-
-Default format:
-
-```text
-type(scope): description (TASK-NNN)
-```
-
-Allowed types:
-
-```text
-feat
-fix
-docs
-refactor
-test
-chore
-security
-```
-
-Examples:
-
-```text
-docs(security): add .env.example template (TASK-001)
-fix(gitignore): add database ignore rules (TASK-002)
-feat(ci): add GitHub Actions secret scan workflow (TASK-004)
-test(notification): skip socket streaming tests when local sockets unavailable
-docs(agents): align agent workflow governance with MCP commits
-```
-
-Never create a task-related commit without a task reference unless the user explicitly approves a hotfix or governance repair.
+mcp__github.push_files:
+  owner:   "00-Aryan"
+  repo:    "Content-Creation-Automation"
+  branch:  "main"
+  message: <exact task card commit message>
+  files:   [task scope files + WORK_QUEUE.md + task card]
 
 ---
 
@@ -532,7 +322,7 @@ export UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/uv-cache}"
 mkdir -p "$UV_CACHE_DIR"
 ```
 
-Full test suite — Type A tasks only unless the task card says otherwise:
+Full test suite — Type A source tasks only unless the task card says otherwise:
 
 ```bash
 uv run python -m pytest --tb=short -q 2>&1 | tail -5
