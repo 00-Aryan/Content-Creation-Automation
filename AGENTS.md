@@ -1,8 +1,8 @@
 # AGENTS.md — Content Creation Automation Platform
+## Master Agent Instructions
+
 Skill location: .agents/skills/<name>/SKILL.md
 Trigger with $<name> in Codex.
-
-## Master Agent Instructions
 
 Read this file completely before taking any action.
 
@@ -52,6 +52,129 @@ Branch check (all tasks):
 
 Worktree state: IGNORE. Local files are always dirty because all commits go
 via GitHub MCP. This is expected behaviour, not an error condition.
+
+---
+
+## 3. Session Setup and Preflight
+
+Run preflight in this order.
+
+### 3.1 Set environment
+
+Run at the start of every session:
+
+```bash
+export UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/uv-cache}"
+mkdir -p "$UV_CACHE_DIR"
+```
+
+### 3.2 Confirm branch
+
+```bash
+git branch --show-current
+```
+
+For normal task-execution mode, required branch:
+
+```text
+main
+```
+
+If running normal task execution and the branch is not `main`, stop and report.
+
+For review / repair / preservation mode, non-main branches are allowed when explicitly created for review, such as:
+
+```text
+review/stashed-work
+```
+
+In that case, do not run `$run-next-task`.
+
+### 3.3 Confirm worktree state
+
+```bash
+git status --short
+```
+
+For normal task-execution mode, required output is no output.
+
+If the worktree is dirty during normal task execution, stop and report. Do not stash, restore, clean, commit, or discard files unless the user explicitly instructs you to do so.
+
+For review / repair / preservation mode, a dirty worktree may be expected. In that case, report the dirty files and classify them before making changes.
+
+---
+
+## 4. Task Classification
+
+Before running validations or making edits, classify the task.
+
+### 4.1 Type A — source-code task
+
+A task is Type A if any of the following are in scope:
+
+- `.py` source files
+- test files
+- behavior changes
+- models
+- services
+- repositories
+- UI code
+- CLI code
+- workflow engine code
+- infrastructure code
+- database logic
+- migration logic
+
+Type A tasks require baseline tests before implementation.
+
+### 4.2 Type B — docs/config task
+
+A task is Type B if only these file types are in scope:
+
+- `.md`
+- `.yaml`
+- `.yml`
+- `.gitignore`
+- `.txt`
+- `.json`
+- `.toml`
+- task-control files
+- documentation-only files
+- agent skill files
+
+Type B tasks do not require a full baseline test run unless the task card explicitly requires it.
+
+---
+
+## 5. Baseline Test Rule
+
+### Type A tasks
+
+Run before implementation:
+
+```bash
+uv run python -m pytest --tb=no -q 2>&1 | tail -3
+```
+
+Record the baseline result.
+
+The final passing count must not decrease compared with the baseline unless the task card explicitly documents an accepted change.
+
+If the test run fails because of filesystem or cache setup, run:
+
+```bash
+mkdir -p /tmp/uv-cache
+```
+
+Then retry once.
+
+If it still fails, stop and report.
+
+### Type B tasks
+
+No baseline test run is required unless the task card explicitly requires it.
+
+Still run every validation command listed in the task card.
 
 ---
 
@@ -231,6 +354,42 @@ mcp__github.push_files:
 
 ---
 
+## 10. Commit Message Format
+
+Use the exact commit message from the task card.
+
+Default format:
+
+```text
+type(scope): description (TASK-NNN)
+```
+
+Allowed types:
+
+```text
+feat
+fix
+docs
+refactor
+test
+chore
+security
+```
+
+Examples:
+
+```text
+docs(security): add .env.example template (TASK-001)
+fix(gitignore): add database ignore rules (TASK-002)
+feat(ci): add GitHub Actions secret scan workflow (TASK-004)
+test(notification): skip socket streaming tests when local sockets unavailable
+docs(agents): align agent workflow governance with MCP commits
+```
+
+Never create a task-related commit without a task reference unless the user explicitly approves a hotfix or governance repair.
+
+---
+
 ## 11. Skill Reference
 
 Available skills:
@@ -322,7 +481,7 @@ export UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/uv-cache}"
 mkdir -p "$UV_CACHE_DIR"
 ```
 
-Full test suite — Type A source tasks only unless the task card says otherwise:
+Full test suite (Type A source tasks only) — unless the task card says otherwise:
 
 ```bash
 uv run python -m pytest --tb=short -q 2>&1 | tail -5
