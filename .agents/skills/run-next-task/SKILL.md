@@ -1,140 +1,79 @@
----
-name: run-next-task
-description: Execute exactly one runnable task from WORK_QUEUE using GitHub MCP-only commits.
----
-
 # SKILL: run-next-task
-## Trigger: $run-next-task
 
-Execute exactly one runnable task from WORK_QUEUE.md.
+## SETUP
+export UV_CACHE_DIR=/tmp/uv-cache
+mkdir -p "$UV_CACHE_DIR"
 
-Use this skill only in normal task-execution mode.
+## STEP 1 — PREFLIGHT
+Run: git branch --show-current
+Must return "main". If not, stop and report.
+That is the ONLY preflight check.
+Ignore worktree state entirely. Local files are always dirty because commits
+go via GitHub MCP — this is expected, not an error.
 
-Do not run this skill from review, repair, stash-review, or preservation branches.
+## STEP 2 — FIND NEXT TASK
+Read WORK_QUEUE.md.
+Find first row where Status=PENDING and all Depends On values are DONE or None.
+If none found: print "Queue empty — no runnable tasks" and stop.
+Open the task card file shown in that row (e.g. docs/tasks/task_002.md).
+If the file does not exist locally, use mcp__github.get_file_contents to read it
+from the remote repo (owner: 00-Aryan, repo: Content-Creation-Automation).
+If it still cannot be found: print "Task card missing: <path>" and stop.
 
----
+## STEP 3 — CLASSIFY TASK TYPE
+Read the task card Scope section.
+Type A: any .py file in Files to modify or Files to create → source code task
+Type B: only .md, .yaml, .yml, .gitignore, .txt, .json, .toml → docs/config task
 
-## Required preflight
+## STEP 4 — BASELINE (Type A only)
+export UV_CACHE_DIR=/tmp/uv-cache
+uv run python -m pytest --tb=no -q 2>&1 | tail -3
+Record passing count. Must be ≥ 950.
+Note: 16 failures in test_notification_streaming.py are pre-existing. Not a blocker.
+If the command fails with a filesystem error (not pytest): retry once with
+UV_CACHE_DIR=/tmp/uv-cache. If still failing, report and stop.
+Type B tasks: skip this step entirely.
 
-1. Set cache:
+## STEP 5 — IMPLEMENT
+Execute implementation steps from the task card exactly as written.
+Write files to local disk (project directory is writable).
+No additions. No improvements. Only what the card specifies.
 
-    export UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/uv-cache}"
-    mkdir -p "$UV_CACHE_DIR"
+## STEP 6 — VALIDATE
+Run every command in the task card Validation section.
+Type A only: re-run pytest and confirm passing count >= baseline from Step 4.
 
-2. Confirm branch:
+## STEP 7 — SINGLE COMMIT via GitHub MCP
+Collect all changed files:
+- All files listed in the task card scope (read their current content from disk)
+- WORK_QUEUE.md (update the task row: PENDING → DONE)
+- docs/tasks/task_NNN.md (update Status: DONE, Completed: <today YYYY-MM-DD>)
 
-    git branch --show-current
+Push ALL of them in ONE mcp__github.push_files call:
+  owner: "00-Aryan"
+  repo: "Content-Creation-Automation"
+  branch: "main"
+  message: <exact commit message from task card — do not change it>
+  files: [all files above]
 
-Required branch: main.
+One task = one commit. No separate status push.
+If push fails: report the exact error. Mark task BLOCKED in local WORK_QUEUE.md. Stop.
 
-3. Confirm clean worktree:
+## STEP 8 — REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+$run-next-task COMPLETE
+Task:     TASK-NNN — <title>
+Type:     A (source) | B (docs/config)
+Status:   DONE | BLOCKED
+Commit:   <commit message> — <SHA if available>
+Files:    <list of everything in the push>
+Tests:    <before → after> (Type A only)
+Next:     TASK-NNN — run $run-next-task again
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    git status --short
-
-Required output: no output.
-
-If branch is not main or worktree is dirty, stop and report. Do not clean, stash, restore, or commit locally.
-
----
-
-## Find task
-
-Open WORK_QUEUE.md.
-
-Find the first task where:
-
-- Status is PENDING
-- dependencies are DONE
-
-Open the referenced docs/tasks/task_NNN.md task card.
-
-If no runnable task exists, report "No runnable tasks" and stop.
-
----
-
-## Classify task
-
-Type A:
-
-- any Python source file
-- any test file
-- any behavior-changing code
-
-Type B:
-
-- docs/config/task-control files only
-
-Type A requires baseline tests before edits:
-
-    uv run python -m pytest --tb=no -q 2>&1 | tail -3
-
-Type B skips baseline unless task card requires it.
-
----
-
-## Scope rule
-
-Touch only files listed in the task card.
-
-Frozen scopes require explicit task-card approval:
-
-- src/content_creation/models/
-- src/content_creation/generation/
-- prompts/
-- docs/schema.md
-
----
-
-## Validate
-
-Run every validation command in the task card.
-
-Always run:
-
-    git diff --check
-
-For Type A, confirm final test count does not decrease from baseline.
-
-Do not expose environment variable values.
-
----
-
-## Commit rule
-
-Agents must not create local commits or push through local Git.
-
-Use GitHub MCP only:
-
-    mcp__github.push_files
-
-Implementation push:
-
-- owner: 00-Aryan
-- repo: Content-Creation-Automation
-- branch: main
-- message: exact task-card commit message
-- files: only task-scope implementation files
-
-Queue/status push:
-
-- message: chore(queue): mark TASK-NNN done
-- files: WORK_QUEUE.md and docs/tasks/task_NNN.md
-
-If GitHub MCP fails, stop and report. Do not fall back to local Git.
-
----
-
-## Report
-
-Report:
-
-- task id and title
-- Type A or Type B
-- status DONE or BLOCKED
-- files changed
-- validations run
-- baseline/final tests if Type A
-- GitHub MCP commit messages
-- next step
-
-Do not auto-start another task.
+## RULES
+Never use git add, git commit, or git push.
+Never push files outside the declared task scope (except WORK_QUEUE.md and the task card).
+Never auto-start the next task.
+Never push .venv/, data/, logs/, __pycache__/, or node_modules/.
+If mcp__github.get_file_contents is needed to read a remote file, that is allowed.
