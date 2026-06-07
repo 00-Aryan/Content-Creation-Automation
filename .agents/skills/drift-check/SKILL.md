@@ -1,8 +1,3 @@
----
-name: drift-check
-description: Run a weekly project health check for architecture drift, backlog drift, queue drift, documentation drift, and project-control consistency.
----
-
 # SKILL: drift-check
 ## Trigger: `$drift-check`
 
@@ -76,8 +71,7 @@ Read `WORK_QUEUE.md` — review all tasks marked DONE.
 
 **Check A — Test count**
 ```bash
-export UV_CACHE_DIR="${UV_CACHE_DIR:-/tmp/uv-cache}"
-uv run python -m pytest --tb=short -q
+uv run python -m pytest --tb=short -q 2>&1 | tail -3
 ```
 Compare to the baseline in `TASK_SPEC.md`. Flag if lower.
 

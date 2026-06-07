@@ -9,32 +9,26 @@ description: Review architecture, module boundaries, coupling, dependency flow, 
 architecture-review
 
 ## Description
-Performs architectural consolidation audits or targeted architectural reviews to detect boundary violations, code duplication, and alignment with engineering guidelines.
+Reviews code for architecture concerns, boundary violations, and maintainability.
 
 ## Goal
-Identify drift from architectural boundaries, boundary violations (e.g. UI layer accessing db directly), code duplication (e.g. repeated SQLite repository connection logic), update the scorecard, and populate the backlog with recommendations.
+Identify coupling, cross-layer leaks, and missing abstractions without modifying code.
 
 ## Procedure
-1. **Load Guidelines**: Read the architectural boundaries in `AGENTS.md` and standard project documents under `docs/project/`.
-2. **Inspection**:
-   - Trace the component boundaries (e.g. UI layer, workflow engine, repository layer).
-   - Scan for violations of the strict constraints (e.g., subscribers mutating state, stream handlers containing db transactions, direct SQL queries outside repo).
-   - Check file sizes and complexity of major modules (e.g., `WorkflowActionExecutor`).
-3. **Scorecard Assessment**:
-   - Assess components against the scorecard categories.
-   - Update `docs/project/ARCHITECTURE_HEALTH.md` with updated ratings and rationales.
-4. **Log Backlog & Tech Debt**:
-   - Convert findings into structured issues (Critical, High, Medium, Low).
-   - Append findings to `docs/project/BACKLOG.md` and/or `docs/project/TECH_DEBT.md`.
-5. **Reporting**: Produce the final architecture audit report.
+1. Inspect the target module and nearby dependencies.
+2. Check whether the UI layer calls storage or repository code directly.
+3. Check whether business logic is isolated from infrastructure.
+4. Check for tight coupling, duplicated logic, and untyped APIs.
+5. Report findings with severity and concrete evidence.
 
 ## Constraints
-- **Zero Code Mutations**: Do not change any application behavior or write code changes. This is a read-only audit skill.
-- **Objectivity**: Rate components strictly according to architectural standards and validation checks.
+- **Read-only**: Do not edit files.
+- **Scoped**: Stay within the files explicitly under review.
+- **No hallucinations**: Base findings on code in the repository.
 
 ## Output Format
-Create a structured markdown audit report containing:
-- **Scope Reviewed**: Target modules and source files analyzed.
-- **Findings Table**: List of issues classified by Severity (Critical/High/Medium/Low), location, and description.
-- **Updated Scorecard**: Current state of the scorecard ratings.
-- **Logged Actions**: Reference to newly added backlog and tech debt IDs.
+A review report with:
+- **Scope**
+- **Findings**
+- **Architectural Risks**
+- **Recommended Actions**

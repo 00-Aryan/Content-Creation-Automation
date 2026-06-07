@@ -9,31 +9,26 @@ description: Create, update, classify, and prioritize backlog items with severit
 backlog-manager
 
 ## Description
-Converts audit findings, architectural reviews, or code debt reports into structured, actionable backlog and tech debt items.
+Maintains and organizes backlog issues and remediation items.
 
 ## Goal
-Extract unresolved issues, assign correct severity, deduplicate with existing backlog entries, suggest the most appropriate implementation phase, and update the backlog and tech debt files.
+Keep backlog entries scoped, prioritized, and tied to an explicit phase or task.
 
 ## Procedure
-1. **Source Parsing**:
-   - Read the incoming audit reports, issue logs, or code review findings.
-   - Scan `docs/project/BACKLOG.md` and `docs/project/TECH_DEBT.md` to prevent duplication.
-2. **Evaluation**:
-   - Classify issues based on severity (Critical, High, Medium, Low).
-   - Trace the source phase where the issue originated.
-   - Identify which future phase is recommended to resolve the issue.
-3. **Tracking Update**:
-   - Insert new structured entries into `docs/project/BACKLOG.md` using the standard tabular format (ID, Title, Severity, Source Phase, Status, Recommended Phase).
-   - If an item is classified as technical debt (e.g. repeated code, poor test coverage, large file sizes), update `docs/project/TECH_DEBT.md`.
-4. **Halt**: Report back the list of newly structured backlog items.
+1. Read the backlog source document or task card.
+2. Classify each item by severity and phase.
+3. Ensure acceptance criteria are concrete.
+4. Avoid duplicating existing backlog items.
+5. Report the organized backlog state.
 
 ## Constraints
-- **Structured Schema**: Follow the exact markdown table format and structure in the backlog tracking files.
-- **No Direct App Edits**: Do not modify application code or behavior.
+- **Documentation only**.
+- **No source-code edits** unless explicitly instructed.
+- **No status changes** outside the requested scope.
 
 ## Output Format
-A summary of the backlog operations:
-- **Analyzed Source**: The audits or logs examined.
-- **Newly Added Items**: Structured table showing IDs and titles.
-- **Deduplicated Items**: List of issues matched to existing backlog items.
-- **Updated Tracking Files**: List of modified tracking documents.
+- **Item ID**
+- **Severity**
+- **Phase Target**
+- **Status**
+- **Acceptance Criteria**
