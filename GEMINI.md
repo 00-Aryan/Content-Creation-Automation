@@ -19,3 +19,9 @@
 - Use surgical `replace` calls; avoid overwriting large files unless creating them.
 - Ensure all implementation is traceable back to the requirements in `content-factory-implementation-plan.md`.
 - Focus on Week 1 tasks: collectors, normalization, and CLI stubs.
+
+## Security Constraints
+- Never print, echo, log, or include any environment variable value in output
+- Never run `printenv`, `env`, `echo $VARIABLE`, or equivalent commands
+- Never include API keys or tokens in commit messages, branch names, or files
+- If you encounter a credential in any file, stop and report its location without printing the value
