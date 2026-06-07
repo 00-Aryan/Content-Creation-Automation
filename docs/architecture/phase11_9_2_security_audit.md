@@ -176,7 +176,7 @@ The following files could not be scanned and **must be inspected locally**:
 git grep -E "(GEMINI_API_KEY|AIza[0-9A-Za-z\-_]{35}|sk-[a-zA-Z0-9]{20,}|Bearer [a-zA-Z0-9\-_\.]+)" --all
 
 # Check entire git history (including deleted files)
-git log --all --full-diff -p | grep -E "(AIza|sk-[a-zA-Z0-9]{30,}|api[_-]?key\s*=\s*['\"])" | head -50
+git log --all --full-diff -p | grep -E "(AIza|sk-[a-zA-Z0-9]{30,}|api[_-]?key\s*=\s*['\"] )" | head -50
 
 # Check for .env in history
 git log --all --full-diff -- "*.env" "**/.env"
