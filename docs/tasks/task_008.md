@@ -1,10 +1,10 @@
 # TASK-008: Add `.pre-commit-config.yaml` with detect-secrets
 
 **Phase:** 11.9.3
-**Status:** PENDING
+**Status:** DONE
 **Priority:** MEDIUM
 **Created:** 2026-06-06
-**Completed:** —
+**Completed:** 2026-06-07
 **Requires approval:** NO
 
 ## Objective
