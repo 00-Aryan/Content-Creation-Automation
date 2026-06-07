@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+      - run: uv python install 3.12
+      - run: uv sync --frozen
+      - run: |
+          export UV_CACHE_DIR=/tmp/uv-cache
+          uv run python -m pytest --tb=short -q
+        env:
+          GEMINI_API_KEY: ""
