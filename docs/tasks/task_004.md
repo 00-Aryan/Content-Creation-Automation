@@ -1,10 +1,10 @@
 # TASK-004: Create `SECURITY.md` responsible disclosure policy
 
 **Phase:** 11.9.3
-**Status:** PENDING
+**Status:** DONE
 **Priority:** LOW
 **Created:** 2026-06-06
-**Completed:** —
+**Completed:** 2026-06-07
 **Requires approval:** NO
 
 ## Objective
@@ -49,7 +49,7 @@ grep -q "Report a vulnerability" SECURITY.md && echo "PASS" || echo "FAIL"
 ```
 
 ## Success Criteria
-- [ ] `SECURITY.md` exists with private reporting instructions
+- [x] `SECURITY.md` exists with private reporting instructions
 
 ## Depends On
 None

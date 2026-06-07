@@ -1,7 +1,7 @@
 # WORK_QUEUE.md — Content Creation Automation Platform
 
 **Current Phase:** 11.9.3 — Security Remediation & CI/CD
-**Last updated:** 2026-06-05
+**Last updated:** 2026-06-07
 **Baseline test count:** 950 passed (16 known failing in test_notification_streaming.py — pre-existing, non-blocking)
 
 ---
@@ -24,7 +24,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-001 | Create `.env.example` with required env vars | DONE | HIGH | None | [→](docs/tasks/task_001.md) |
 | TASK-002 | Extend `.gitignore` for Phase 11+ databases | DONE | HIGH | None | [→](docs/tasks/task_002.md) |
 | TASK-003 | Add secret logging filter to `utils/logger.py` | BLOCKED | MEDIUM | None | [→](docs/tasks/task_003.md) |
-| TASK-004 | Add `SECURITY.md` disclosure policy | PENDING | LOW | None | [→](docs/tasks/task_004.md) |
+| TASK-004 | Add `SECURITY.md` disclosure policy | DONE | LOW | None | [→](docs/tasks/task_004.md) |
 | TASK-005 | Update `GEMINI.md` with security constraints | PENDING | LOW | None | [→](docs/tasks/task_005.md) |
 | TASK-006 | Add GitHub Actions CI workflow (tests on push) | PENDING | HIGH | None | [→](docs/tasks/task_006.md) |
 | TASK-007 | Add Gitleaks secret scan to CI workflow | PENDING | HIGH | TASK-006 | [→](docs/tasks/task_007.md) |
@@ -36,14 +36,14 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 
 | ID | Title | Completed | Commit |
 |---|---|---|---|
-| — | — | — | — |
+| TASK-004 | Add `SECURITY.md` disclosure policy | 2026-06-07 | docs(security): add SECURITY.md responsible disclosure policy (TASK-004) |
 
 ---
 
 ## Blocked
 
 | ID | Title | Blocked Since | Reason |
-|---|---|---|---|
+|---|---|---|
 | TASK-003 | Add secret logging filter to `utils/logger.py` | 2026-06-07 | Scope mismatch: task card targets `src/content_creation/utils/logger.py`, but repository contains `src/content_creation/utils/logging.py`; card says no files to create and all other `.py` files are out of scope. |
 
 ---
