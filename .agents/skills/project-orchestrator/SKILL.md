@@ -1,31 +1,22 @@
----
-name: project-orchestrator
-description: Coordinate project state, roadmap, current phase, next actions, backlog, and cross-document consistency.
----
+# SKILL: project-orchestrator
+## Trigger: $project-orchestrator
 
-# Skill: Project Orchestrator
+## PURPOSE
+Quick project health check. Reads control docs, reports alignment.
+Calls drift-check for the detailed analysis.
 
-## Name
-project-orchestrator
+## STEPS
+1. Read WORK_QUEUE.md — count DONE, PENDING, BLOCKED tasks
+2. Read TASK_SPEC.md — confirm stated milestone matches queue state
+3. Read docs/backlog/issues.md — count open CRITICAL and HIGH issues
+4. Run $drift-check for detailed integrity analysis
 
-## Description
-Keeps the project’s control documents synchronized.
-
-## Goal
-Maintain consistency between the queue, task specs, backlog, and phase docs.
-
-## Procedure
-1. Read the authoritative project-control documents.
-2. Compare task state, backlog state, and phase state.
-3. Detect contradictions, missing links, and stale references.
-4. Report corrective actions only when explicitly asked.
-
-## Constraints
-- **No implementation work**.
-- **No silent queue changes**.
-- **No unapproved document rewrites**.
-
-## Output Format
-- **Control-Doc Alignment**
-- **Drift**
-- **Recommended Corrections**
+## REPORT FORMAT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PROJECT HEALTH
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Queue:    X DONE / Y PENDING / Z BLOCKED
+Phase:    <current phase from WORK_QUEUE>
+Issues:   X CRITICAL / Y HIGH open
+Drift:    <result from drift-check>
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

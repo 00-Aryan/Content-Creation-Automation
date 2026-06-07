@@ -1,34 +1,35 @@
----
-name: architecture-review
-description: Review architecture, module boundaries, coupling, dependency flow, and maintainability risks.
----
+# SKILL: code-review (merged from architecture-review + code-review)
+## Triggers: $code-review <file-or-module-path>
 
-# Skill: Architecture Review
+## PURPOSE
+Review a file or module for correctness, architecture boundaries, security,
+and code quality. Read-only — produces a report, modifies nothing.
 
-## Name
-architecture-review
+## STEP 1 — SETUP
+export UV_CACHE_DIR=/tmp/uv-cache
 
-## Description
-Reviews code for architecture concerns, boundary violations, and maintainability.
+## STEP 2 — READ THE TARGET
+Read the file or module path provided.
+Also read AGENTS.md for frozen scope and architectural rules.
+Also read CLAUDE.md for coding standards.
 
-## Goal
-Identify coupling, cross-layer leaks, and missing abstractions without modifying code.
+## STEP 3 — REVIEW CHECKLIST
+For each file reviewed, check:
+□ Does it respect the execution path (WorkflowActionExecutor → ActionAvailabilityEngine → ...)?
+□ Are there any direct repository/service calls from the UI layer?
+□ Are Pydantic models modified without corresponding test updates?
+□ Type hints present on all public methods?
+□ No environment variable values hardcoded?
+□ No API keys or credentials in any string literal?
+□ Are exceptions logged safely (no credential leak risk)?
+□ SOLID principles — is the class doing one thing?
+□ Test exists for this module?
 
-## Procedure
-1. Inspect the target module and nearby dependencies.
-2. Check whether the UI layer calls storage or repository code directly.
-3. Check whether business logic is isolated from infrastructure.
-4. Check for tight coupling, duplicated logic, and untyped APIs.
-5. Report findings with severity and concrete evidence.
+## STEP 4 — REPORT
+Produce a review with:
+- FINDINGS: list of issues (CRITICAL/HIGH/MEDIUM/LOW) with file:line reference
+- CLEAN: list of checks that passed
+- RECOMMENDATION: one sentence — approve, approve with notes, or request changes
 
-## Constraints
-- **Read-only**: Do not edit files.
-- **Scoped**: Stay within the files explicitly under review.
-- **No hallucinations**: Base findings on code in the repository.
-
-## Output Format
-A review report with:
-- **Scope**
-- **Findings**
-- **Architectural Risks**
-- **Recommended Actions**
+## WHAT NOT TO DO
+Never modify any file. Never suggest changes outside the reviewed module.
