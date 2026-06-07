@@ -1,10 +1,10 @@
 # TASK-005: Add security constraints section to `GEMINI.md`
 
 **Phase:** 11.9.3
-**Status:** PENDING
+**Status:** DONE
 **Priority:** LOW
 **Created:** 2026-06-06
-**Completed:** —
+**Completed:** 2026-06-07
 **Requires approval:** NO
 
 ## Objective

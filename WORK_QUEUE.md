@@ -25,7 +25,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-002 | Extend `.gitignore` for Phase 11+ databases | DONE | HIGH | None | [→](docs/tasks/task_002.md) |
 | TASK-003 | Add secret logging filter to `utils/logger.py` | BLOCKED | MEDIUM | None | [→](docs/tasks/task_003.md) |
 | TASK-004 | Add `SECURITY.md` disclosure policy | DONE | LOW | None | [→](docs/tasks/task_004.md) |
-| TASK-005 | Update `GEMINI.md` with security constraints | PENDING | LOW | None | [→](docs/tasks/task_005.md) |
+| TASK-005 | Update `GEMINI.md` with security constraints | DONE | LOW | None | [→](docs/tasks/task_005.md) |
 | TASK-006 | Add GitHub Actions CI workflow (tests on push) | PENDING | HIGH | None | [→](docs/tasks/task_006.md) |
 | TASK-007 | Add Gitleaks secret scan to CI workflow | PENDING | HIGH | TASK-006 | [→](docs/tasks/task_007.md) |
 | TASK-008 | Add `.pre-commit-config.yaml` with detect-secrets | PENDING | MEDIUM | None | [→](docs/tasks/task_008.md) |
@@ -37,6 +37,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | ID | Title | Completed | Commit |
 |---|---|---|---|
 | TASK-004 | Add `SECURITY.md` disclosure policy | 2026-06-07 | docs(security): add SECURITY.md responsible disclosure policy (TASK-004) |
+| TASK-005 | Update `GEMINI.md` with security constraints | 2026-06-07 | docs(security): add security constraints to GEMINI.md (TASK-005) |
 
 ---
 
