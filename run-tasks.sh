@@ -159,7 +159,11 @@ run_one() {
 
   # ── EXECUTE VIA AGY (Antigravity CLI) ─────────────────────────────────
 
-  agy --print --dangerously-skip-permissions "$(cat <<PROMPT
+echo "===== CARD ====="
+cat "$card"
+echo "================"
+
+agy --print --dangerously-skip-permissions "$(cat <<PROMPT
 ...
 Execute this task card exactly as written. Do not skip any step.
 )"
