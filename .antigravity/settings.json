@@ -1,6 +1,0 @@
-{
-  "toolPermission": "always-proceed",
-  "model": "gemini-3.5-flash",
-  "contextFiles": ["AGENTS.md", "CLAUDE.md"],
-  "projectName": "content-creation-automation"
-}

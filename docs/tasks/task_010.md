@@ -1,10 +1,10 @@
 # TASK-010: Add `Makefile` with common development commands
 
 **Phase:** 11.9.4
-**Status:** PENDING
+**Status:** DONE
 **Priority:** HIGH
 **Created:** 2026-06-07
-**Completed:** —
+**Completed:** 2026-06-10
 **Requires approval:** NO
 
 ---
