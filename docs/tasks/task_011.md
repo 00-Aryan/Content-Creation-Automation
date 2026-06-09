@@ -1,7 +1,7 @@
 # TASK-011: Add missing return type hints to CLI entry point functions
 
 **Phase:** 11.9.4
-**Status:** DONE
+**Status:** PENDING
 **Priority:** MEDIUM
 **Created:** 2026-06-07
 **Completed:** 2026-06-08
