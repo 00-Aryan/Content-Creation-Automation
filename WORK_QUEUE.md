@@ -1,7 +1,7 @@
 # WORK_QUEUE.md — Content Creation Automation Platform
 
-**Current Phase:** 11.9.3 — Security Remediation & CI/CD
-**Last updated:** 2026-06-07
+**Current Phase:** 11.9.5 — Reliability: Fix SSE Test Failures
+**Last updated:** 2026-06-10
 **Baseline test count:** 950 passed (16 known pre-existing failures in test_notification_streaming.py — non-blocking)
 
 ---
@@ -33,7 +33,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-010 | Add Makefile with dev commands | DONE    | HIGH | TASK-009 | [→](docs/tasks/task_010.md) |
 | TASK-011 | Add return type hints to cli.py | DONE    | MEDIUM | None | [→](docs/tasks/task_011.md) |
 | TASK-012 | Create docs/project-context.md | DONE       | HIGH | None | [→](docs/tasks/task_012.md) |
-| TASK-013 | Run drift-check post Phase 11.9.3 | PENDING | MEDIUM | TASK-009,TASK-010,TASK-011,TASK-012 | [→](docs/tasks/task_013.md) |
+| TASK-013 | Run drift-check post Phase 11.9.3 | DONE | MEDIUM | TASK-009,TASK-010,TASK-011,TASK-012 | [→](docs/tasks/task_013.md) |
 
 ---
 
@@ -47,6 +47,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-007 | Add Gitleaks secret scan to CI workflow | 2026-06-07 | security(ci): add Gitleaks secret scanning job to CI workflow (TASK-007) |
 | TASK-008 | Add `.pre-commit-config.yaml` with detect-secrets | 2026-06-07 | security(hooks): add pre-commit config with detect-secrets (TASK-008) |
 | TASK-012 | Create docs/project-context.md | 2026-06-10 | docs(context): create project-context.md as north star for drift-check and planning (TASK-012) |
+| TASK-013 | Run drift-check post Phase 11.9.3 | 2026-06-10 | docs(audit): commit Phase 11.9.4 drift-check findings and advance queue to 11.9.5 (TASK-013) |
 
 ---
 
