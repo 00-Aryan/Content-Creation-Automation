@@ -443,8 +443,10 @@ EXECUTION RULES (non-negotiable):
 5. Follow each Implementation Step in order. Do not skip steps.
 6. Run every command in the Validation section and confirm it passes.
 7. Do NOT run git add, git commit, git push, or any git command.
-8. If a step fails, stop and print: TASK_FAILED: <exact reason>
-9. If all steps succeed, print: TASK_COMPLETE
+8. CRITICAL: You MUST NOT run git add, git commit, git push, or any git command under any circumstances.
+   The run-tasks.sh script exclusively handles all git operations. If you run a git command,
+   the workflow breaks. If a task says to commit, that is handled externally — just make the file changes.
+9. If a step fails, stop and print: TASK_FAILED: <reason>
 PROMPT
 )"
 

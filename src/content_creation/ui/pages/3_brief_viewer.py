@@ -155,31 +155,31 @@ def main() -> None:
                             status=status_map[review_action],
                             notes=review_notes if review_notes else None,
                         )
-                            with st.status("Applying brief review decision...", expanded=True) as status:
+                        with st.status("Applying brief review decision...", expanded=True) as status:
+                            try:
+                                timed = client.apply_brief_decision(selected_topic.id, decision)
+                                res = timed.result
+                                st.write(f"Duration: `{timed.duration_seconds:.2f}s`")
+                                st.write(f"Previous Status: `{res.previous_status.value}`")
+                                st.write(f"New Status: `{res.new_status.value}`")
+                                status.update(label="Brief review decision applied.", state="complete")
+                                st.success("Brief review decision applied successfully.")
+                                from content_creation.ui.components.notification_panel import render_inline_notification
+                                render_inline_notification(
+                                    f"Brief {review_action.lower()} for topic {selected_topic.id[:8]}",
+                                    "success",
+                                )
+                                # Publish SSE event for real-time updates
                                 try:
-                                    timed = client.apply_brief_decision(selected_topic.id, decision)
-                                    res = timed.result
-                                    st.write(f"Duration: `{timed.duration_seconds:.2f}s`")
-                                    st.write(f"Previous Status: `{res.previous_status.value}`")
-                                    st.write(f"New Status: `{res.new_status.value}`")
-                                    status.update(label="Brief review decision applied.", state="complete")
-                                    st.success("Brief review decision applied successfully.")
-                                    from content_creation.ui.components.notification_panel import render_inline_notification
-                                    render_inline_notification(
-                                        f"Brief {review_action.lower()} for topic {selected_topic.id[:8]}",
-                                        "success",
-                                    )
-                                    # Publish SSE event for real-time updates
-                                    try:
-                                        latest_notifications = client.notification_service.list_recent(limit=1)
-                                        if latest_notifications:
-                                            client.publish_notification_event(latest_notifications[0])
-                                    except Exception:
-                                        pass
-                                    st.rerun()
-                                except Exception as e:
-                                    status.update(label="Brief review update failed.", state="error")
-                                    st.error(f"Failed to apply brief review decision: {e}")
+                                    latest_notifications = client.notification_service.list_recent(limit=1)
+                                    if latest_notifications:
+                                        client.publish_notification_event(latest_notifications[0])
+                                except Exception:
+                                    pass
+                                st.rerun()
+                            except Exception as e:
+                                status.update(label="Brief review update failed.", state="error")
+                                st.error(f"Failed to apply brief review decision: {e}")
 
             with col_history:
                 st.markdown("#### Review History")
