@@ -159,23 +159,28 @@ run_one() {
 
   # ── EXECUTE VIA AGY (Antigravity CLI) ─────────────────────────────────
 
-echo "===== CARD ====="
-cat "$card"
-echo "================"
+PROMPT_CONTENT="$(cat <<PROMPT
+Execute this task card exactly as written.
+Do not skip any step.
 
-agy --print --dangerously-skip-permissions "$(cat <<PROMPT
-...
-Execute this task card exactly as written. Do not skip any step.
-)"
 $(cat "$card")
 
-AGENTS.md rules apply. After completing all implementation steps and
-validation commands, stop. Do NOT run git add, git commit, or git push.
+AGENTS.md rules apply.
+
+After completing all implementation steps and validation commands,
+stop.
+
+Do NOT run git add, git commit, or git push.
 The run-tasks.sh script handles all git operations.
 PROMPT
 )"
 
-  local agent_exit=$?
+echo "===== PROMPT ====="
+printf '%s\n' "$PROMPT_CONTENT"
+echo "=================="
+
+agy --print --dangerously-skip-permissions "$PROMPT_CONTENT"
+local agent_exit=$?
 
   # ── GUARD: verify actual work was done (Bug 3 fix) ────────────────────
   local after_hash
