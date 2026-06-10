@@ -1,6 +1,7 @@
 """Content Creation Factory CLI - Main entry point."""
 
 import argparse
+from typing import Optional
 import logging
 import os
 import sys
