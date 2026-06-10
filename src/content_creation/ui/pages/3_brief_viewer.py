@@ -174,8 +174,8 @@ def main() -> None:
                                     latest_notifications = client.notification_service.list_recent(limit=1)
                                     if latest_notifications:
                                         client.publish_notification_event(latest_notifications[0])
-                                except Exception:
-                                    pass
+                                except Exception as e:
+                                    st.warning(f"A background operation failed and was skipped. ({type(e).__name__})")
                                 st.rerun()
                             except Exception as e:
                                 status.update(label="Brief review update failed.", state="error")

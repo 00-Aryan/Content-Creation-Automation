@@ -111,16 +111,16 @@ def _build_snapshot() -> DashboardSnapshot:
                 lock_manager = LockManager(repository=lock_repo)
 
                 queue_engine = QueueEngine(repository=job_repo, lock_manager=lock_manager)
-            except Exception:
-                pass
+            except Exception as e:
+                st.warning(f"Failed to initialize Job Queue. ({type(e).__name__})")
 
             try:
                 from content_creation.events.store.schema import create_event_store_schema
                 event_conn = _open_db("events.db")
                 create_event_store_schema(event_conn)
                 event_repo = SQLiteEventRepository(str(data_dir / "events.db"))
-            except Exception:
-                pass
+            except Exception as e:
+                st.warning(f"Failed to initialize Event Store. ({type(e).__name__})")
 
             try:
                 from content_creation.notifications.schema import create_notification_schema
@@ -128,8 +128,8 @@ def _build_snapshot() -> DashboardSnapshot:
                 create_notification_schema(notif_conn)
                 notif_repo = SQLiteNotificationRepository(notif_conn)
                 notification_svc = NotificationService(repository=notif_repo)
-            except Exception:
-                pass
+            except Exception as e:
+                st.warning(f"Failed to initialize Notification Service. ({type(e).__name__})")
 
             try:
                 from content_creation.metrics.schema import create_metrics_schema
@@ -138,8 +138,8 @@ def _build_snapshot() -> DashboardSnapshot:
                 metrics_repo = SQLiteMetricRepository(str(data_dir / "metrics.db"))
                 kpi_catalog = KPICatalog(repository=metrics_repo)
                 telemetry_svc = TelemetryService(metrics_repository=metrics_repo, event_repository=event_repo)
-            except Exception:
-                pass
+            except Exception as e:
+                st.warning(f"Failed to initialize Metrics Repository. ({type(e).__name__})")
 
             try:
                 from content_creation.audit.schema import create_audit_schema
@@ -147,14 +147,14 @@ def _build_snapshot() -> DashboardSnapshot:
                 create_audit_schema(audit_conn)
                 audit_repo = SQLiteAuditRepository(str(data_dir / "audit.db"))
                 compliance_svc = ComplianceReportService(repository=audit_repo)
-            except Exception:
-                pass
+            except Exception as e:
+                st.warning(f"Failed to initialize Audit Repository. ({type(e).__name__})")
 
             try:
                 from content_creation.notifications.streaming.connection_manager import ConnectionManager
                 connection_mgr = ConnectionManager()
-            except Exception:
-                pass
+            except Exception as e:
+                st.warning(f"Failed to initialize Connection Manager. ({type(e).__name__})")
 
             service = ObservabilityService(
                 queue_engine=queue_engine,
@@ -175,14 +175,14 @@ def _build_snapshot() -> DashboardSnapshot:
                 if conn is not None:
                     try:
                         conn.close()
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        st.warning(f"Failed to close database connection. ({type(e).__name__})")
             for r in [event_repo, metrics_repo, audit_repo]:
                 if r is not None:
                     try:
                         r.close()
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        st.warning(f"Failed to close repository. ({type(e).__name__})")
 
     except Exception as e:
         from content_creation.platform.observability.health import (

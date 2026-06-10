@@ -1,10 +1,10 @@
 # TASK-016: Replace silent `except Exception: pass` with `st.error()` in UI pages
 
 **Phase:** 12.0
-**Status:** PENDING
+**Status:** DONE
 **Priority:** HIGH
 **Created:** 2026-06-10
-**Completed:** —
+**Completed:** 2026-06-11
 **Requires approval:** NO
 
 ---

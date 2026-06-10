@@ -1,10 +1,10 @@
 # TASK-015: Add `tests/test_ui_syntax.py` to catch page syntax errors in CI
 
 **Phase:** 12.0
-**Status:** PENDING
+**Status:** DONE
 **Priority:** HIGH
 **Created:** 2026-06-10
-**Completed:** —
+**Completed:** 2026-06-11
 **Requires approval:** NO
 
 ---
@@ -116,11 +116,11 @@ uv run python -m pytest --tb=short -q 2>&1 | tail -3
 ---
 
 ## Success Criteria
-- [ ] `tests/test_ui_syntax.py` exists
-- [ ] Running it shows one parametrized test case per page file
-- [ ] All currently-valid pages show PASSED
-- [ ] Full suite count does not drop below 966
-- [ ] No existing test files modified
+- [x] `tests/test_ui_syntax.py` exists
+- [x] Running it shows one parametrized test case per page file
+- [x] All currently-valid pages show PASSED
+- [x] Full suite count does not drop below 966
+- [x] No existing test files modified
 
 ---
 
