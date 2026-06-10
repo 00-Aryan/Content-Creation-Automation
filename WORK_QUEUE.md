@@ -37,7 +37,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-014 | Fix IndentationError 3_brief_viewer.py:158 | DONE    | CRITICAL | None | [→](docs/tasks/task_014.md) |
 | TASK-015 | Add UI syntax test to CI | DONE | HIGH | None | [→](docs/tasks/task_015.md) |
 | TASK-016 | Fix silent except handlers in UI pages | DONE    | HIGH | TASK-014 | [→](docs/tasks/task_016.md) |
-| TASK-017 | Add copy-to-clipboard to asset workshop | PENDING | HIGH | None | [→](docs/tasks/task_017.md) |
+| TASK-017 | Add copy-to-clipboard to asset workshop | DONE    | HIGH | None | [→](docs/tasks/task_017.md) |
 | TASK-018 | Trace and fix E2E pipeline brief failure | PENDING | HIGH | None | [→](docs/tasks/task_018.md) |
 
 ---
@@ -54,6 +54,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-012 | Create docs/project-context.md | 2026-06-10 | docs(context): create project-context.md as north star for drift-check and planning (TASK-012) |
 | TASK-013 | Run drift-check post Phase 11.9.3 | 2026-06-10 | docs(audit): commit Phase 11.9.4 drift-check findings and advance queue to 11.9.5 (TASK-013) |
 | TASK-015 | Add UI syntax test to CI | 2026-06-11 | test(ui): add parametrized syntax test for all Streamlit page files (TASK-015) |
+| TASK-017 | Add copy-to-clipboard to asset workshop | 2026-06-11 | feat(ui): add copy-to-clipboard blocks to all asset types in asset workshop (TASK-017) |
 
 ---
 
