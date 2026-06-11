@@ -45,6 +45,11 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-022 | Align asset generation candidates with storyboard artifacts | DONE | HIGH | TASK-021 | [→](docs/tasks/task_022.md) |
 | TASK-023 | Restore Operations Dashboard job queue schema initialization | DONE | HIGH | TASK-022 | [→](docs/tasks/task_023.md) |
 | TASK-024 | Explain non-approved manifest assets in blocking reasons | DONE | HIGH | TASK-023 | [→](docs/tasks/task_024.md) |
+| TASK-025 | Fix misleading Worker Daemon CRITICAL alert on Operations Dashboard | DONE | HIGH | TASK-024 | [→](docs/tasks/task_025.md) |
+| TASK-026 | Auto-load `.env` at Streamlit app startup | DONE | HIGH | TASK-025 | [→](docs/tasks/task_026.md) |
+| TASK-027 | Restructure navigation to match morning workflow order | PENDING | HIGH | TASK-026 | [→](docs/tasks/task_027.md) |
+| TASK-028 | Update dashboard to show live pipeline artifact counts | PENDING | HIGH | TASK-027 | [→](docs/tasks/task_028.md) |
+| TASK-029 | Show brief content preview before approve/reject decision in Brief Viewer | PENDING | MEDIUM | TASK-028 | [→](docs/tasks/task_029.md) |
 
 ---
 
@@ -66,11 +71,8 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-022 | Align asset generation candidates with storyboard artifacts | 2026-06-11 | fix(pipeline): skip asset generation candidates without storyboards (TASK-022) |
 | TASK-023 | Restore Operations Dashboard job queue schema initialization | 2026-06-11 | fix(ops): restore dashboard job queue schema initialization (TASK-023) |
 | TASK-024 | Explain non-approved manifest assets in blocking reasons | 2026-06-11 | fix(manifest): explain non-approved planner blockers (TASK-024) |
-| TASK-025 | Fix misleading Worker Daemon CRITICAL alert on Operations Dashboard | DONE    | HIGH | TASK-024 | [→](docs/tasks/task_025.md) |
-| TASK-026 | Auto-load `.env` at Streamlit app startup | PENDING | HIGH | TASK-025 | [→](docs/tasks/task_026.md) |
-| TASK-027 | Restructure navigation to match morning workflow order | PENDING | HIGH | TASK-026 | [→](docs/tasks/task_027.md) |
-| TASK-028 | Update dashboard to show live pipeline artifact counts | PENDING | HIGH | TASK-027 | [→](docs/tasks/task_028.md) |
-| TASK-029 | Show brief content preview before approve/reject decision in Brief Viewer | PENDING | MEDIUM | TASK-028 | [→](docs/tasks/task_029.md) |
+| TASK-025 | Fix misleading Worker Daemon CRITICAL alert on Operations Dashboard | 2026-06-11 | fix(ui): show Worker Daemon as informational (not CRITICAL) when no jobs queued (TASK-025) |
+| TASK-026 | Auto-load `.env` at Streamlit app startup | 2026-06-11 | fix(ui): auto-load .env at Streamlit startup so API keys load without manual export (TASK-026) |
 
 ---
 

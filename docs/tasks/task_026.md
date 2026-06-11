@@ -1,10 +1,10 @@
 # TASK-026: Auto-load `.env` at Streamlit app startup
 
 **Phase:** 12.2
-**Status:** PENDING
+**Status:** DONE
 **Priority:** HIGH
 **Created:** 2026-06-11
-**Completed:** —
+**Completed:** 2026-06-11
 **Requires approval:** NO
 
 ---

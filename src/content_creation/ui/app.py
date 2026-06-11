@@ -1,7 +1,12 @@
 """Main Dashboard and entrypoint for the Content Creation Pipeline Streamlit App."""
 
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env file so GEMINI_API_KEY and others are available
+
 import sys
 from pathlib import Path
+
 import streamlit as st
 
 # Ensure the project src directory is in Python path when running streamlit directly
