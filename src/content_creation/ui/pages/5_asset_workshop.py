@@ -17,7 +17,7 @@ from content_creation.application.asset_review_service import AssetDecision
 
 
 def main() -> None:
-    st.set_page_config(page_title="Asset Workshop", page_icon="🛠️", layout="wide")
+    st.set_page_config(page_title="✍️ 5. Content Output", page_icon="🛠️", layout="wide")
     init_session_state()
     client = ServiceClient()
     render_api_health(client.is_generation_available())

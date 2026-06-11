@@ -17,7 +17,7 @@ from content_creation.application.brief_review_service import BriefDecision
 
 
 def main() -> None:
-    st.set_page_config(page_title="Brief Viewer", page_icon="📝", layout="wide")
+    st.set_page_config(page_title="📝 3. Review Briefs", page_icon="📝", layout="wide")
     init_session_state()
     client = ServiceClient()
     render_api_health(client.is_generation_available())

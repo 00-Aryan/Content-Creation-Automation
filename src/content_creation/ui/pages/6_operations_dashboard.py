@@ -470,7 +470,7 @@ def _render_alerts(snapshot: DashboardSnapshot) -> None:
 
 def main() -> None:
     st.set_page_config(
-        page_title="Operations Dashboard",
+        page_title="🔧 System Health",
         page_icon="📊",
         layout="wide",
     )

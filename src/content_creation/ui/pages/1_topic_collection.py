@@ -14,7 +14,7 @@ from content_creation.ui.state.session import init_session_state
 
 
 def main() -> None:
-    st.set_page_config(page_title="Topic Collection", page_icon="📡", layout="wide")
+    st.set_page_config(page_title="📥 1. Collect", page_icon="📡", layout="wide")
     init_session_state()
     client = ServiceClient()
     render_api_health(client.is_generation_available())

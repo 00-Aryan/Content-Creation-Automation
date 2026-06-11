@@ -28,7 +28,7 @@ from content_creation.ui.state.session import init_session_state
 def main() -> None:
     # 1. Setup Streamlit Page layout
     st.set_page_config(
-        page_title="Editorial Content Pipeline Dashboard",
+        page_title="🏠 Dashboard",
         page_icon="🚀",
         layout="wide",
         initial_sidebar_state="expanded"

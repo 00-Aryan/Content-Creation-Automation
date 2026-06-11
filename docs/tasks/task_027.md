@@ -1,10 +1,10 @@
 # TASK-027: Restructure navigation to match morning workflow order
 
 **Phase:** 12.2
-**Status:** PENDING
+**Status:** DONE
 **Priority:** HIGH
 **Created:** 2026-06-11
-**Completed:** —
+**Completed:** 2026-06-11
 **Requires approval:** NO
 
 ---

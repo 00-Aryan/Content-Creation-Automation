@@ -17,7 +17,7 @@ from content_creation.application.storyboard_review_service import StoryboardDec
 
 
 def main() -> None:
-    st.set_page_config(page_title="Content Intelligence & Storyboards", page_icon="🎨", layout="wide")
+    st.set_page_config(page_title="🗂️ 4. Storyboard", page_icon="🎨", layout="wide")
     init_session_state()
     client = ServiceClient()
     render_api_health(client.is_generation_available())
