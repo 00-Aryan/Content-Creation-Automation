@@ -38,7 +38,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-015 | Add UI syntax test to CI | DONE | HIGH | None | [→](docs/tasks/task_015.md) |
 | TASK-016 | Fix silent except handlers in UI pages | DONE    | HIGH | TASK-014 | [→](docs/tasks/task_016.md) |
 | TASK-017 | Add copy-to-clipboard to asset workshop | DONE    | HIGH | None | [→](docs/tasks/task_017.md) |
-| TASK-018 | Trace and fix E2E pipeline brief failure | PENDING | HIGH | None | [→](docs/tasks/task_018.md) |
+| TASK-018 | Trace and fix E2E pipeline brief failure | DONE    | HIGH | None | [→](docs/tasks/task_018.md) |
 
 ---
 
@@ -55,6 +55,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-013 | Run drift-check post Phase 11.9.3 | 2026-06-10 | docs(audit): commit Phase 11.9.4 drift-check findings and advance queue to 11.9.5 (TASK-013) |
 | TASK-015 | Add UI syntax test to CI | 2026-06-11 | test(ui): add parametrized syntax test for all Streamlit page files (TASK-015) |
 | TASK-017 | Add copy-to-clipboard to asset workshop | 2026-06-11 | feat(ui): add copy-to-clipboard blocks to all asset types in asset workshop (TASK-017) |
+| TASK-018 | Trace and fix E2E pipeline brief failure | 2026-06-11 | fix(pipeline): resolve E2E brief generation failure — source topic scoring record lookup (TASK-018) |
 
 ---
 

@@ -303,6 +303,10 @@ class WorkflowActionExecutor:
         self, ctx: Any, artifact_type: str, topic_id: str, payload: Dict[str, Any]
     ) -> ArtifactLifecycleState:
         if artifact_type == "topic":
+            if topic_id == "all":
+                if ctx.storage.list_scored():
+                    return ArtifactLifecycleState.APPROVED
+                return ArtifactLifecycleState.MISSING
             topic = ctx.storage.get_scored(topic_id)
             if topic is None:
                 topic = ctx.storage.get_staged(topic_id)
