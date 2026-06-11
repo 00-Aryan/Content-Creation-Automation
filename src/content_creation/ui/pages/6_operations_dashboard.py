@@ -169,7 +169,90 @@ def _build_snapshot() -> DashboardSnapshot:
                 audit_repository=audit_repo,
                 compliance_service=compliance_svc,
             )
-            return service.snapshot()
+            snapshot = service.snapshot()
+
+            # Adjust Worker Daemon health check status and alerts in the UI layer
+            # if the worker is not running (which is normal for manual operation
+            # when no jobs are queued).
+            w_metrics = snapshot.worker_metrics or {}
+            is_worker_running = w_metrics.get("is_running", False)
+
+            q_metrics = snapshot.queue_metrics or {}
+            queued_jobs = q_metrics.get("queued_count", 0)
+            running_jobs = q_metrics.get("running_count", 0)
+            has_jobs = queued_jobs > 0 or running_jobs > 0
+
+            if not is_worker_running:
+                from content_creation.platform.observability.health import (
+                    SystemComponentHealth,
+                    OperationalAlert,
+                    AlertSeverity,
+                    HealthStatus,
+                )
+                from dataclasses import replace
+
+                new_alerts = []
+                for alert in snapshot.alerts:
+                    if alert.rule_id == "WORKER_OFFLINE":
+                        if not has_jobs:
+                            # Demote to WARNING severity
+                            new_alerts.append(
+                                OperationalAlert(
+                                    rule_id=alert.rule_id,
+                                    severity=AlertSeverity.WARNING,
+                                    component=alert.component,
+                                    title="Worker Daemon: Not running (expected in manual operation mode)",
+                                    message="No active workers are running. This is normal when running manually (no jobs are queued).",
+                                    recommended_action="Start the worker daemon if you intend to run background tasks.",
+                                    metrics=alert.metrics,
+                                    timestamp=alert.timestamp,
+                                )
+                            )
+                        else:
+                            new_alerts.append(alert)
+                    else:
+                        new_alerts.append(alert)
+
+                new_components = []
+                for comp in snapshot.components:
+                    if comp.component == ComponentType.WORKER:
+                        if not has_jobs:
+                            # Show as non-alarming status (HEALTHY)
+                            new_components.append(
+                                SystemComponentHealth(
+                                    component=comp.component,
+                                    name=comp.name,
+                                    status=HealthStatus.HEALTHY,
+                                    message="Not running (expected in manual operation mode)",
+                                    metrics=comp.metrics,
+                                    last_checked=comp.last_checked,
+                                )
+                            )
+                        else:
+                            # Show as UNHEALTHY if jobs are queued
+                            new_components.append(
+                                SystemComponentHealth(
+                                    component=comp.component,
+                                    name=comp.name,
+                                    status=HealthStatus.UNHEALTHY,
+                                    message="No active workers but jobs are queued — pipeline may be stalled",
+                                    metrics=comp.metrics,
+                                    last_checked=comp.last_checked,
+                                )
+                            )
+                    else:
+                        new_components.append(comp)
+
+                overall = ObservabilityService._derive_overall_status(new_components)
+
+                snapshot = replace(
+                    snapshot,
+                    components=new_components,
+                    alerts=new_alerts,
+                    overall_status=overall,
+                )
+
+            return snapshot
         finally:
             for conn in [job_conn, lock_conn, event_conn, notif_conn, metrics_conn, audit_conn]:
                 if conn is not None:
@@ -247,6 +330,18 @@ def _render_worker_monitoring(snapshot: DashboardSnapshot) -> None:
     is_running = w.get("is_running", False)
     cols[0].metric("Status", "Running" if is_running else "Stopped")
     cols[1].metric("Worker ID", w.get("worker_id", "unknown"))
+
+    # Explain worker status when not running
+    if not is_running:
+        q = snapshot.queue_metrics or {}
+        queued = q.get("queued_count", 0)
+        running = q.get("running_count", 0)
+        has_jobs = queued > 0 or running > 0
+
+        if not has_jobs:
+            st.info("ℹ️ Worker Daemon: No active workers (no jobs queued — this is normal for manual operation)")
+        else:
+            st.error("⚠️ Worker Daemon: No active workers but jobs are queued — pipeline may be stalled")
 
 
 def _render_lock_monitoring(snapshot: DashboardSnapshot) -> None:
