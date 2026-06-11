@@ -65,10 +65,11 @@ class AssetGenerationService:
         for brief in briefs:
             storyboard = ctx.storage.get_storyboard(brief.topic_id)
             if storyboard is None:
-                raise ValueError(
-                    f"Required Storyboard artifact is missing for topic {brief.topic_id}. "
-                    "Asset generation cannot proceed without a valid Storyboard."
+                logger.warning(
+                    f"Skipping asset generation for {brief.topic_id} because storyboard artifact is missing."
                 )
+                skipped += 1
+                continue
 
             # 1. Thumbnail Generation (always required)
             thumbnail_file = ctx.storage.thumbnails_dir / f"{brief.topic_id}.json"

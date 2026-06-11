@@ -229,10 +229,10 @@ def test_asset_generation_service_divergence_regeneration(tmp_path, sample_brief
         mock_script.generate.assert_called_once()
 
 
-def test_asset_generation_service_storyboard_missing_failure(tmp_path, sample_brief):
+def test_asset_generation_service_storyboard_missing_skip(tmp_path, sample_brief):
     """VF-002: Storyboard artifact is missing (None) during asset generation.
 
-    Expected: AssetGenerationService raises a ValueError and halts execution.
+    Expected: AssetGenerationService logs a warning and skips generation.
     """
     service = AssetGenerationService()
 
@@ -248,9 +248,10 @@ def test_asset_generation_service_storyboard_missing_failure(tmp_path, sample_br
         prompt_registry=MagicMock(),
     )
 
-    with pytest.raises(ValueError) as exc_info:
-        service.run(
-            ctx, top_n=5, api_key="dummy_key", rate_limit_delay=0.0
-        )
+    result = service.run(
+        ctx, top_n=5, api_key="dummy_key", rate_limit_delay=0.0
+    )
 
-    assert "Required Storyboard artifact is missing" in str(exc_info.value)
+    assert result.skipped_count == 1
+    assert result.failed_count == 0
+    assert result.counts == {"thumbnail": 0, "script": 0, "carousel": 0, "newsletter": 0}

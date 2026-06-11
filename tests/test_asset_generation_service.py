@@ -116,3 +116,134 @@ def test_asset_generation_service_orchestration(tmp_path):
             "carousel",
             artifact_path=str(mock_storage.carousels_dir / "test-id-1.json"),
         )
+
+
+def test_asset_generation_service_batch_skips_missing_storyboards(tmp_path):
+    """Test that missing storyboards skip cleanly and don't halt the rest of the batch."""
+    ctx = ApplicationContext.create(tmp_path)
+
+    # 1. Brief with valid storyboard (will be processed)
+    brief1 = Brief(
+        topic_id="id-1",
+        why_it_matters="Matters",
+        plain_english_summary=["Summary 1", "Summary 2", "Summary 3"],
+        student_takeaway="Takeaway",
+        analogy="Analogy",
+        limitation="Limit",
+        audience_fit="Fit",
+        recommended_formats=["short_video"],
+        source_url="https://example.com/topic-1",
+        review_status="draft",
+        generated_at="2026-06-02T12:00:00Z",
+    )
+
+    # 2. Brief with missing storyboard (will be skipped)
+    brief2 = Brief(
+        topic_id="id-2",
+        why_it_matters="Matters",
+        plain_english_summary=["Summary 1", "Summary 2", "Summary 3"],
+        student_takeaway="Takeaway",
+        analogy="Analogy",
+        limitation="Limit",
+        audience_fit="Fit",
+        recommended_formats=["short_video"],
+        source_url="https://example.com/topic-2",
+        review_status="draft",
+        generated_at="2026-06-02T11:00:00Z",
+    )
+
+    # 3. Brief with valid storyboard but already generated assets (will be skipped as per normal behavior)
+    brief3 = Brief(
+        topic_id="id-3",
+        why_it_matters="Matters",
+        plain_english_summary=["Summary 1", "Summary 2", "Summary 3"],
+        student_takeaway="Takeaway",
+        analogy="Analogy",
+        limitation="Limit",
+        audience_fit="Fit",
+        recommended_formats=["short_video"],
+        source_url="https://example.com/topic-3",
+        review_status="draft",
+        generated_at="2026-06-02T10:00:00Z",
+    )
+
+    service = AssetGenerationService()
+
+    with patch(
+        "content_creation.application.asset_generation_service.ThumbnailGenerator"
+    ) as mock_thumb_cls, patch(
+        "content_creation.application.asset_generation_service.ScriptGenerator"
+    ) as mock_script_cls, patch(
+        "content_creation.application.asset_generation_service.CarouselGenerator"
+    ) as mock_carousel_cls, patch(
+        "content_creation.application.asset_generation_service.NewsletterGenerator"
+    ) as mock_news_cls:
+
+        mock_thumb = MagicMock()
+        mock_thumb_cls.return_value = mock_thumb
+        mock_script = MagicMock()
+        mock_script_cls.return_value = mock_script
+
+        mock_storage = MagicMock()
+        mock_storage.list_briefs.return_value = [brief1, brief2, brief3]
+        mock_storage.thumbnails_dir = tmp_path / "thumbnails"
+        mock_storage.scripts_dir = tmp_path / "scripts"
+
+        mock_storage.thumbnails_dir.mkdir(parents=True, exist_ok=True)
+        mock_storage.scripts_dir.mkdir(parents=True, exist_ok=True)
+
+        # Mock storyboard lookup
+        storyboard1 = MagicMock()
+        storyboard3 = MagicMock()
+
+        def get_storyboard_side_effect(topic_id):
+            if topic_id == "id-1":
+                return storyboard1
+            elif topic_id == "id-2":
+                return None
+            elif topic_id == "id-3":
+                return storyboard3
+            return None
+
+        mock_storage.get_storyboard.side_effect = get_storyboard_side_effect
+
+        mock_workflow = MagicMock()
+
+        # mock workflow stage completion
+        # id-1 is not completed
+        # id-3 is already completed (both thumbnail and script)
+        def stage_completed_side_effect(topic_id, stage):
+            if topic_id == "id-3":
+                return True
+            return False
+
+        mock_workflow.stage_completed.side_effect = stage_completed_side_effect
+
+        # Create dummy existing files for brief3 to skip correctly
+        (mock_storage.thumbnails_dir / "id-3.json").write_text("{}")
+        (mock_storage.scripts_dir / "id-3.json").write_text("{}")
+
+        ctx = MagicMock(
+            storage=mock_storage,
+            workflow=mock_workflow,
+            prompt_registry=MagicMock(),
+        )
+
+        result = service.run(
+            ctx, top_n=5, api_key="dummy_api_key", rate_limit_delay=0.0
+        )
+
+        # Assert skipped and success counts
+        assert result.counts["thumbnail"] == 1
+        assert result.counts["script"] == 1
+
+        # skipped counts details:
+        # id-2: 1 skip (missing storyboard)
+        # id-3: 2 skips (thumbnail + script completed & exists)
+        # Total skipped: 3
+        assert result.skipped_count == 3
+        assert result.failed_count == 0
+
+        # Assert generator called only for id-1, not for id-2 (none) or id-3 (already done)
+        mock_thumb.generate.assert_called_once_with(storyboard1, brief1)
+        mock_script.generate.assert_called_once_with(storyboard1, brief1, "short_video")
