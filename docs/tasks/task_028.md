@@ -1,10 +1,10 @@
 # TASK-028: Update dashboard to show live pipeline artifact counts
 
 **Phase:** 12.2
-**Status:** PENDING
+**Status:** DONE
 **Priority:** HIGH
 **Created:** 2026-06-11
-**Completed:** —
+**Completed:** 2026-06-11
 **Requires approval:** NO
 
 ---
@@ -334,17 +334,17 @@ The displayed values must match local file counts.
 
 ## Success Criteria
 
-* [ ] Dashboard Pipeline Queue Metrics show real counts from local `data/` directories.
-* [ ] Counts are not hardcoded.
-* [ ] `ServiceClient.get_metric_counts()` remains the public metric source used by the dashboard.
-* [ ] The method is fast and does not parse every JSON file into Pydantic models just to count files.
-* [ ] Missing directories return `0` instead of raising.
-* [ ] Invalid JSON files do not break metric count rendering.
-* [ ] No backend/domain/application code is modified.
-* [ ] Syntax checks pass.
-* [ ] Full test suite shows `>= 985 passed`.
-* [ ] `WORK_QUEUE.md` is updated from `PENDING` to `DONE` after implementation.
-* [ ] Worktree is clean after commit.
+* [x] Dashboard Pipeline Queue Metrics show real counts from local `data/` directories.
+* [x] Counts are not hardcoded.
+* [x] `ServiceClient.get_metric_counts()` remains the public metric source used by the dashboard.
+* [x] The method is fast and does not parse every JSON file into Pydantic models just to count files.
+* [x] Missing directories return `0` instead of raising.
+* [x] Invalid JSON files do not break metric count rendering.
+* [x] No backend/domain/application code is modified.
+* [x] Syntax checks pass.
+* [x] Full test suite shows `>= 985 passed`.
+* [x] `WORK_QUEUE.md` is updated from `PENDING` to `DONE` after implementation.
+* [x] Worktree is clean after commit.
 
 ---
 

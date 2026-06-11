@@ -398,13 +398,31 @@ class ServiceClient:
 
     def get_metric_counts(self) -> dict:
         """Returns current pipeline queue counts for dashboard metrics."""
+        def _count_json_files(directory: Optional[Path]) -> int:
+            if not directory or not directory.exists():
+                return 0
+            try:
+                return sum(1 for _ in directory.glob("*.json"))
+            except Exception:
+                return 0
+
+        storage = self.ctx.storage
+        staged_count = _count_json_files(getattr(storage, "staged_dir", None))
+        scored_count = _count_json_files(getattr(storage, "scored_dir", None))
+        briefs_count = _count_json_files(getattr(storage, "briefs_dir", None))
+        storyboards_count = _count_json_files(getattr(storage, "storyboards_dir", None))
+        manifests_count = _count_json_files(getattr(storage, "manifests_dir", None))
+
         return {
-            "staged": len(self.ctx.storage.list_staged()),
-            "scored": len(self.ctx.storage.list_scored()),
-            "briefs": len(self.ctx.storage.list_briefs()),
-            "storyboards": len(self.ctx.storage.list_storyboards()),
-            "manifests": len(self.ctx.storage.list_manifests()),
+            "staged": staged_count,
+            "staged_topics": staged_count,
+            "scored": scored_count,
+            "scored_topics": scored_count,
+            "briefs": briefs_count,
+            "storyboards": storyboards_count,
+            "manifests": manifests_count,
         }
+
 
     def list_staged_topics(self) -> list:
         return self.ctx.storage.list_staged()
