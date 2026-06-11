@@ -118,6 +118,23 @@ def main() -> None:
             with st.expander("📄 View Raw Brief JSON"):
                 st.json(brief.model_dump())
 
+            # Show brief content before the review decision
+            st.markdown("### 📄 Brief Summary")
+            
+            if hasattr(brief, 'why_it_matters') and brief.why_it_matters:
+                st.info(f"**Why it matters:** {brief.why_it_matters}")
+            
+            if hasattr(brief, 'plain_english_summary') and brief.plain_english_summary:
+                st.markdown("**Plain English Summary:**")
+                for item in brief.plain_english_summary:
+                    st.markdown(f"- {item}")
+            
+            if hasattr(brief, 'student_takeaway') and brief.student_takeaway:
+                st.markdown(f"**Student Takeaway:** {brief.student_takeaway}")
+            
+            if hasattr(brief, 'source_url') and brief.source_url:
+                st.markdown(f"**Source URL:** {brief.source_url}")
+
             # ------------------ REVIEW CONTROLS ------------------
             st.markdown("---")
             st.markdown("### ✅ Brief Review & Approval")

@@ -1,10 +1,10 @@
 # TASK-029: Show brief content preview before approve/reject decision in Brief Viewer
 
 **Phase:** 12.2
-**Status:** PENDING
+**Status:** DONE
 **Priority:** MEDIUM
 **Created:** 2026-06-11
-**Completed:** —
+**Completed:** 2026-06-11
 **Requires approval:** NO
 
 ---
@@ -115,11 +115,11 @@ uv run python -m pytest --tb=short -q 2>&1 | tail -3
 ---
 
 ## Success Criteria
-- [ ] Brief Viewer shows key content (at minimum `why_it_matters`) before the review decision
-- [ ] Used only real field names confirmed from actual brief files
-- [ ] Approve/reject controls still present and unchanged
-- [ ] Page parses without syntax errors
-- [ ] Test suite shows ≥ 985 passed
+- [x] Brief Viewer shows key content (at minimum `why_it_matters`) before the review decision
+- [x] Used only real field names confirmed from actual brief files
+- [x] Approve/reject controls still present and unchanged
+- [x] Page parses without syntax errors
+- [x] Test suite shows ≥ 985 passed
 
 ---
 

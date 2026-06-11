@@ -49,7 +49,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-026 | Auto-load `.env` at Streamlit app startup | DONE | HIGH | TASK-025 | [→](docs/tasks/task_026.md) |
 | TASK-027 | Restructure navigation to match morning workflow order | DONE    | HIGH | TASK-026 | [→](docs/tasks/task_027.md) |
 | TASK-028 | Update dashboard to show live pipeline artifact counts | DONE    | HIGH | TASK-027 | [→](docs/tasks/task_028.md) |
-| TASK-029 | Show brief content preview before approve/reject decision in Brief Viewer | PENDING | MEDIUM | TASK-028 | [→](docs/tasks/task_029.md) |
+| TASK-029 | Show brief content preview before approve/reject decision in Brief Viewer | DONE    | MEDIUM | TASK-028 | [→](docs/tasks/task_029.md) |
 
 ---
 
@@ -75,6 +75,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-026 | Auto-load `.env` at Streamlit app startup | 2026-06-11 | fix(ui): auto-load .env at Streamlit startup so API keys load without manual export (TASK-026) |
 | TASK-027 | Restructure navigation to match morning workflow order | 2026-06-11 | feat(ui): rename navigation pages to match morning workflow order (TASK-027) |
 | TASK-028 | Update dashboard to show live pipeline artifact counts | 2026-06-11 | fix(ui): show real pipeline artifact counts on dashboard instead of zeros (TASK-028) |
+| TASK-029 | Show brief content preview before approve/reject decision in Brief Viewer | 2026-06-11 | feat(ui): show brief content preview before approve/reject decision in Brief Viewer (TASK-029) |
 
 ---
 
