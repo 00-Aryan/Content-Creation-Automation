@@ -40,6 +40,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-017 | Add copy-to-clipboard to asset workshop | DONE    | HIGH | None | [→](docs/tasks/task_017.md) |
 | TASK-018 | Trace and fix E2E pipeline brief failure | DONE    | HIGH | None | [→](docs/tasks/task_018.md) |
 | TASK-019 | Fix Content Intelligence brief selection failure | DONE    | HIGH | TASK-018 | [→](docs/tasks/task_019.md) |
+| TASK-020 | Fix idempotent brief generation for populated target files | DONE    | HIGH | TASK-019 | [→](docs/tasks/task_020.md) |
 
 
 ---

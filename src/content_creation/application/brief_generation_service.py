@@ -62,7 +62,15 @@ class BriefGenerationService:
         skipped_count = 0
 
         for item in items_to_process:
-            # Skip if brief already exists on disk
+            # Skip if brief already exists in storage or on disk
+            try:
+                existing_brief = ctx.storage.get_brief(item.id)
+                if existing_brief is not None and isinstance(existing_brief, Brief):
+                    skipped_count += 1
+                    continue
+            except Exception as e:
+                logger.warning(f"Error checking storage for existing brief {item.id}: {e}")
+
             brief_file = ctx.storage.briefs_dir / f"{item.id}.json"
             if brief_file.exists():
                 skipped_count += 1
@@ -70,8 +78,28 @@ class BriefGenerationService:
 
             try:
                 brief = generate_brief(item, ctx.prompt_registry, api_key)
-                ctx.storage.save_brief(brief)
-                generated_briefs.append(brief)
+                
+                # Check topic_id mismatch
+                if brief.topic_id != item.id:
+                    failures.append(
+                        BriefFailure(
+                            topic_id=item.id,
+                            error=f"Generated brief topic_id mismatch: expected {item.id}, got {brief.topic_id}",
+                        )
+                    )
+                    continue
+
+                try:
+                    ctx.storage.save_brief(brief)
+                    generated_briefs.append(brief)
+                except Exception as e:
+                    if "Target asset file is already populated" in str(e):
+                        existing_brief = ctx.storage.get_brief(item.id)
+                        if existing_brief is not None:
+                            skipped_count += 1
+                            continue
+                    logger.error(f"Error saving brief for {item.id}: {e}")
+                    failures.append(BriefFailure(topic_id=item.id, error=str(e)))
             except Exception as e:
                 logger.error(f"Error generating brief for {item.id}: {e}")
                 failures.append(BriefFailure(topic_id=item.id, error=str(e)))
