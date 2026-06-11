@@ -41,6 +41,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-018 | Trace and fix E2E pipeline brief failure | DONE    | HIGH | None | [→](docs/tasks/task_018.md) |
 | TASK-019 | Fix Content Intelligence brief selection failure | DONE    | HIGH | TASK-018 | [→](docs/tasks/task_019.md) |
 | TASK-020 | Fix idempotent brief generation for populated target files | DONE    | HIGH | TASK-019 | [→](docs/tasks/task_020.md) |
+| TASK-021 | Allow idempotent batch generation through workflow gate | DONE    | HIGH | TASK-020 | [→](docs/tasks/task_021.md) |
 
 
 ---
@@ -59,6 +60,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-015 | Add UI syntax test to CI | 2026-06-11 | test(ui): add parametrized syntax test for all Streamlit page files (TASK-015) |
 | TASK-017 | Add copy-to-clipboard to asset workshop | 2026-06-11 | feat(ui): add copy-to-clipboard blocks to all asset types in asset workshop (TASK-017) |
 | TASK-018 | Trace and fix E2E pipeline brief failure | 2026-06-11 | fix(pipeline): resolve E2E brief generation failure — source topic scoring record lookup (TASK-018) |
+| TASK-021 | Allow idempotent batch generation through workflow gate | 2026-06-11 | fix(workflow): allow idempotent batch generation actions through gate (TASK-021) |
 
 ---
 

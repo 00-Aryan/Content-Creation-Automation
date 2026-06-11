@@ -240,3 +240,65 @@ def test_run_pipeline_execution(mock_ctx, mock_availability_engine, mock_transit
             auto_approve=True,
             api_key="test_key",
         )
+
+
+def test_batch_idempotent_action_bypass_availability(mock_ctx, mock_availability_engine, mock_transition_engine):
+    """Proves that batch generate_briefs dispatches to BriefGenerationService instead of being blocked by availability engine."""
+    mock_availability_engine.is_action_available.return_value = False
+
+    executor = WorkflowActionExecutor(
+        availability_engine=mock_availability_engine,
+        transition_engine=mock_transition_engine,
+    )
+
+    executor._resolve_lifecycle_state = MagicMock(return_value=ArtifactLifecycleState.APPROVED)
+    executor._resolve_dependencies = MagicMock(return_value={})
+    
+    mock_service_result = MagicMock()
+    executor._dispatch_to_service = MagicMock(return_value=({"generated_count": "1"}, mock_service_result))
+
+    result = executor.execute(
+        ctx=mock_ctx,
+        action_id="generate_briefs",
+        target_artifact_type="brief",
+        target_artifact_id="all",
+        payload={"top_n": 5},
+    )
+
+    assert result.success is True
+    assert result.execution_status == ActionExecutionStatus.SUCCESS
+    mock_availability_engine.is_action_available.assert_not_called()
+    executor._dispatch_to_service.assert_called_once_with(
+        mock_ctx, "generate_briefs", "brief", "all", {"top_n": 5}, None
+    )
+
+
+def test_single_artifact_generate_briefs_respected_blocking(mock_ctx, mock_availability_engine, mock_transition_engine):
+    """Proves that single-topic generate_briefs still respects asset-exists blocking behavior."""
+    mock_availability_engine.is_action_available.return_value = False
+    mock_availability_engine.get_blocking_reasons.return_value = [
+        MagicMock(blocking_message="Target asset file is already populated.")
+    ]
+
+    executor = WorkflowActionExecutor(
+        availability_engine=mock_availability_engine,
+        transition_engine=mock_transition_engine,
+    )
+
+    executor._resolve_lifecycle_state = MagicMock(return_value=ArtifactLifecycleState.APPROVED)
+    executor._resolve_dependencies = MagicMock(return_value={})
+    executor._dispatch_to_service = MagicMock()
+
+    result = executor.execute(
+        ctx=mock_ctx,
+        action_id="generate_briefs",
+        target_artifact_type="brief",
+        target_artifact_id="topic_123",
+        payload={},
+    )
+
+    assert result.success is False
+    assert result.execution_status == ActionExecutionStatus.BLOCKED
+    assert "Target asset file is already populated." in result.blocking_reasons
+    mock_availability_engine.is_action_available.assert_called_once()
+    executor._dispatch_to_service.assert_not_called()

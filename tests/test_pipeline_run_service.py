@@ -171,3 +171,49 @@ def test_pipeline_run_service_failure_halts_downstream(tmp_path):
         assert result.stages == ["collect"]  # Halts after collect stage
         assert result.stage_summaries["collect"]["success"] is False
         assert "Collect failed!" in result.stage_summaries["collect"]["error"]
+
+
+def test_pipeline_run_service_generate_briefs_with_existing_briefs(tmp_path):
+    """Verify that run_pipeline passes generate-briefs stage when top selected topics already have briefs."""
+    service = PipelineRunService()
+
+    with patch("content_creation.workflow.workflow_action_executor.WorkflowActionExecutor") as mock_executor_cls:
+        mock_executor = MagicMock()
+        mock_executor_cls.return_value = mock_executor
+
+        call_order = []
+
+        def mock_execute(ctx, action_id, target_artifact_type, target_artifact_id, payload, notes=None):
+            call_order.append(action_id)
+            if action_id == "collect":
+                return MagicMock(success=True, raw_result=MagicMock(count=5))
+            elif action_id == "score_topics":
+                return MagicMock(success=True, raw_result=MagicMock(scored_count=3, rejected_count=1))
+            elif action_id == "generate_briefs":
+                # Simulated: 0 generated, 3 skipped because briefs already exist
+                return MagicMock(success=True, raw_result=MagicMock(generated_count=0, skipped_count=3, failures=[]))
+            elif action_id == "generate_ci":
+                return MagicMock(success=True, raw_result=MagicMock(generated_count=3, skipped_count=0, failures=[]))
+            elif action_id == "generate_storyboards":
+                return MagicMock(success=True, raw_result=MagicMock(generated_count=3, skipped_count=0, failures=[]))
+            elif action_id == "generate_assets":
+                return MagicMock(success=True, raw_result=MagicMock(counts={"thumbnail": 3}, skipped_count=0, failed_count=0))
+            elif action_id == "build_all_manifests":
+                return MagicMock(success=True, raw_result=[])
+            return MagicMock(success=False, blocking_reasons=["Unknown action"])
+
+        mock_executor.execute.side_effect = mock_execute
+
+        mock_storage = MagicMock()
+        mock_storage.logs_dir = tmp_path / "logs"
+        ctx = MagicMock(storage=mock_storage)
+
+        result = service.run(
+            ctx, top_n=5, auto_approve=False, api_key="dummy_key"
+        )
+
+        assert isinstance(result, PipelineRunResult)
+        assert result.success is True
+        assert "generate-briefs" in result.stages
+        assert result.stage_summaries["generate-briefs"]["generated_count"] == 0
+        assert result.stage_summaries["generate-briefs"]["skipped_count"] == 3

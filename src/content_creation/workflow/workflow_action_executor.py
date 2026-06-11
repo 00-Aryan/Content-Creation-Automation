@@ -128,7 +128,18 @@ class WorkflowActionExecutor:
         dependencies = self._resolve_dependencies(ctx, target_artifact_type, target_artifact_id, action_id, payload)
 
         # 2. Check Action Availability Engine
-        if not self._availability_engine.is_action_available(
+        is_batch_idempotent_action = (
+            target_artifact_id == "all"
+            and action_id in {
+                "generate_briefs",
+                "generate_ci",
+                "generate_storyboards",
+                "generate_assets",
+                "build_all_manifests",
+            }
+        )
+
+        if not is_batch_idempotent_action and not self._availability_engine.is_action_available(
             action_id, target_artifact_type, current_state, dependencies
         ):
             reasons = self._availability_engine.get_blocking_reasons(
