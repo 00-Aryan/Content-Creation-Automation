@@ -88,12 +88,10 @@ class ManifestBuilder:
 
         blocking_reasons = []
         for asset_type, asset in assets.items():
-            if asset.status == "missing":
-                blocking_reasons.append(f"{asset_type}: missing")
-            elif asset.status == "rejected":
-                blocking_reasons.append(f"{asset_type}: rejected")
-            elif asset.status == "needs_review":
-                blocking_reasons.append(f"{asset_type}: needs_review")
+            if asset.status == "skipped":
+                continue
+            if asset.status != "approved":
+                blocking_reasons.append(f"{asset_type}: {asset.status}")
 
         ready_for_planner = all(
             asset.status == "approved"

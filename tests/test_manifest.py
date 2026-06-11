@@ -485,3 +485,123 @@ class TestManifestBuilder:
             "bad_brief.json" in record.message for record in caplog.records
         )
         assert any(record.levelname == "WARNING" for record in caplog.records)
+
+    def test_manifest_blocking_reasons_and_readiness(self, tmp_path):
+        """Test manifest blocking reasons and readiness reporting under various asset status combinations."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        builder = ManifestBuilder(storage)
+
+        def run_build(brief_status, script_status, carousel_status, newsletter_status, thumbnail_status, recommended_formats=None):
+            # Clean up directories
+            for sub in ["briefs", "scripts", "carousels", "newsletters", "thumbnails"]:
+                dir_path = tmp_path / "data" / sub
+                if dir_path.exists():
+                    for f in dir_path.glob("*.json"):
+                        f.unlink()
+
+            # Write brief if not missing
+            if brief_status != "missing":
+                self._write_brief(tmp_path, "t1", recommended_formats=recommended_formats, status=brief_status)
+            # Write other assets if not missing
+            if script_status != "missing":
+                self._write_asset(tmp_path, "script", "t1", status=script_status)
+            if carousel_status != "missing":
+                self._write_asset(tmp_path, "carousel", "t1", status=carousel_status)
+            if newsletter_status != "missing":
+                self._write_asset(tmp_path, "newsletter", "t1", status=newsletter_status)
+            if thumbnail_status != "missing":
+                self._write_asset(tmp_path, "thumbnail", "t1", status=thumbnail_status)
+
+            return builder.build(
+                topic_id="t1",
+                topic_title="Test Topic",
+                source_url="https://example.com",
+            )
+
+        # 1. A manifest with all non-skipped assets approved has:
+        # ready_for_planner == True
+        # blocking_reasons == []
+        # overall_status == "complete"
+        manifest = run_build(
+            brief_status="approved",
+            script_status="approved",
+            carousel_status="approved",
+            newsletter_status="approved",
+            thumbnail_status="approved",
+            recommended_formats=["short_video", "carousel", "newsletter"]
+        )
+        assert manifest.ready_for_planner is True
+        assert manifest.blocking_reasons == []
+        assert manifest.overall_status == "complete"
+
+        # 2. A manifest with one draft required asset has:
+        # ready_for_planner == False
+        # blocking_reasons includes "thumbnail: draft"
+        # overall_status == "partial"
+        manifest = run_build(
+            brief_status="approved",
+            script_status="approved",
+            carousel_status="missing",
+            newsletter_status="missing",
+            thumbnail_status="draft",
+            recommended_formats=["short_video"]
+        )
+        assert manifest.ready_for_planner is False
+        assert "thumbnail: draft" in manifest.blocking_reasons
+        assert manifest.overall_status == "partial"
+
+        # 3. A manifest with one needs_review asset still includes: carousel: needs_review
+        manifest = run_build(
+            brief_status="approved",
+            script_status="approved",
+            carousel_status="needs_review",
+            newsletter_status="approved",
+            thumbnail_status="approved",
+            recommended_formats=["short_video", "carousel", "newsletter"]
+        )
+        assert manifest.ready_for_planner is False
+        assert "carousel: needs_review" in manifest.blocking_reasons
+
+        # 4. A manifest with one reviewed asset includes: script: reviewed
+        manifest = run_build(
+            brief_status="approved",
+            script_status="reviewed",
+            carousel_status="approved",
+            newsletter_status="approved",
+            thumbnail_status="approved",
+            recommended_formats=["short_video", "carousel", "newsletter"]
+        )
+        assert manifest.ready_for_planner is False
+        assert "script: reviewed" in manifest.blocking_reasons
+
+        # 5. A manifest with one missing asset includes: brief: missing
+        manifest = run_build(
+            brief_status="missing",
+            script_status="approved",
+            carousel_status="approved",
+            newsletter_status="approved",
+            thumbnail_status="approved",
+            recommended_formats=["short_video", "carousel", "newsletter"]
+        )
+        assert manifest.ready_for_planner is False
+        assert "brief: missing" in manifest.blocking_reasons
+
+        # 6. A manifest with skipped optional assets does not include skipped assets in blocking_reasons
+        manifest = run_build(
+            brief_status="approved",
+            script_status="approved",
+            carousel_status="missing",
+            newsletter_status="missing",
+            thumbnail_status="approved",
+            recommended_formats=["short_video"]
+        )
+        assert manifest.ready_for_planner is True
+        assert manifest.blocking_reasons == []
+        assert manifest.assets["carousel"].status == "skipped"
+        assert manifest.assets["newsletter"].status == "skipped"
+
+        # 7. ready_for_planner remains false whenever any non-skipped asset is not approved
+        # Tested by case 2, 3, 4, 5 above, where ready_for_planner is False.

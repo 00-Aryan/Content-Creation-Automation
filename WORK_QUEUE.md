@@ -44,6 +44,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-021 | Allow idempotent batch generation through workflow gate | DONE    | HIGH | TASK-020 | [→](docs/tasks/task_021.md) |
 | TASK-022 | Align asset generation candidates with storyboard artifacts | DONE | HIGH | TASK-021 | [→](docs/tasks/task_022.md) |
 | TASK-023 | Restore Operations Dashboard job queue schema initialization | DONE | HIGH | TASK-022 | [→](docs/tasks/task_023.md) |
+| TASK-024 | Explain non-approved manifest assets in blocking reasons | DONE | HIGH | TASK-023 | [→](docs/tasks/task_024.md) |
 
 ---
 
@@ -64,7 +65,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-021 | Allow idempotent batch generation through workflow gate | 2026-06-11 | fix(workflow): allow idempotent batch generation actions through gate (TASK-021) |
 | TASK-022 | Align asset generation candidates with storyboard artifacts | 2026-06-11 | fix(pipeline): skip asset generation candidates without storyboards (TASK-022) |
 | TASK-023 | Restore Operations Dashboard job queue schema initialization | 2026-06-11 | fix(ops): restore dashboard job queue schema initialization (TASK-023) |
-
+| TASK-024 | Explain non-approved manifest assets in blocking reasons | 2026-06-11 | fix(manifest): explain non-approved planner blockers (TASK-024) |
 ---
 
 ## Blocked
