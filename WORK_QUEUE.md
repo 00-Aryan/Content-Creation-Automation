@@ -39,6 +39,8 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-016 | Fix silent except handlers in UI pages | DONE    | HIGH | TASK-014 | [→](docs/tasks/task_016.md) |
 | TASK-017 | Add copy-to-clipboard to asset workshop | DONE    | HIGH | None | [→](docs/tasks/task_017.md) |
 | TASK-018 | Trace and fix E2E pipeline brief failure | DONE    | HIGH | None | [→](docs/tasks/task_018.md) |
+| TASK-019 | Fix Content Intelligence brief selection failure | DONE    | HIGH | TASK-018 | [→](docs/tasks/task_019.md) |
+
 
 ---
 

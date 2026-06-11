@@ -60,10 +60,35 @@ class ContentIntelligenceService:
         # Pair briefs with original scored/staged topic priority metadata
         candidates = []
         for brief in briefs:
-            scored_item = ctx.storage.get_scored(brief.topic_id)
+            if brief is None:
+                candidates.append(
+                    {
+                        "brief": None,
+                        "topic_id": "unknown",
+                        "priority_score": 0.0,
+                        "topic_category": TopicCategory.UNKNOWN,
+                        "published_at": "unknown",
+                    }
+                )
+                continue
+
+            topic_id = getattr(brief, "topic_id", None)
+            if not topic_id:
+                candidates.append(
+                    {
+                        "brief": brief,
+                        "topic_id": "unknown",
+                        "priority_score": 0.0,
+                        "topic_category": TopicCategory.UNKNOWN,
+                        "published_at": "unknown",
+                    }
+                )
+                continue
+
+            scored_item = ctx.storage.get_scored(topic_id)
             if scored_item is None:
                 # Fallback to staged if scored item not found
-                scored_item = ctx.storage.get_staged(brief.topic_id)
+                scored_item = ctx.storage.get_staged(topic_id)
 
             priority_score = (
                 scored_item.priority_score
@@ -84,6 +109,7 @@ class ContentIntelligenceService:
             candidates.append(
                 {
                     "brief": brief,
+                    "topic_id": topic_id,
                     "priority_score": priority_score,
                     "topic_category": topic_category,
                     "published_at": published_at,
@@ -99,8 +125,38 @@ class ContentIntelligenceService:
         skipped_count = 0
 
         for candidate in candidates:
-            brief = candidate["brief"]
-            topic_id = brief.topic_id
+            brief = candidate.get("brief")
+            topic_id = candidate.get("topic_id") or (brief.topic_id if brief else None)
+
+            if not topic_id or topic_id == "unknown":
+                failures.append(ContentIntelligenceFailure(topic_id="unknown", error="Brief is missing."))
+                continue
+
+            if brief is None:
+                failures.append(ContentIntelligenceFailure(topic_id=topic_id, error="Brief is missing."))
+                continue
+
+            # Validate required brief content fields
+            is_invalid = False
+            missing_fields = []
+            for field in ["why_it_matters", "student_takeaway", "analogy", "limitation", "audience_fit"]:
+                val = getattr(brief, field, None)
+                if not val or (isinstance(val, str) and not val.strip()):
+                    missing_fields.append(field)
+                    is_invalid = True
+            
+            # Check plain_english_summary
+            summary = getattr(brief, "plain_english_summary", None)
+            if not summary or not isinstance(summary, list) or len(summary) != 3 or any(not s.strip() for s in summary):
+                missing_fields.append("plain_english_summary")
+                is_invalid = True
+
+            if is_invalid:
+                failures.append(ContentIntelligenceFailure(
+                    topic_id=topic_id,
+                    error=f"Required brief content fields are empty or invalid: {missing_fields}"
+                ))
+                continue
 
             ci_file = ctx.storage.content_intelligence_dir / f"{topic_id}.json"
             ci_completed = ctx.workflow.stage_completed(topic_id, "content_intelligence")

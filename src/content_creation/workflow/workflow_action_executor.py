@@ -315,24 +315,32 @@ class WorkflowActionExecutor:
             return get_lifecycle_state(topic_status=topic.status.value)
 
         elif artifact_type == "brief":
+            if topic_id == "all":
+                return ArtifactLifecycleState.APPROVED if ctx.storage.list_briefs() else ArtifactLifecycleState.MISSING
             brief = ctx.storage.get_brief(topic_id)
             if brief is None:
                 return ArtifactLifecycleState.MISSING
             return get_lifecycle_state(review_status=brief.review_status.value)
 
         elif artifact_type == "content_intelligence":
+            if topic_id == "all":
+                return ArtifactLifecycleState.APPROVED if ctx.storage.list_content_intelligence() else ArtifactLifecycleState.MISSING
             ci = next((item for item in ctx.storage.list_content_intelligence() if item.topic_id == topic_id), None)
             if ci is None:
                 return ArtifactLifecycleState.MISSING
             return get_lifecycle_state(review_status=ci.review_status.value)
 
         elif artifact_type == "storyboard":
+            if topic_id == "all":
+                return ArtifactLifecycleState.APPROVED if ctx.storage.list_storyboards() else ArtifactLifecycleState.MISSING
             sb = ctx.storage.get_storyboard(topic_id)
             if sb is None:
                 return ArtifactLifecycleState.MISSING
             return get_lifecycle_state(review_status=sb.review_status.value)
 
         elif artifact_type == "assets":
+            if topic_id == "all":
+                return ArtifactLifecycleState.APPROVED if ctx.storage.list_manifests() else ArtifactLifecycleState.MISSING
             asset_type = payload.get("asset_type")
             if asset_type:
                 asset_obj = self._get_specific_asset(ctx, topic_id, asset_type)
@@ -347,6 +355,8 @@ class WorkflowActionExecutor:
                 return get_lifecycle_state(manifest_overall_status=manifest.overall_status)
 
         elif artifact_type == "manifest":
+            if topic_id == "all":
+                return ArtifactLifecycleState.APPROVED if ctx.storage.list_manifests() else ArtifactLifecycleState.MISSING
             manifest = next((m for m in ctx.storage.list_manifests() if m.topic_id == topic_id), None)
             if manifest is None:
                 return ArtifactLifecycleState.MISSING

@@ -253,10 +253,10 @@ def test_content_intelligence_service_prioritization_and_limit(tmp_path, mock_ci
             topic_id="topic-low",
             why_it_matters="Matters low",
             plain_english_summary=["Summary 1", "Summary 2", "Summary 3"],
-            student_takeaway="",
-            analogy="",
-            limitation="",
-            audience_fit="",
+            student_takeaway="Takeaway low",
+            analogy="Analogy low",
+            limitation="Limitation low",
+            audience_fit="Audience fit low",
             recommended_formats=[],
             source_url="https://example.com/low",
             review_status="draft",
@@ -266,10 +266,10 @@ def test_content_intelligence_service_prioritization_and_limit(tmp_path, mock_ci
             topic_id="topic-high",
             why_it_matters="Matters high",
             plain_english_summary=["Summary 1", "Summary 2", "Summary 3"],
-            student_takeaway="",
-            analogy="",
-            limitation="",
-            audience_fit="",
+            student_takeaway="Takeaway high",
+            analogy="Analogy high",
+            limitation="Limitation high",
+            audience_fit="Audience fit high",
             recommended_formats=[],
             source_url="https://example.com/high",
             review_status="draft",
@@ -338,3 +338,65 @@ def test_content_intelligence_service_prioritization_and_limit(tmp_path, mock_ci
         assert result.generated_count == 1
         mock_generator.generate.assert_called_once()
         assert mock_generator.generate.call_args[1]["brief"].topic_id == "topic-high"
+
+
+def test_content_intelligence_service_missing_and_invalid_briefs(tmp_path, sample_scored_item):
+    """Test that ContentIntelligenceService records failures for missing and invalid briefs."""
+    service = ContentIntelligenceService()
+    
+    # 1. Invalid brief: empty fields
+    invalid_brief = Brief(
+        topic_id="test-topic-1",
+        why_it_matters="",  # empty
+        plain_english_summary=["", "Summary 2", "Summary 3"],  # empty first element
+        student_takeaway="Takeaway",
+        analogy="Analogy",
+        limitation="Limit",
+        audience_fit="Fit",
+        recommended_formats=["short_video"],
+        source_url="https://example.com/topic-1",
+        review_status="draft",
+        generated_at="2026-06-02T12:00:00Z",
+    )
+
+    with patch(
+        "content_creation.application.content_intelligence_service.ContentIntelligenceGenerator"
+    ) as mock_gen_cls:
+        mock_generator = MagicMock()
+        mock_gen_cls.return_value = mock_generator
+
+        # Mock dependencies with None brief and invalid brief
+        mock_storage = MagicMock()
+        mock_storage.list_briefs.return_value = [None, invalid_brief]
+        mock_storage.get_scored.return_value = sample_scored_item
+        mock_storage.content_intelligence_dir = tmp_path
+        
+        mock_workflow = MagicMock()
+        mock_workflow.stage_completed.return_value = False
+
+        ctx = MagicMock(
+            storage=mock_storage,
+            workflow=mock_workflow,
+            prompt_registry=MagicMock(),
+        )
+
+        result = service.run(
+            ctx, top_n=5, api_key="dummy_key", rate_limit_delay=0.0
+        )
+
+        assert isinstance(result, ContentIntelligenceGenerationResult)
+        assert result.generated_count == 0
+        assert result.skipped_count == 0
+        assert len(result.failures) == 2
+        
+        # Verify failure for invalid brief fields is first (higher priority: 9.5 vs 0.0)
+        assert result.failures[0].topic_id == "test-topic-1"
+        assert "Required brief content fields are empty or invalid" in result.failures[0].error
+        
+        # Verify second failure is about missing brief (since brief is None, priority 0.0)
+        assert result.failures[1].topic_id == "unknown"
+        assert "Brief is missing." in result.failures[1].error
+
+        # Generator should not be called
+        mock_generator.generate.assert_not_called()
+
