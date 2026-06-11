@@ -3,12 +3,11 @@
 import sqlite3
 
 
-def create_schema(conn: sqlite3.Connection) -> None:
-    """Initialize the SQLite schema, tables, and indexes for background jobs.
+def create_job_schema(conn: sqlite3.Connection) -> None:
+    """Initialize the SQLite schema, table, and indexes for background jobs.
 
     Ensures WAL mode is enabled for parallel reading/writing.
     """
-    # Enable Write-Ahead Logging (WAL) for concurrency
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA foreign_keys=ON;")
 
@@ -73,7 +72,18 @@ def create_schema(conn: sqlite3.Connection) -> None:
         """
     )
 
-    # 3. Create locks table
+    conn.commit()
+
+
+def create_lock_schema(conn: sqlite3.Connection) -> None:
+    """Initialize the SQLite schema, table, and indexes for cooperative resource locks.
+
+    Ensures WAL mode is enabled for parallel reading/writing.
+    """
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA foreign_keys=ON;")
+
+    # 1. Create locks table
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS locks (
@@ -90,7 +100,7 @@ def create_schema(conn: sqlite3.Connection) -> None:
         """
     )
 
-    # 4. Create locks indexes
+    # 2. Create locks indexes
     # Optimize resource queries
     conn.execute(
         """
@@ -133,4 +143,14 @@ def create_schema(conn: sqlite3.Connection) -> None:
         """
     )
 
+    conn.commit()
+
+
+def create_schema(conn: sqlite3.Connection) -> None:
+    """Initialize the SQLite schema, tables, and indexes for background jobs and locks.
+
+    Ensures WAL mode is enabled for parallel reading/writing.
+    """
+    create_job_schema(conn)
+    create_lock_schema(conn)
     conn.commit()
