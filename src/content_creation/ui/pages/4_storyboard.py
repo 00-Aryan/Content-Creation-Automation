@@ -9,7 +9,7 @@ src_dir = str(Path(__file__).resolve().parent.parent.parent.parent)
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-from content_creation.ui.components.status import render_api_health, format_review_status
+from content_creation.ui.components.status import render_api_health, format_review_status, format_timestamp
 from content_creation.ui.services.client import ServiceClient
 from content_creation.ui.state.session import init_session_state
 from content_creation.shared.enums import ReviewStatus
@@ -302,7 +302,7 @@ def main() -> None:
                     storyboard_history = client.get_storyboard_review_history(topic_id)
                     if storyboard_history:
                         for entry in reversed(storyboard_history[-5:]):
-                            ts = entry.timestamp[:19] if entry.timestamp else "N/A"
+                            ts = format_timestamp(entry.timestamp)
                             prev = format_review_status(entry.previous_status) if entry.previous_status else "N/A"
                             new_st = format_review_status(entry.new_status) if entry.new_status else "N/A"
                             st.markdown(

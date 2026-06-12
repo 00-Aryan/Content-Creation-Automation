@@ -55,6 +55,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-032 | Remove needs_review placeholder pollution from thumbnail output | DONE    | HIGH | TASK-031 | [→](docs/tasks/task_032.md) |
 | TASK-033 | Replace raw terminal-state errors with operator-friendly messages | DONE    | HIGH | TASK-032 | [→](docs/tasks/task_033.md) |
 | TASK-034 | Replace raw review enum labels with readable UI status text | DONE | MEDIUM | TASK-033 | [→](docs/tasks/task_034.md) |
+| TASK-035 | Format ISO timestamps into readable UI display text | DONE    | MEDIUM | TASK-034 | [→](docs/tasks/task_035.md) |
 
 ---
 

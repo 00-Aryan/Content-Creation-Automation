@@ -9,7 +9,7 @@ src_dir = str(Path(__file__).resolve().parent.parent.parent.parent)
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-from content_creation.ui.components.status import render_api_health
+from content_creation.ui.components.status import render_api_health, format_timestamp
 from content_creation.ui.services.client import ServiceClient
 from content_creation.ui.state.session import init_session_state, set_selected_brief_id
 from content_creation.shared.enums import ReviewStatus
@@ -82,7 +82,7 @@ def main() -> None:
         if brief:
             set_selected_brief_id(brief.topic_id)
             
-            st.success(f"✓ Brief found (Generated at: {brief.generated_at})")
+            st.success(f"✓ Brief found (Generated at: {format_timestamp(brief.generated_at)})")
             
             col1, col2 = st.columns([2, 1])
             with col1:
@@ -203,7 +203,7 @@ def main() -> None:
                 brief_history = client.get_brief_review_history(selected_topic.id)
                 if brief_history:
                     for entry in reversed(brief_history[-5:]):
-                        ts = entry.timestamp[:19] if entry.timestamp else "N/A"
+                        ts = format_timestamp(entry.timestamp)
                         prev = entry.previous_status.value if entry.previous_status else "N/A"
                         st.markdown(
                             f"**{ts}** — `{prev}` → `{entry.new_status.value}`"

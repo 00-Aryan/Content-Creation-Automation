@@ -9,7 +9,7 @@ src_dir = str(Path(__file__).resolve().parent.parent.parent.parent)
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-from content_creation.ui.components.status import render_api_health, format_review_status
+from content_creation.ui.components.status import render_api_health, format_review_status, format_timestamp
 from content_creation.ui.services.client import ServiceClient
 from content_creation.ui.state.session import init_session_state
 from content_creation.shared.enums import ReviewStatus
@@ -134,7 +134,7 @@ def main() -> None:
             ref_data.append({
                 "Asset Type": asset_name.replace("_", " ").title(),
                 "Status": format_review_status(asset_entry.status),
-                "Generated At": asset_entry.generated_at or "N/A",
+                "Generated At": format_timestamp(asset_entry.generated_at),
                 "File Path": asset_entry.path,
             })
         st.dataframe(ref_data, use_container_width=True)
@@ -400,7 +400,7 @@ def main() -> None:
         asset_history_filtered = client.get_asset_review_history(topic_id)
         if asset_history_filtered:
             for entry in reversed(asset_history_filtered[-10:]):
-                ts = entry.timestamp[:19] if entry.timestamp else "N/A"
+                ts = format_timestamp(entry.timestamp)
                 prev = format_review_status(entry.previous_status) if entry.previous_status else "N/A"
                 new_st = format_review_status(entry.new_status) if entry.new_status else "N/A"
                 st.markdown(

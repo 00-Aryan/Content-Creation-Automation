@@ -67,3 +67,63 @@ def format_review_status(status) -> str:
         return val.replace("_", " ").capitalize()
     return val.capitalize()
 
+
+def format_timestamp(ts) -> str:
+    """Format an ISO timestamp or datetime object into readable operator-facing text.
+
+    Examples:
+    - datetime(2026, 5, 19, 11, 11, 24, tzinfo=timezone.utc) -> "May 19, 2026, 11:11 AM UTC"
+    - "2026-05-19T11:11:24.481514+00:00" -> "May 19, 2026, 11:11 AM UTC"
+    - "2026-05-19" -> "May 19, 2026"
+    - None / malformed -> "Not available"
+    """
+    if not ts:
+        return "Not available"
+
+    from datetime import datetime, date
+
+    # Note: datetime is a subclass of date, so check datetime first
+    if isinstance(ts, datetime):
+        if ts.tzinfo:
+            tz_name = ts.tzname() or ts.strftime("%z")
+            if tz_name in ("UTC", "+0000", "GMT", "Coordinated Universal Time", "UTC+00:00"):
+                tz_display = "UTC"
+            elif tz_name.startswith("UTC+") or tz_name.startswith("UTC-"):
+                tz_display = tz_name[3:]
+            elif tz_name.startswith("+") or tz_name.startswith("-"):
+                if len(tz_name) == 5:
+                    tz_display = f"{tz_name[:3]}:{tz_name[3:]}"
+                else:
+                    tz_display = tz_name
+            else:
+                tz_display = tz_name
+            return ts.strftime(f"%B %d, %Y, %I:%M %p {tz_display}")
+        else:
+            return ts.strftime("%B %d, %Y, %I:%M %p")
+
+    if isinstance(ts, date):
+        return ts.strftime("%B %d, %Y")
+
+    if not isinstance(ts, str):
+        ts = str(ts)
+
+    ts_clean = ts.strip()
+    if not ts_clean or ts_clean.lower() in ("none", "n/a", "null", "undefined"):
+        return "Not available"
+
+    try:
+        val = ts_clean
+        if val.endswith("Z"):
+            val = val[:-1] + "+00:00"
+
+        # If it's a date only (e.g. YYYY-MM-DD)
+        if len(val) == 10 and val.count("-") == 2:
+            dt = datetime.strptime(val, "%Y-%m-%d").date()
+            return dt.strftime("%B %d, %Y")
+
+        dt = datetime.fromisoformat(val)
+        return format_timestamp(dt)
+    except Exception:
+        return ts_clean
+
+
