@@ -20,9 +20,14 @@ The fix is applied across multiple layers to ensure robustness:
 
 ## Post-Fix Evidence
 
-- Test count after change:
+- Test count after change: 1000 passed (all green)
 - Tests added or updated:
+  - `tests/workflow/test_action_availability_engine.py` -> `test_terminal_state_operator_friendly_messages`
+  - `tests/workflow/test_workflow_action_executor.py` -> `test_terminal_state_transition_friendly_errors`
 - Operator-facing message after change:
+  - For APPROVED: `"This asset is already approved. No further approval is needed."`
+  - For REJECTED: `"This asset is already rejected. No further rejection is needed."`
+
 
 ## Risk Notes
 

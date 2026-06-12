@@ -1,23 +1,43 @@
-# Platform Roadmap
+# Roadmap
 
-This document outlines the major tracks and future directions of the Content Creation Automation platform.
+## Phase 12.3 — Platform-Aware Content
 
-## Track 1: Phase 11 — Platform Foundation and Hardening
-- **Objective**: Harden the event broker, state machine, job queue, logging, safety/secrets, test integrity, and operational monitoring.
-- **Focus**: Establishing production-grade stability, zero-leak database pools, static typing, and automated CI/CD safety gates.
+- TASK-040: Define platform content contracts
+- TASK-041: Add LinkedIn post generator
+- TASK-042: Add YouTube Shorts script generator
+- TASK-043: Add platform preview UI
+- TASK-044: Add platform-aware approval workflow
 
-## Track 2: Phase 12 — Production Deployment and Operations
-- **Objective**: Deploy the system to hosted cloud environments with persistent storage and robust metrics routing.
-- **Focus**: Setting up deployment pipelines, standardizing backup/restore scripts, writing environment runbooks, and configuring server monitoring.
+## Phase 12.4 — LLM Quality Guardrails
 
-## Track 3: Phase 13 — Multi-Operator and Access Control
-- **Objective**: Evolve the platform from a single-operator local tool to a multi-user collaborative workspace.
-- **Focus**: Implementing Role-Based Access Control (RBAC), multi-tenant database partitioning, and user session management.
+- TASK-045: Define quality rubric
+- TASK-046: Add deterministic pre-flight content checks
+- TASK-047: Add LLM-as-judge evaluation
+- TASK-048: Add hallucination/source-grounding check
+- TASK-049: Add quality gate UI
 
-## Track 4: Phase 14 — Publishing and Distribution
-- **Objective**: Automate the publication of approved assets directly to target channels.
-- **Focus**: Building API connectors for distribution channels, managing scheduling queues, and tracking delivery status.
+## Phase 12.5 — LinkedIn Publishing
 
-## Track 5: Phase 15 — Enterprise Readiness
-- **Objective**: Align the platform with standard enterprise compliance, security, and scalability benchmarks.
-- **Focus**: Implementing database clustering, single-sign-on (SSO), data archiving policies, and compliance logging.
+- TASK-050: LinkedIn OAuth feasibility audit
+- TASK-051: LinkedIn draft exporter
+- TASK-052: LinkedIn OAuth integration
+- TASK-053: LinkedIn manual publish action
+
+## Phase 12.6 — YouTube Shorts Flow
+
+- TASK-054: Shorts packaging schema
+- TASK-055: Shorts export UI
+- TASK-056: Voiceover-readability validation
+
+## Phase 12.7 — Observability and Reliability
+
+- TASK-057: Pipeline health dashboard v2
+- TASK-058: Structured error taxonomy
+- TASK-059: Run history and audit log
+
+## Phase 12.8 — Portfolio Readiness
+
+- TASK-060: Architecture documentation refresh
+- TASK-061: Demo dataset and reproducible demo flow
+- TASK-062: Public README upgrade
+- TASK-063: Portfolio case study

@@ -1,22 +1,30 @@
 # Current State
 
-## Current Project Status
-The platform foundation, event platform, job queuing system, notification layer, metrics collection, audit logging, SQLite connection hardening, and secrets redaction/hardening have been successfully implemented and verified. We are currently setting up the Project Control System.
+## Project
 
-- **Current Branch**: `phase11-9-production-hardening`
-- **Latest Completed Phase**: Phase 11.9.5 Secrets Hardening Remediation
-- **Test Count**: 966 tests passing (or verified by latest run)
-- **Coverage**: ~90%+ (statement based on latest test execution)
+Content Creation Automation Platform
+
+## Current Phase
+
+Phase 12.2 closure complete. Phase 12.3 ready to start.
+
+## Latest Baseline
+
+- Full test suite: 1000 passed, 1 warning (100% success)
+- Latest commit: 5948653 (HEAD -> main, origin/main) fix(ui): format timestamps for readable display (TASK-035)
+- Date: 2026-06-12
+
+## Recently Completed
+
+- TASK-030 through TASK-035
+
+## Next Action
+
+Start Phase 12.3 with TASK-040: Define platform content contracts.
 
 ## Open Risks
-- Schema evolution without migrations (handled in pending 11.9.8)
-- SQLite growth and concurrency limitations over time
-- Upstream third-party SDK deprecation warnings (e.g. google-genai on Python 3.17)
-- Real-time SSE behavior validation in production Streamlit environments
-- Single-operator assumptions in core workflow models (no RBAC/auth yet)
 
-## Current Blockers
-- None.
-
-## Next Recommended Phase
-- **Phase 11.9.6**: Architecture Consolidation Audit
+- Platform-aware generation not implemented yet.
+- LLM quality guardrails not implemented yet.
+- LinkedIn publishing feasibility not validated yet.
+- Remaining UI polish: taxonomy warnings, layout stretching, Streamlit deprecations.
