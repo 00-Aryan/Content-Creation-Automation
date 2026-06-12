@@ -106,9 +106,9 @@ class TestThumbnailLegacyMode:
             gen = ThumbnailGenerator(api_key="test", prompt_dir=thumb_registry)
             thumb = gen.generate(None, brief)
 
-        assert thumb.title_text == "needs_review"
+        assert thumb.title_text == "Pending title review"
         assert thumb.style == "clean_minimal"
-        assert thumb.visual_metaphor == "needs_review"
+        assert thumb.visual_metaphor == "Pending visual metaphor review"
 
 
 class TestThumbnailStoryboardMode:
@@ -175,8 +175,10 @@ class TestThumbnailStoryboardMode:
         assert thumb.title_text == "Attention Replaced Recurrence Forever"
         assert thumb.style == "diagram_overlay"
         assert thumb.visual_metaphor == "A librarian scanning all books at once"
-        # Thumbnail-owned fields fall back to needs_review
-        assert thumb.supporting_text == "needs_review"
+        # Thumbnail-owned fields fall back to clean/storyboard-derived placeholders
+        assert thumb.supporting_text == "h2"
+        assert thumb.negative_prompt == ["low quality", "blurry", "cluttered background", "unreadable text"]
+        assert thumb.readability_notes == "Fallback generated due to inference failure. Review design style and text contrast."
         assert thumb.review_status == ReviewStatus.NEEDS_REVIEW
 
 

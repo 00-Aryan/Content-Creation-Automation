@@ -102,23 +102,23 @@ class ThumbnailGenerator:
             return ThumbnailPrompt(
                 topic_id=brief.topic_id,
                 title_text=storyboard.thumbnail_hook,
-                supporting_text="needs_review",
+                supporting_text=storyboard.carousel_hook or "Pending supporting text review",
                 visual_metaphor=storyboard.visual_metaphor,
                 style=storyboard.visual_style,
-                negative_prompt=["needs_review"],
-                readability_notes="needs_review",
+                negative_prompt=["low quality", "blurry", "cluttered background", "unreadable text"],
+                readability_notes="Fallback generated due to inference failure. Review design style and text contrast.",
                 review_status=ReviewStatus.NEEDS_REVIEW,
                 generated_at=generated_at,
             )
 
         return ThumbnailPrompt(
             topic_id=brief.topic_id,
-            title_text="needs_review",
-            supporting_text="needs_review",
-            visual_metaphor="needs_review",
+            title_text="Pending title review",
+            supporting_text="Pending supporting text review",
+            visual_metaphor="Pending visual metaphor review",
             style="clean_minimal",
-            negative_prompt=["needs_review"],
-            readability_notes="needs_review",
+            negative_prompt=["low quality", "blurry", "cluttered background", "unreadable text"],
+            readability_notes="Fallback generated due to inference failure. Review design style and text contrast.",
             review_status=ReviewStatus.NEEDS_REVIEW,
             generated_at=generated_at,
         )

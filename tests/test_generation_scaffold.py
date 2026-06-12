@@ -496,12 +496,12 @@ def test_generate_thumbnail_malformed_json_fallback(sample_brief, malformed_resp
         generator = ThumbnailGenerator(api_key="test_api_key", prompt_dir=thumbnail_prompt_dir)
         thumbnail = generator.generate(None, sample_brief)
 
-    assert thumbnail.title_text == "needs_review"
-    assert thumbnail.supporting_text == "needs_review"
-    assert thumbnail.visual_metaphor == "needs_review"
+    assert thumbnail.title_text == "Pending title review"
+    assert thumbnail.supporting_text == "Pending supporting text review"
+    assert thumbnail.visual_metaphor == "Pending visual metaphor review"
     assert thumbnail.style == "clean_minimal"
-    assert thumbnail.negative_prompt == ["needs_review"]
-    assert thumbnail.readability_notes == "needs_review"
+    assert thumbnail.negative_prompt == ["low quality", "blurry", "cluttered background", "unreadable text"]
+    assert thumbnail.readability_notes == "Fallback generated due to inference failure. Review design style and text contrast."
     assert thumbnail.review_status == ScriptReviewStatus.NEEDS_REVIEW
     assert thumbnail.topic_id == sample_brief.topic_id
 
