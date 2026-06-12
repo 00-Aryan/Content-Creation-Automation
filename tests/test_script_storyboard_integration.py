@@ -166,3 +166,37 @@ class TestScriptMigration:
             called_prompt = mock_mgr.generate.call_args[1]["prompt"]
             assert "Metaphor: Parallel scanner compared to a sequential reader" in called_prompt
             assert "- Script claim 1\n- Script claim 2" in called_prompt
+
+
+class TestScriptMarkerCleanup:
+    """Verify that (F), (K), and (C) markers are cleaned up deterministically from generated script text."""
+
+    def test_marker_cleanup(self, brief, script_registry):
+        response_with_markers = json.dumps({
+            "hook": "LLM Hook with (F) marker.",
+            "script_sections": [
+                "This matters. (F) Next point. (K)",
+                "Punctuation check: (C) is done. (like this parenthetical)",
+                "Multiple markers: (F) one, (K) two, (C) three.",
+                "Newline check: (F)\nnext line (K)\nfinal line (C)",
+            ],
+            "cta": "LLM CTA (C).",
+            "claims_used": ["Claim (F)"],
+            "review_status": "draft",
+        })
+
+        with patch("content_creation.generation.script.InferenceManager") as mock_cls:
+            mock_mgr = MagicMock()
+            mock_cls.return_value = mock_mgr
+            mock_mgr.generate.return_value = _make_result(response_with_markers)
+
+            gen = ScriptGenerator(api_key="test", prompt_dir=script_registry)
+            script = gen.generate(None, brief, format="short_video")
+
+        assert script.script_sections[0] == "This matters. Next point."
+        assert script.script_sections[1] == "Punctuation check: is done. (like this parenthetical)"
+        assert script.script_sections[2] == "Multiple markers: one, two, three."
+        assert script.script_sections[3] == "Newline check:\nnext line\nfinal line"
+        assert script.hook == "LLM Hook with marker."
+        assert script.cta == "LLM CTA."
+

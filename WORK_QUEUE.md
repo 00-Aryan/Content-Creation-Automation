@@ -51,6 +51,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-028 | Update dashboard to show live pipeline artifact counts | DONE    | HIGH | TASK-027 | [→](docs/tasks/task_028.md) |
 | TASK-029 | Show brief content preview before approve/reject decision in Brief Viewer | DONE    | MEDIUM | TASK-028 | [→](docs/tasks/task_029.md) |
 | TASK-030 | Fix scoring engine differentiated topic scores | DONE    | CRITICAL | None | [→](docs/tasks/task_030.md) |
+| TASK-031 | Remove structural marker tokens from final script output | DONE    | HIGH | TASK-030 | [→](docs/tasks/task_031.md) |
 
 ---
 

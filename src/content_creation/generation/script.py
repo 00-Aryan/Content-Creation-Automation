@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Union
@@ -12,6 +13,19 @@ from content_creation.prompts import PromptRegistry
 from content_creation.shared.enums import ReviewStatus
 
 logger = logging.getLogger(__name__)
+
+
+def _clean_markers(text: str) -> str:
+    """Remove structural marker tokens (F), (K), and (C) while preserving normal parenthesis and readable spacing."""
+    if not isinstance(text, str):
+        return text
+    cleaned = re.sub(r"\s*\((?:F|K|C)\)", "", text)
+    cleaned = re.sub(r"[ \t]+", " ", cleaned)
+    cleaned = re.sub(r"^[ \t]+|[ \t]+$", "", cleaned, flags=re.MULTILINE)
+    cleaned = re.sub(r"[ \t]*\n[ \t]*", "\n", cleaned)
+    return cleaned.strip()
+
+
 
 _VALID_FORMATS = frozenset({"short_video", "carousel", "newsletter"})
 
@@ -77,6 +91,15 @@ class ScriptGenerator:
                 data = json.loads(result.text)
                 if "review_status" in data:
                     data["review_status"] = ReviewStatus(data["review_status"])
+                if "hook" in data and isinstance(data["hook"], str):
+                    data["hook"] = _clean_markers(data["hook"])
+                if "cta" in data and isinstance(data["cta"], str):
+                    data["cta"] = _clean_markers(data["cta"])
+                if "script_sections" in data and isinstance(data["script_sections"], list):
+                    data["script_sections"] = [
+                        _clean_markers(section) if isinstance(section, str) else section
+                        for section in data["script_sections"]
+                    ]
                 data.pop("source_links", None)
                 source_links = [brief.source_url]
                 script = Script(
