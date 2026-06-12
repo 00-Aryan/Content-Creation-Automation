@@ -9,7 +9,7 @@ src_dir = str(Path(__file__).resolve().parent.parent.parent.parent)
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-from content_creation.ui.components.status import render_api_health
+from content_creation.ui.components.status import render_api_health, format_review_status
 from content_creation.ui.services.client import ServiceClient
 from content_creation.ui.state.session import init_session_state
 from content_creation.shared.enums import ReviewStatus
@@ -204,7 +204,7 @@ def main() -> None:
             if storyboard:
                 st.markdown("### 📋 Coordinated Narrative Storyboard")
                 st.markdown(f"**Visual Style Selection:** `{storyboard.visual_style}`")
-                sb_status = storyboard.review_status.value if hasattr(storyboard.review_status, 'value') else str(storyboard.review_status)
+                sb_status = format_review_status(storyboard.review_status)
                 st.markdown(f"**Review Status:** `{sb_status}`")
                 if storyboard.review_notes:
                     st.markdown(f"**Review Notes:** {storyboard.review_notes}")
@@ -303,9 +303,10 @@ def main() -> None:
                     if storyboard_history:
                         for entry in reversed(storyboard_history[-5:]):
                             ts = entry.timestamp[:19] if entry.timestamp else "N/A"
-                            prev = entry.previous_status.value if entry.previous_status else "N/A"
+                            prev = format_review_status(entry.previous_status) if entry.previous_status else "N/A"
+                            new_st = format_review_status(entry.new_status) if entry.new_status else "N/A"
                             st.markdown(
-                                f"**{ts}** — `{prev}` → `{entry.new_status.value}`"
+                                f"**{ts}** — `{prev}` → `{new_st}`"
                             )
                             if entry.notes:
                                 st.caption(f"Notes: {entry.notes}")

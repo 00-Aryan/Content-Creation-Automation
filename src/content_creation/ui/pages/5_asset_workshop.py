@@ -9,7 +9,7 @@ src_dir = str(Path(__file__).resolve().parent.parent.parent.parent)
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-from content_creation.ui.components.status import render_api_health
+from content_creation.ui.components.status import render_api_health, format_review_status
 from content_creation.ui.services.client import ServiceClient
 from content_creation.ui.state.session import init_session_state
 from content_creation.shared.enums import ReviewStatus
@@ -122,7 +122,7 @@ def main() -> None:
     if manifest:
         col_m1, col_m2, col_m3 = st.columns(3)
         with col_m1:
-            st.metric("Overall Status", manifest.overall_status.upper())
+            st.metric("Overall Status", format_review_status(manifest.overall_status))
         with col_m2:
             st.metric("Ready for Planner?", "YES" if manifest.ready_for_planner else "NO")
         with col_m3:
@@ -133,7 +133,7 @@ def main() -> None:
         for asset_name, asset_entry in manifest.assets.items():
             ref_data.append({
                 "Asset Type": asset_name.replace("_", " ").title(),
-                "Status": asset_entry.status.upper(),
+                "Status": format_review_status(asset_entry.status),
                 "Generated At": asset_entry.generated_at or "N/A",
                 "File Path": asset_entry.path,
             })
@@ -165,7 +165,7 @@ def main() -> None:
 
         with tab_script:
             if script:
-                st.markdown(f"**Review Status:** `{script.review_status}`")
+                st.markdown(f"**Review Status:** `{format_review_status(script.review_status)}`")
                 st.markdown(f"**Hook:** {script.hook}")
                 st.markdown("**Sections:**")
                 for idx, sect in enumerate(script.script_sections):
@@ -208,7 +208,7 @@ def main() -> None:
 
         with tab_carousel:
             if carousel:
-                st.markdown(f"**Review Status:** `{carousel.review_status}`")
+                st.markdown(f"**Review Status:** `{format_review_status(carousel.review_status)}`")
                 st.markdown("**Slides:**")
                 for slide in carousel.slides:
                     st.markdown(f"**Slide {slide.slide_number}: {slide.title}**")
@@ -252,7 +252,7 @@ def main() -> None:
 
         with tab_newsletter:
             if newsletter:
-                st.markdown(f"**Review Status:** `{newsletter.review_status}`")
+                st.markdown(f"**Review Status:** `{format_review_status(newsletter.review_status)}`")
                 st.markdown(f"**Subject Line:** {newsletter.subject_line}")
                 st.markdown("**Sections:**")
                 for sect in newsletter.sections:
@@ -300,7 +300,7 @@ def main() -> None:
 
         with tab_thumbnail:
             if thumbnail:
-                st.markdown(f"**Review Status:** `{thumbnail.review_status}`")
+                st.markdown(f"**Review Status:** `{format_review_status(thumbnail.review_status)}`")
                 st.markdown(f"**Title Text:** {thumbnail.title_text}")
                 st.markdown(f"**Supporting Text:** {thumbnail.supporting_text}")
                 st.markdown(f"**Visual Metaphor Concept:** {thumbnail.visual_metaphor}")
@@ -401,9 +401,10 @@ def main() -> None:
         if asset_history_filtered:
             for entry in reversed(asset_history_filtered[-10:]):
                 ts = entry.timestamp[:19] if entry.timestamp else "N/A"
-                prev = entry.previous_status.value if entry.previous_status else "N/A"
+                prev = format_review_status(entry.previous_status) if entry.previous_status else "N/A"
+                new_st = format_review_status(entry.new_status) if entry.new_status else "N/A"
                 st.markdown(
-                    f"**{ts}** — `{entry.asset_type}` — `{prev}` → `{entry.new_status.value}`"
+                    f"**{ts}** — `{entry.asset_type}` — `{prev}` → `{new_st}`"
                 )
                 if entry.notes:
                     st.caption(f"Notes: {entry.notes}")
