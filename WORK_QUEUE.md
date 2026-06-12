@@ -53,6 +53,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-030 | Fix scoring engine differentiated topic scores | DONE    | CRITICAL | None | [→](docs/tasks/task_030.md) |
 | TASK-031 | Remove structural marker tokens from final script output | DONE    | HIGH | TASK-030 | [→](docs/tasks/task_031.md) |
 | TASK-032 | Remove needs_review placeholder pollution from thumbnail output | DONE    | HIGH | TASK-031 | [→](docs/tasks/task_032.md) |
+| TASK-033 | Replace raw terminal-state errors with operator-friendly messages | DONE    | HIGH | TASK-032 | [→](docs/tasks/task_033.md) |
 
 ---
 

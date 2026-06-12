@@ -192,7 +192,13 @@ def main() -> None:
                 with st.expander("📄 View Raw Script JSON"):
                     st.json(script.model_dump())
 
-                choice = st.radio("Script Decision", ["No Action", "Approve", "Reject"], key="script_dec")
+                is_terminal = script.review_status in {ReviewStatus.APPROVED, ReviewStatus.REJECTED}
+                if script.review_status == ReviewStatus.APPROVED:
+                    st.info("This asset is already approved. No further approval is needed.")
+                elif script.review_status == ReviewStatus.REJECTED:
+                    st.info("This asset is already rejected. No further rejection is needed.")
+                
+                choice = st.radio("Script Decision", ["No Action", "Approve", "Reject"], key="script_dec", disabled=is_terminal)
                 if choice == "Approve":
                     decisions.append(AssetDecision(asset_type="script", status=ReviewStatus.APPROVED))
                 elif choice == "Reject":
@@ -230,7 +236,13 @@ def main() -> None:
                 with st.expander("📄 View Raw Carousel JSON"):
                     st.json(carousel.model_dump())
 
-                choice = st.radio("Carousel Decision", ["No Action", "Approve", "Reject"], key="carousel_dec")
+                is_terminal = carousel.review_status in {ReviewStatus.APPROVED, ReviewStatus.REJECTED}
+                if carousel.review_status == ReviewStatus.APPROVED:
+                    st.info("This asset is already approved. No further approval is needed.")
+                elif carousel.review_status == ReviewStatus.REJECTED:
+                    st.info("This asset is already rejected. No further rejection is needed.")
+                
+                choice = st.radio("Carousel Decision", ["No Action", "Approve", "Reject"], key="carousel_dec", disabled=is_terminal)
                 if choice == "Approve":
                     decisions.append(AssetDecision(asset_type="carousel", status=ReviewStatus.APPROVED))
                 elif choice == "Reject":
@@ -272,7 +284,13 @@ def main() -> None:
                 with st.expander("📄 View Raw Newsletter JSON"):
                     st.json(newsletter.model_dump())
 
-                choice = st.radio("Newsletter Decision", ["No Action", "Approve", "Reject"], key="newsletter_dec")
+                is_terminal = newsletter.review_status in {ReviewStatus.APPROVED, ReviewStatus.REJECTED}
+                if newsletter.review_status == ReviewStatus.APPROVED:
+                    st.info("This asset is already approved. No further approval is needed.")
+                elif newsletter.review_status == ReviewStatus.REJECTED:
+                    st.info("This asset is already rejected. No further rejection is needed.")
+                
+                choice = st.radio("Newsletter Decision", ["No Action", "Approve", "Reject"], key="newsletter_dec", disabled=is_terminal)
                 if choice == "Approve":
                     decisions.append(AssetDecision(asset_type="newsletter", status=ReviewStatus.APPROVED))
                 elif choice == "Reject":
@@ -306,7 +324,13 @@ def main() -> None:
                 with st.expander("📄 View Raw Thumbnail JSON"):
                     st.json(thumbnail.model_dump())
 
-                choice = st.radio("Thumbnail Decision", ["No Action", "Approve", "Reject"], key="thumbnail_dec")
+                is_terminal = thumbnail.review_status in {ReviewStatus.APPROVED, ReviewStatus.REJECTED}
+                if thumbnail.review_status == ReviewStatus.APPROVED:
+                    st.info("This asset is already approved. No further approval is needed.")
+                elif thumbnail.review_status == ReviewStatus.REJECTED:
+                    st.info("This asset is already rejected. No further rejection is needed.")
+                
+                choice = st.radio("Thumbnail Decision", ["No Action", "Approve", "Reject"], key="thumbnail_dec", disabled=is_terminal)
                 if choice == "Approve":
                     decisions.append(AssetDecision(asset_type="thumbnail", status=ReviewStatus.APPROVED))
                 elif choice == "Reject":
@@ -322,6 +346,18 @@ def main() -> None:
             if st.button("Apply Review Decisions & Rebuild Manifest", type="primary"):
                 with st.status("Applying review decisions...", expanded=True) as status:
                     try:
+                        # Pre-emptively check for already-terminal states in decisions
+                        assets_map = {"script": script, "carousel": carousel, "newsletter": newsletter, "thumbnail": thumbnail}
+                        for d in decisions:
+                            asset_obj = assets_map.get(d.asset_type)
+                            if asset_obj and asset_obj.review_status in {ReviewStatus.APPROVED, ReviewStatus.REJECTED}:
+                                if asset_obj.review_status == ReviewStatus.APPROVED:
+                                    raise ValueError("This asset is already approved. No further approval is needed.")
+                                elif asset_obj.review_status == ReviewStatus.REJECTED:
+                                    raise ValueError("This asset is already rejected. No further rejection is needed.")
+                                else:
+                                    raise ValueError("This asset is already in a final review state. Choose a different asset or reset it through a supported workflow.")
+                        
                         timed = client.apply_asset_decisions(topic_id, decisions)
                         res = timed.result
                         st.write(f"Duration: `{timed.duration_seconds:.2f}s`")
@@ -342,9 +378,21 @@ def main() -> None:
                         except Exception as e:
                             st.warning(f"A background operation failed and was skipped. ({type(e).__name__})")
                         st.rerun()
+                    except ValueError as ve:
+                        status.update(label="Review decision update failed.", state="error")
+                        st.error(str(ve))
                     except Exception as e:
                         status.update(label="Review decision update failed.", state="error")
-                        st.error(f"Failed to apply decisions: {e}")
+                        err_msg = str(e)
+                        if "terminal state" in err_msg.lower() or "already.*terminal" in err_msg.lower() or "blocked_already_terminal" in err_msg.lower():
+                            if "approved" in err_msg.lower():
+                                st.error("This asset is already approved. No further approval is needed.")
+                            elif "rejected" in err_msg.lower():
+                                st.error("This asset is already rejected. No further rejection is needed.")
+                            else:
+                                st.error("This asset is already in a final review state. Choose a different asset or reset it through a supported workflow.")
+                        else:
+                            st.error(f"Failed to apply decisions: {e}")
 
         # ------------------ REVIEW HISTORY ------------------
         st.markdown("---")

@@ -172,6 +172,14 @@ class WorkflowActionExecutor:
             to_status = self._map_target_review_status(action_id)
             val_result = self._transition_engine.validate_transition(from_status, to_status)
             if not val_result.valid:
+                reason = val_result.reason
+                if "Terminal state" in reason:
+                    if from_status == ReviewStatus.APPROVED:
+                        reason = "This asset is already approved. No further approval is needed."
+                    elif from_status == ReviewStatus.REJECTED:
+                        reason = "This asset is already rejected. No further rejection is needed."
+                    else:
+                        reason = "This asset is already in a final review state. Choose a different asset or reset it through a supported workflow."
                 execution_time = time.perf_counter() - start_time
                 return ActionExecutionResult(
                     action_id=action_id,
@@ -179,7 +187,7 @@ class WorkflowActionExecutor:
                     execution_status=ActionExecutionStatus.BLOCKED,
                     affected_artifacts={},
                     warnings=[],
-                    blocking_reasons=[val_result.reason],
+                    blocking_reasons=[reason],
                     execution_time=execution_time,
                     emitted_events=[],
                     raw_result=None,

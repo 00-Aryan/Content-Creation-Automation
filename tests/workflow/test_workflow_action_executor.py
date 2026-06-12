@@ -302,3 +302,36 @@ def test_single_artifact_generate_briefs_respected_blocking(mock_ctx, mock_avail
     assert "Target asset file is already populated." in result.blocking_reasons
     mock_availability_engine.is_action_available.assert_called_once()
     executor._dispatch_to_service.assert_not_called()
+
+
+def test_terminal_state_transition_friendly_errors(mock_ctx, mock_availability_engine, mock_transition_engine):
+    """Verify that transition errors due to terminal states are mapped to user-friendly messages."""
+    mock_availability_engine.is_action_available.return_value = True
+
+    # Transition validation returns False with terminal state reason
+    mock_val_result = MagicMock()
+    mock_val_result.valid = False
+    mock_val_result.reason = "Terminal state: approved has no outgoing transitions"
+    mock_transition_engine.validate_transition.return_value = mock_val_result
+
+    executor = WorkflowActionExecutor(
+        availability_engine=mock_availability_engine,
+        transition_engine=mock_transition_engine,
+    )
+
+    executor._resolve_lifecycle_state = MagicMock(return_value=ArtifactLifecycleState.APPROVED)
+    executor._resolve_dependencies = MagicMock(return_value={})
+    executor._dispatch_to_service = MagicMock()
+
+    result = executor.execute(
+        ctx=mock_ctx,
+        action_id="reject_brief",
+        target_artifact_type="brief",
+        target_artifact_id="topic_123",
+        payload={},
+    )
+
+    assert result.success is False
+    assert result.execution_status == ActionExecutionStatus.BLOCKED
+    assert "This asset is already approved. No further approval is needed." in result.blocking_reasons
+    executor._dispatch_to_service.assert_not_called()

@@ -418,6 +418,16 @@ class ActionAvailabilityEngine:
         if blocking_code:
             message = BLOCKING_MESSAGES.get(blocking_code, "Action is blocked.")
             recommendation = BLOCKING_RECOMMENDATIONS.get(blocking_code, "Check dependency requirements.")
+            
+            if blocking_code == "BLOCKED_ALREADY_TERMINAL":
+                if current_state == ArtifactLifecycleState.APPROVED:
+                    message = "This asset is already approved. No further approval is needed."
+                elif current_state == ArtifactLifecycleState.REJECTED:
+                    message = "This asset is already rejected. No further rejection is needed."
+                else:
+                    message = "This asset is already in a final review state. Choose a different asset or reset it through a supported workflow."
+                recommendation = "Choose a different asset or reset it through a supported workflow."
+
             meta = ACTION_METADATA.get(action_id, {"category": "SYSTEM"})
             return [
                 BlockedAction(

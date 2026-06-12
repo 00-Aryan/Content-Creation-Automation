@@ -630,3 +630,34 @@ class TestActionAvailabilityEngineExtended:
             dependencies={"topic": ArtifactLifecycleState.APPROVED},
         )
 
+    def test_terminal_state_operator_friendly_messages(self, engine: ActionAvailabilityEngine):
+        """Verify that attempting actions on already terminal artifacts returns user-friendly messages."""
+        # APPROVED state
+        reasons_app = engine.get_blocking_reasons(
+            action_id="approve_asset",
+            artifact_type="assets",
+            current_state=ArtifactLifecycleState.APPROVED,
+        )
+        assert len(reasons_app) == 1
+        assert reasons_app[0].blocking_message == "This asset is already approved. No further approval is needed."
+        assert reasons_app[0].recommendation == "Choose a different asset or reset it through a supported workflow."
+
+        # REJECTED state
+        reasons_rej = engine.get_blocking_reasons(
+            action_id="reject_asset",
+            artifact_type="assets",
+            current_state=ArtifactLifecycleState.REJECTED,
+        )
+        assert len(reasons_rej) == 1
+        assert reasons_rej[0].blocking_message == "This asset is already rejected. No further rejection is needed."
+        assert reasons_rej[0].recommendation == "Choose a different asset or reset it through a supported workflow."
+
+        # approve_brief already APPROVED
+        reasons_brief_app = engine.get_blocking_reasons(
+            action_id="approve_brief",
+            artifact_type="brief",
+            current_state=ArtifactLifecycleState.APPROVED,
+        )
+        assert len(reasons_brief_app) == 1
+        assert reasons_brief_app[0].blocking_message == "This asset is already approved. No further approval is needed."
+
