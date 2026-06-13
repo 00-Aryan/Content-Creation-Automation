@@ -9,6 +9,8 @@
 
 ## Phase 12.3 Direction
 
+- Defined precise output contracts for LinkedIn and YouTube Shorts in docs/platform/ prior to implementation to prevent schema drift and alignment errors.
+- Established strict source grounding rules and pre-publish automated quality gates (metrics, length, and content filters) to enforce professional, high-fidelity outputs.
 - Build LinkedIn and YouTube Shorts first.
 - Keep manual review before publishing.
 - Add quality guardrails before auto-capable publishing.

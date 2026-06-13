@@ -2,7 +2,7 @@
 
 ## Phase 12.3 — Platform-Aware Content
 
-- TASK-040: Define platform content contracts
+- TASK-040: Define platform content contracts (Completed)
 - TASK-041: Add LinkedIn post generator
 - TASK-042: Add YouTube Shorts script generator
 - TASK-043: Add platform preview UI
