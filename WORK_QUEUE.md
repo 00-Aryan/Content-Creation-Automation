@@ -57,6 +57,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-034 | Replace raw review enum labels with readable UI status text | DONE | MEDIUM | TASK-033 | [→](docs/tasks/task_034.md) |
 | TASK-035 | Format ISO timestamps into readable UI display text | DONE    | MEDIUM | TASK-034 | [→](docs/tasks/task_035.md) |
 | TASK-036 | Phase 12.2 validation sweep and knowledge base bootstrap | DONE    | HIGH | TASK-035 | [→](docs/tasks/task_036.md) |
+| TASK-082 | Build issue-driven automation runner | DONE    | HIGH | TASK-036 | [→](docs/tasks/task_082.md) |
 
 ---
 
@@ -85,6 +86,8 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-029 | Show brief content preview before approve/reject decision in Brief Viewer | 2026-06-11 | feat(ui): show brief content preview before approve/reject decision in Brief Viewer (TASK-029) |
 | TASK-034 | Replace raw review enum labels with readable UI status text | 2026-06-12 | fix(ui): display readable review status labels (TASK-034) |
 | TASK-036 | Phase 12.2 validation sweep and knowledge base bootstrap | 2026-06-12 | docs(project): close phase 12.2 and bootstrap SDLC knowledge base (TASK-036) |
+| TASK-082 | Build issue-driven automation runner | 2026-06-13 | feat(tooling): add issue-driven automation runner (TASK-082) |
+
 
 
 ---
