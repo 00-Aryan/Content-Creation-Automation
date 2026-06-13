@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 import sys
 import os
+
+# Ensure repository root is in sys.path for direct execution imports
+scripts_dir = os.path.dirname(os.path.abspath(__file__))
+repo_root = os.path.dirname(scripts_dir)
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
+
 import json
 import argparse
 import subprocess
 import re
+import shutil
 from datetime import datetime
 
 ACTIVE_RUN_PATH = ".git/issue-runner-runs/active_run.json"
@@ -606,7 +614,10 @@ def mode_run(engine="agy"):
         f.write(card_content)
 
     # Extract allowed scope
-    from scripts.issue_scope_guard import parse_task_card
+    try:
+        from scripts.issue_scope_guard import parse_task_card
+    except ModuleNotFoundError:
+        from issue_scope_guard import parse_task_card
     modify_files, create_files = parse_task_card(card_path)
     allowed_all = modify_files.union(create_files)
 
@@ -706,7 +717,10 @@ def mode_verify():
         sys.exit(1)
 
     # Save changed files list
-    from scripts.issue_scope_guard import get_changed_files, parse_task_card
+    try:
+        from scripts.issue_scope_guard import get_changed_files, parse_task_card
+    except ModuleNotFoundError:
+        from issue_scope_guard import get_changed_files, parse_task_card
     changed_files = get_changed_files()
     with open(os.path.join(run_dir, "changed_files.txt"), "w", encoding="utf-8") as f:
         f.write("\n".join(f"{status} {path}" for status, path in sorted(changed_files)))
@@ -798,13 +812,19 @@ def mode_pr():
         commit_msg = f"feat(issue-{issue_num}): resolve issue #{issue_num} (TASK-{padded_num})"
 
     # 2. Stage only allowed files + WORK_QUEUE.md + task card
-    from scripts.issue_scope_guard import parse_task_card
+    try:
+        from scripts.issue_scope_guard import parse_task_card
+    except ModuleNotFoundError:
+        from issue_scope_guard import parse_task_card
     modify_files, create_files = parse_task_card(card_path)
     allowed_all = modify_files.union(create_files)
 
     print("[*] Staging files for commit...")
     # Add files that are allowed and actually changed/created
-    from scripts.issue_scope_guard import get_changed_files
+    try:
+        from scripts.issue_scope_guard import get_changed_files
+    except ModuleNotFoundError:
+        from issue_scope_guard import get_changed_files
     changed_files = get_changed_files()
 
     files_to_add = []
@@ -947,18 +967,27 @@ def mode_inspect(issue_num=None, allow_no_task=False):
         print(f"Status:        {state['status'].upper()}")
         print("====================================================")
 
+        # Show warning if stale
+        if current_branch == "main" and state.get("branch") and state["branch"] != "main":
+            print(f"\n[!] WARNING: active_run.json points to issue branch '{state['branch']}' but current branch is '{current_branch}' (stale run).")
+
         # Show changed files in git status
-        from scripts.issue_scope_guard import get_changed_files
-        changed = get_changed_files()
-        if changed:
-            print("\nChanged files in worktree:")
-            for status, path in sorted(changed):
-                print(f"  {status} {path}")
-        else:
-            print("\nNo changed files in worktree.")
+        try:
+            from scripts.issue_scope_guard import get_changed_files
+        except ModuleNotFoundError:
+            from issue_scope_guard import get_changed_files
+        try:
+            changed = get_changed_files()
+            if changed:
+                print("\nChanged files in worktree:")
+                for status, path in sorted(changed):
+                    print(f"  {status} {path}")
+            else:
+                print("\nNo changed files in worktree.")
+        except Exception as e:
+            print(f"\nFailed to get changed files: {e}")
     else:
         print("\nNo active automation run found in progress.")
-
     effective_issue_num = issue_num
     if not effective_issue_num and state:
         try:
@@ -968,12 +997,7 @@ def mode_inspect(issue_num=None, allow_no_task=False):
 
     if effective_issue_num:
         print(f"\nExpected / Derived Metadata for Issue #{effective_issue_num}:")
-        gh_exists = False
-        try:
-            res_gh = subprocess.run(["command", "-v", "gh"], shell=True, capture_output=True)
-            gh_exists = (res_gh.returncode == 0)
-        except Exception:
-            pass
+        gh_exists = shutil.which("gh") is not None
 
         if gh_exists:
             try:
@@ -987,10 +1011,14 @@ def mode_inspect(issue_num=None, allow_no_task=False):
                 meta = extract_metadata(issue_data, allow_no_task=allow_no_task)
                 print(f"Derived Task ID: {meta['task_code']}")
                 print(f"Derived Task Card Path: {meta['card_path']}")
+                if not os.path.exists(meta['card_path']):
+                    print(f"Note: Task card file '{meta['card_path']}' does not exist yet.")
                 print(f"Derived Branch Name: {meta['branch_name']}")
                 print(f"Derived Run Directory Prefix: {meta['run_dir_prefix']}")
             except Exception as e:
                 print(f"Failed to fetch issue details from GitHub via gh: {e}")
+        else:
+            print("Note: GitHub CLI (gh) is not available or not logged in, cannot fetch issue details.")
 
 def mode_abort():
     state = load_active_run()

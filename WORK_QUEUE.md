@@ -60,6 +60,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-082 | Build issue-driven automation runner | DONE    | HIGH | TASK-036 | [→](docs/tasks/task_082.md) |
 | TASK-083 | Repair issue-runner task-id mapping and trace handling | DONE    | HIGH | TASK-082 | [→](docs/tasks/task_083.md) |
 | TASK-084 | Repair issue-runner plan-mode task-card generation | DONE    | HIGH | TASK-083 | [→](docs/tasks/task_084.md) |
+| TASK-085 | Repair issue-runner direct-execution imports and inspect recovery | DONE | HIGH | TASK-084 | [→](docs/tasks/task_085.md) |
 
 ---
 
@@ -91,6 +92,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-082 | Build issue-driven automation runner | 2026-06-13 | feat(tooling): add issue-driven automation runner (TASK-082) |
 | TASK-083 | Repair issue-runner task-id mapping and trace handling | 2026-06-13 | chore: task-083: repair issue-runner task-id mapping and trace handling |
 | TASK-084 | Repair issue-runner plan-mode task-card generation | 2026-06-13 | fix(tooling): generate issue-specific task cards in runner plan mode (TASK-084) |
+| TASK-085 | Repair issue-runner direct-execution imports and inspect recovery | 2026-06-13 | fix(tooling): repair issue-runner direct execution imports (TASK-085) |
 
 
 

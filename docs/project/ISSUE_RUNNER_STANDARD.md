@@ -10,23 +10,44 @@ The automation runner turns one GitHub issue into one controlled workflow branch
 
 All commands should be executed from the repository root.
 
+### Preferred Command Form
+
+The preferred way to run the issue runner is via the shell wrapper script:
+
 ```bash
 ./scripts/issue-runner.sh [mode] [options]
 ```
+
+### Direct Script Invocation and Package Path Imports
+
+Direct execution using python3 is also supported and expected to run reliably from the repository root without package-mode invocation wrappers (i.e. without requiring `python3 -m scripts.issue_runner`):
+
+```bash
+python3 scripts/issue_runner.py [mode] [options]
+```
+
+To achieve this, the scripts utilize robust local import path handling (by dynamically injecting the repository root into `sys.path` at startup and using try-except fallback imports for sister modules such as `issue_scope_guard.py`).
 
 ### Modes
 
 | Mode | Command | Description |
 |---|---|---|
-| **Plan** | `./scripts/issue-runner.sh plan --issue <num>` | Verifies clean branch, fetches issue description, checks out branch, and initializes task card. |
+| **Plan** | `./scripts/issue-runner.sh plan --issue <num>` | Verifies clean branch (unless `--force` is used), fetches issue description, checks out branch, and initializes task card. |
 | **Run** | `./scripts/issue-runner.sh run [--engine agy\|codex]` | Runs agent on task card (default `agy`). |
 | **Verify** | `./scripts/issue-runner.sh verify` | Validates file modifications against task-card scope, checks syntax, runs tests. |
 | **PR** | `./scripts/issue-runner.sh pr` | Commits changes, pushes branch to origin, and creates a pull request. |
 | **Merge** | `./scripts/issue-runner.sh merge` | Merges the PR, deletes the branch, and pulls main (only if safe). |
 | **Full** | `./scripts/issue-runner.sh full --issue <num> [--merge]` | Executes plan, run, verify, and pr sequentially. Stops before merge unless `--merge` is specified. |
-| **Inspect** | `./scripts/issue-runner.sh inspect` | Displays active run state and status. |
+| **Inspect** | `./scripts/issue-runner.sh inspect [--issue <num>]` | Displays active run details, worktree status, and derived metadata. |
 | **Abort** | `./scripts/issue-runner.sh abort` | Discards branch, resets changes, and cleans active run state. |
 | **Resume** | `./scripts/issue-runner.sh resume` | Resumes the active run from the last completed stage. |
+
+### Inspect-Mode and Stale Active-Run Warnings
+
+The `inspect` mode retrieves the current Git branch, the expected run log directory, and any active run details stored in `active_run.json`. When `--issue <num>` is passed, it derives the expected task ID, branch name, and task card path from GitHub (via `gh`).
+- **Missing Task Card:** If the derived task card does not exist yet on disk, it displays a clear message (e.g. `Note: Task card file '...' does not exist yet.`) instead of crashing.
+- **Stale Active Runs:** If `active_run.json` exists and points to an issue branch but the current branch is `main`, `inspect` mode tolerates this state and prints a warning (e.g. `[!] WARNING: active_run.json points to issue branch '...' but current branch is 'main'`) instead of failing or crashing.
+- **No File Modifications:** The `inspect` mode is read-only and never modifies files on disk.
 
 ## 3. Directory Layout for Trace Logs
 
