@@ -31,7 +31,7 @@ All commands should be executed from the repository root.
 ## 3. Directory Layout for Trace Logs
 
 Every execution is fully traceable. Execution outputs and logs are written under:
-`.runs/issue-<number>-<timestamp>/`
+`.runs/issue-<padded-issue-num>-task-<padded-task-num>-<timestamp>/`
 
 Inside the run directory, you will find:
 - `issue.json` — The fetched GitHub issue payload
@@ -56,3 +56,14 @@ Inside the run directory, you will find:
    - `architecture`
    - `hardening`
 4. **Test Baselines:** The full test suite must not regress below the baseline of **1000** passing tests.
+
+## 5. Naming and Conventions
+
+To ensure clean mapping between external GitHub issue tracking and internal engineering tasks, the following rules apply:
+
+- **GitHub Issue Number vs TASK ID:** The GitHub issue number (e.g., `#5`) is not the same as the internal engineering TASK ID (e.g., `TASK-040`). They must not be used interchangeably.
+- **Issue Title Requirement:** The title of the GitHub issue must contain the internal TASK ID matching the pattern `TASK-XXX` (e.g., `TASK-040: Define platform content contracts`). If it does not, the runner will refuse to proceed unless the `--allow-no-task` flag is explicitly provided.
+- **Task Cards:** Task cards are named using the internal TASK ID (e.g., `docs/tasks/task_040.md`), not the GitHub issue number.
+- **Branch Naming:** Branches are named according to the convention `issue-<padded-issue-num>-task-<padded-task-num>-<slug>` (e.g., `issue-005-task-040-platform-content-contracts`).
+- **Run Directory Naming:** Run directories are named according to the convention `.runs/issue-<padded-issue-num>-task-<padded-task-num>-<timestamp>/` (e.g., `.runs/issue-005-task-040-20260613_120000/`).
+- **PR Closing:** The pull request uses the GitHub issue number for closing references (e.g., `Closes #5`), while all task artifacts and commits keep references to the internal TASK ID (e.g., `TASK-040`).

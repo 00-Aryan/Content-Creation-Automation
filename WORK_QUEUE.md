@@ -58,6 +58,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-035 | Format ISO timestamps into readable UI display text | DONE    | MEDIUM | TASK-034 | [→](docs/tasks/task_035.md) |
 | TASK-036 | Phase 12.2 validation sweep and knowledge base bootstrap | DONE    | HIGH | TASK-035 | [→](docs/tasks/task_036.md) |
 | TASK-082 | Build issue-driven automation runner | DONE    | HIGH | TASK-036 | [→](docs/tasks/task_082.md) |
+| TASK-083 | Repair issue-runner task-id mapping and trace handling | DONE    | HIGH | TASK-082 | [→](docs/tasks/task_083.md) |
 
 ---
 
