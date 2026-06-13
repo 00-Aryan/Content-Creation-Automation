@@ -59,6 +59,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-036 | Phase 12.2 validation sweep and knowledge base bootstrap | DONE    | HIGH | TASK-035 | [→](docs/tasks/task_036.md) |
 | TASK-082 | Build issue-driven automation runner | DONE    | HIGH | TASK-036 | [→](docs/tasks/task_082.md) |
 | TASK-083 | Repair issue-runner task-id mapping and trace handling | DONE    | HIGH | TASK-082 | [→](docs/tasks/task_083.md) |
+| TASK-084 | Repair issue-runner plan-mode task-card generation | DONE    | HIGH | TASK-083 | [→](docs/tasks/task_084.md) |
 
 ---
 
@@ -88,6 +89,8 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-034 | Replace raw review enum labels with readable UI status text | 2026-06-12 | fix(ui): display readable review status labels (TASK-034) |
 | TASK-036 | Phase 12.2 validation sweep and knowledge base bootstrap | 2026-06-12 | docs(project): close phase 12.2 and bootstrap SDLC knowledge base (TASK-036) |
 | TASK-082 | Build issue-driven automation runner | 2026-06-13 | feat(tooling): add issue-driven automation runner (TASK-082) |
+| TASK-083 | Repair issue-runner task-id mapping and trace handling | 2026-06-13 | chore: task-083: repair issue-runner task-id mapping and trace handling |
+| TASK-084 | Repair issue-runner plan-mode task-card generation | 2026-06-13 | fix(tooling): generate issue-specific task cards in runner plan mode (TASK-084) |
 
 
 

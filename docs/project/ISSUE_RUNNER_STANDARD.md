@@ -30,12 +30,12 @@ All commands should be executed from the repository root.
 
 ## 3. Directory Layout for Trace Logs
 
-Every execution is fully traceable. Execution outputs and logs are written under:
-`.runs/issue-<padded-issue-num>-task-<padded-task-num>-<timestamp>/`
+Every execution is fully traceable. To ensure the working tree remains clean and free of untracked files that could block consecutive plan runs, all execution outputs and logs are written under the local git metadata directory:
+`.git/issue-runner-runs/issue-<padded-issue-num>-task-<padded-task-num>-<timestamp>/`
 
 Inside the run directory, you will find:
 - `issue.json` — The fetched GitHub issue payload
-- `task_card_before.md` — The generated task card prior to execution
+- `task_card_before.md` — The generated task card prior to execution (if it already existed)
 - `task_card_after.md` — The task card after execution has completed
 - `allowed_files.txt` — File paths allowed to be modified or created
 - `changed_files.txt` — Actual modified files in the working directory
@@ -57,13 +57,41 @@ Inside the run directory, you will find:
    - `hardening`
 4. **Test Baselines:** The full test suite must not regress below the baseline of **1000** passing tests.
 
-## 5. Naming and Conventions
+## 5. Task Card Generation & Validation Rules
+
+In plan mode, the runner dynamically generates an issue-specific task card under `docs/tasks/task_<padded-task-num>.md` instead of copying a static template with placeholders.
+
+### Generation Workflow
+1. **Title Cleanup:** Any leading task identifier (e.g. `TASK-040:`) is stripped from the GitHub issue title before assigning it to the title header, avoiding duplicate title text.
+2. **Phase Label Mapping:** The runner inspects the GitHub issue labels and maps them to human-readable SDLC Phase names:
+   - `phase:12.3` → `12.3 — Platform-Aware Content`
+   - `phase:12.4` → `12.4 — LLM Quality Guardrails`
+   - `phase:12.5` → `12.5 — LinkedIn Export and Publishing`
+   - `phase:12.6` → `12.6 — YouTube Shorts Flow`
+   - `phase:12.7` → `12.7 — Observability and Reliability`
+   - `phase:12.8` → `12.8 — Portfolio Readiness`
+   - `phase:deferred-polish` → `Deferred UI/Polish`
+   - `phase:hardening` → `Technical Debt and Hardening`
+3. **File Scope Inference:**
+   - **Explicit Mapping:** Specific issues (e.g., `TASK-040`) have hardcoded allowed scopes mapping to their target architectural design deliverables.
+   - **Body Extraction:** For other tasks, the runner attempts to parse file paths listed in the issue body under `Files to create` and `Files to modify`.
+   - **Resolution and Fallback:** If a safe file scope cannot be derived from the issue, plan mode stops immediately with the error:
+     `Cannot infer safe file scope for this issue. Create task card manually or add scope mapping.`
+     It will not generate a placeholder card.
+4. **Force Overwrite Guard:** If a task card already exists under `docs/tasks/`, plan mode will exit with an error to prevent accidental overwrites, unless the `--force` flag is explicitly passed.
+
+### Placeholder & Emptiness Rejection
+Before writing a task card, the runner scans its content to ensure no generic or incomplete sections exist. The plan run will fail if the card contains:
+- Stale placeholder markers: `<Specific, observable criterion`, `Replace this comment`, `Section Name`, or `phaseXX`.
+- Empty key sections: `### Files to create`, `### Files to modify`, or `## Implementation Steps` (whitespace and comment lines only).
+
+## 6. Naming and Conventions
 
 To ensure clean mapping between external GitHub issue tracking and internal engineering tasks, the following rules apply:
 
-- **GitHub Issue Number vs TASK ID:** The GitHub issue number (e.g., `#5`) is not the same as the internal engineering TASK ID (e.g., `TASK-040`). They must not be used interchangeably.
+- **GitHub Issue Number vs TASK ID:** The GitHub issue number (e.g., `#5`) is sequential on GitHub and is used for closing pull requests (e.g., `Closes #5`). The TASK ID (e.g., `TASK-040`) represents the internal engineering tracker, which maps tasks to architectural deliverables and SDLC milestones. They are different and must not be used interchangeably.
 - **Issue Title Requirement:** The title of the GitHub issue must contain the internal TASK ID matching the pattern `TASK-XXX` (e.g., `TASK-040: Define platform content contracts`). If it does not, the runner will refuse to proceed unless the `--allow-no-task` flag is explicitly provided.
 - **Task Cards:** Task cards are named using the internal TASK ID (e.g., `docs/tasks/task_040.md`), not the GitHub issue number.
 - **Branch Naming:** Branches are named according to the convention `issue-<padded-issue-num>-task-<padded-task-num>-<slug>` (e.g., `issue-005-task-040-platform-content-contracts`).
-- **Run Directory Naming:** Run directories are named according to the convention `.runs/issue-<padded-issue-num>-task-<padded-task-num>-<timestamp>/` (e.g., `.runs/issue-005-task-040-20260613_120000/`).
+- **Run Directory Naming:** Run directories are named according to the convention `.git/issue-runner-runs/issue-<padded-issue-num>-task-<padded-task-num>-<timestamp>/`.
 - **PR Closing:** The pull request uses the GitHub issue number for closing references (e.g., `Closes #5`), while all task artifacts and commits keep references to the internal TASK ID (e.g., `TASK-040`).

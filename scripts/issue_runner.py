@@ -7,8 +7,279 @@ import subprocess
 import re
 from datetime import datetime
 
-ACTIVE_RUN_PATH = ".runs/active_run.json"
+ACTIVE_RUN_PATH = ".git/issue-runner-runs/active_run.json"
 BASELINE_MIN = 1000  # The baseline number of passing tests
+
+PHASE_MAPPING = {
+    "phase:12.3": "12.3 — Platform-Aware Content",
+    "phase:12.4": "12.4 — LLM Quality Guardrails",
+    "phase:12.5": "12.5 — LinkedIn Export and Publishing",
+    "phase:12.6": "12.6 — YouTube Shorts Flow",
+    "phase:12.7": "12.7 — Observability and Reliability",
+    "phase:12.8": "12.8 — Portfolio Readiness",
+    "phase:deferred-polish": "Deferred UI/Polish",
+    "phase:hardening": "Technical Debt and Hardening"
+}
+
+def extract_files_from_text(text):
+    mod_files = []
+    cre_files = []
+    current_section = None
+    for line in text.splitlines():
+        line_s = line.strip()
+        if not line_s:
+            continue
+        if "files to modify" in line_s.lower() or "modify files" in line_s.lower():
+            current_section = "modify"
+            continue
+        elif "files to create" in line_s.lower() or "create files" in line_s.lower():
+            current_section = "create"
+            continue
+        elif "files to not touch" in line_s.lower():
+            current_section = None
+            continue
+
+        bullet = re.match(r'^[-*]\s+(.*)', line_s)
+        if bullet:
+            file_val = bullet.group(1).strip().strip('`').strip()
+            file_val = re.sub(r'^\[[\sX]*\]\s*', '', file_val).strip()
+            if file_val and not file_val.startswith('#'):
+                if current_section == "modify":
+                    mod_files.append(file_val)
+                elif current_section == "create":
+                    cre_files.append(file_val)
+    return mod_files, cre_files
+
+def generate_task_card_content(issue_data, metadata):
+    issue_num = issue_data["number"]
+    issue_title = issue_data.get("title", "").strip()
+    issue_title_clean = re.sub(r'^TASK-\d+\s*:?\s*', '', issue_title, flags=re.IGNORECASE).strip()
+    issue_body = issue_data.get("body", "") or ""
+    labels = [l.get("name", "") for l in issue_data.get("labels", [])]
+    padded_task_num = metadata["padded_task_number"]
+    task_num = int(padded_task_num)
+
+    phase_val = None
+    for l in labels:
+        if l in PHASE_MAPPING:
+            phase_val = PHASE_MAPPING[l]
+            break
+    if not phase_val:
+        phase_val = get_current_phase()
+
+    priority_val = "HIGH"
+    for l in labels:
+        if l.startswith("priority:"):
+            priority_val = l.split(":")[1].upper()
+
+    requires_approval = "YES"
+
+    if task_num == 40:
+        files_create = [
+            "docs/platform/platform-content-contracts.md",
+            "docs/platform/linkedin-content-contract.md",
+            "docs/platform/youtube-shorts-content-contract.md",
+            "docs/platform/source-grounding-contract.md",
+            "docs/platform/platform-quality-gates.md",
+            "docs/phase-12.3-platform-contracts.md"
+        ]
+        files_modify = [
+            "docs/project/CURRENT_STATE.md",
+            "docs/project/NEXT_ACTION.md",
+            "docs/project/PHASES.md",
+            "docs/project/ROADMAP.md",
+            "docs/project/SPRINT_PLAN.md",
+            "docs/project/DECISION_LOG.md",
+            "docs/project/BACKLOG.md",
+            "WORK_QUEUE.md"
+        ]
+        files_not_touch = [
+            "src/",
+            "tests/",
+            "prompts/",
+            "data/",
+            "pyproject.toml",
+            "uv.lock",
+            ".github/workflows/",
+            "docs/tasks/task_005.md"
+        ]
+        objective = "Define precise output contracts before implementing platform generators."
+        context = "This task defines platform-specific content contracts to ensure generated content meets format, style, and quality constraints before ingestion. It establishes schemas for LinkedIn and YouTube Shorts. This enables platform-aware generation and validation, ensuring downstream publishing tools can consume assets without formatting errors."
+        constraints = "Do not modify Python code or write tests. Do not touch prompts or schemas outside of the listed docs. Keep all contracts aligned with the roadmap and SDLC standard."
+        steps = [
+            "Create the platform content contract directory and write the core contract document detailing shared requirements.",
+            "Define the LinkedIn content contract including character limits, tone, and formatting constraints.",
+            "Define the YouTube Shorts content contract specifying scripts, thumbnails, duration, and structure.",
+            "Define the source grounding contract ensuring trace logging requirements for all claims.",
+            "Create the platform quality gates document listing checks required before assets are ready for export.",
+            "Create the phase summary detailing the platform contracts defined.",
+            "Update project tracking documentation: CURRENT_STATE.md, NEXT_ACTION.md, PHASES.md, ROADMAP.md, SPRINT_PLAN.md, DECISION_LOG.md, BACKLOG.md, and WORK_QUEUE.md."
+        ]
+        validation_cmds = """# Verify all created documents exist
+test -f docs/platform/platform-content-contracts.md
+test -f docs/platform/linkedin-content-contract.md
+test -f docs/platform/youtube-shorts-content-contract.md
+test -f docs/platform/source-grounding-contract.md
+test -f docs/platform/platform-quality-gates.md
+test -f docs/phase-12.3-platform-contracts.md
+
+# Verify tracked project files are modified
+git status --short docs/project/"""
+        success_criteria = [
+            "Platform content contracts are fully defined in docs/platform/",
+            "Mappings and gates are documented for both LinkedIn and YouTube Shorts",
+            "Project documentation is updated to reflect Phase 12.3 progress"
+        ]
+        depends_on = "TASK-036"
+        commit_msg = f"docs(platform): define platform content contracts for Phase 12.3 (TASK-{padded_task_num})"
+    else:
+        mod_extracted, cre_extracted = extract_files_from_text(issue_body)
+        if not mod_extracted and not cre_extracted:
+            print("[-] ERROR: Cannot infer safe file scope for this issue. Create task card manually or add scope mapping.", file=sys.stderr)
+            sys.exit(1)
+        
+        files_create = cre_extracted
+        files_modify = mod_extracted
+        files_not_touch = [
+            "src/",
+            "tests/",
+            "prompts/",
+            "data/",
+            "pyproject.toml",
+            "uv.lock",
+            ".github/workflows/",
+            "docs/tasks/task_005.md"
+        ]
+        objective = issue_title
+        context = f"This task addresses issue #{issue_num}: '{issue_title}'. It is a scoped modification to resolve the identified issue and align it with current requirements."
+        constraints = "Keep changes focused on the declared file scope. Do not refactor unrelated modules."
+        steps = [
+            "Review the requirements of the task.",
+            "Implement changes in the modified files list.",
+            "Verify formatting, syntax, and logic using validation checks."
+        ]
+        validation_cmds = "# Run project tests to ensure no regressions\nuv run python -m pytest --tb=short -q 2>&1 | tail -3"
+        success_criteria = [
+            "All requested modifications are implemented correctly",
+            "No files outside the declared scope are modified"
+        ]
+        depends_on = "None"
+        commit_msg = f"feat(issue-{issue_num}): resolve issue #{issue_num} (TASK-{padded_task_num})"
+
+    create_block = "\n".join(f"- {f}" for f in files_create) if files_create else "None"
+    modify_block = "\n".join(f"- {f}" for f in files_modify) if files_modify else "None"
+    not_touch_block = "\n".join(f"- {f}" for f in files_not_touch) if files_not_touch else "None"
+    steps_block = "\n".join(f"{i}. {step}" for i, step in enumerate(steps, start=1))
+    
+    criteria_block = "\n".join(f"- [ ] {c}" for c in success_criteria)
+    criteria_block += "\n- [ ] Test suite passes at baseline count (no regression)"
+    criteria_block += "\n- [ ] No files outside declared scope were modified"
+
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    card = f"""# TASK-{padded_task_num}: {issue_title_clean}
+
+**Phase:** {phase_val}
+**Status:** PENDING
+**Priority:** {priority_val}
+**Created:** {today}
+**Completed:** —
+**Requires approval:** {requires_approval}
+
+---
+
+## Traceability
+
+- GitHub issue: GitHub issue #{issue_num}
+- Phase target: {phase_val}
+- Source: GitHub issue #{issue_num}
+
+---
+
+## Objective
+
+{objective}
+
+---
+
+## Context
+
+{context}
+
+---
+
+## Scope
+
+### Files to create
+
+{create_block}
+
+### Files to modify
+
+{modify_block}
+
+### Files to NOT touch
+
+{not_touch_block}
+
+---
+
+## Constraints
+
+{constraints}
+
+---
+
+## Implementation Steps
+
+{steps_block}
+
+---
+
+## Validation
+
+```bash
+# Baseline test suite — must match or exceed before-count
+uv run python -m pytest --tb=short -q 2>&1 | tail -3
+
+# Task-specific verification
+{validation_cmds}
+```
+
+---
+
+## Success Criteria
+
+{criteria_block}
+
+---
+
+## Depends On
+
+{depends_on}
+
+---
+
+## Blocks
+
+None
+
+---
+
+## Commit Message
+
+```
+{commit_msg}
+```
+
+---
+
+## Notes
+
+None
+"""
+    return card
+
 
 def run_cmd(cmd, check=True, capture=True, cwd=None):
     shell = isinstance(cmd, str)
@@ -33,6 +304,7 @@ def is_worktree_clean():
     # Ignore .runs/ directory changes and other temp files
     lines = [line for line in res.stdout.splitlines() if not (
         line[3:].startswith(".runs/") or
+        line[3:].startswith(".git/issue-runner-runs/") or
         line[3:].startswith(".run-tasks.log") or
         ".pytest_cache" in line or
         ".mypy_cache" in line
@@ -118,7 +390,7 @@ def extract_metadata(issue_data, allow_no_task=False):
 
     card_path = f"docs/tasks/task_{padded_task_num}.md"
     branch_name = f"issue-{padded_issue_num}-task-{padded_task_num}-{slug}"
-    run_dir_prefix = f".runs/issue-{padded_issue_num}-task-{padded_task_num}-"
+    run_dir_prefix = f".git/issue-runner-runs/issue-{padded_issue_num}-task-{padded_task_num}-"
 
     return {
         "issue_number": issue_num,
@@ -184,96 +456,83 @@ def mode_plan(issue_num, force=False, allow_no_task=False):
     # 5. Create Task Card from template or use existing
     card_existed = os.path.exists(card_path)
 
-    if card_existed:
-        print(f"[*] Task card {card_path} already exists. Using existing content.")
-        with open(card_path, "r", encoding="utf-8") as f:
-            card_content = f.read()
+    if card_existed and not force:
+        print(f"[-] ERROR: Task card {card_path} already exists. Use --force to overwrite.", file=sys.stderr)
+        sys.exit(1)
 
+    print(f"[*] Generating task card content for {card_path}...")
+    if card_existed:
+        with open(card_path, "r", encoding="utf-8") as f:
+            card_content_before = f.read()
         # Write copy to run_dir
         with open(os.path.join(run_dir, "task_card_before.md"), "w", encoding="utf-8") as f:
-            f.write(card_content)
+            f.write(card_content_before)
 
-        from scripts.issue_scope_guard import parse_task_card
-        mod_extracted, cre_extracted = parse_task_card(card_path)
+    # Generate task card content
+    card_content = generate_task_card_content(issue_data, metadata)
+
+    # Validate generated card before writing
+    # Placeholder checks
+    placeholders = [
+        "<Specific, observable criterion",
+        "Replace this comment",
+        "Section Name",
+        "phaseXX"
+    ]
+    for p in placeholders:
+        if p in card_content:
+            print(f"[-] ERROR: Generated card contains placeholder: '{p}'", file=sys.stderr)
+            sys.exit(1)
+
+    # Empty sections checks
+    def is_section_empty(text, header):
+        pattern = re.compile(rf"{re.escape(header)}\s*\n(.*?)(?=\n#|$)", re.DOTALL)
+        match = pattern.search(text)
+        if not match:
+            return True
+        content = match.group(1).strip()
+        # Strip comments
+        content = re.sub(r'<!--.*?-->', '', content, flags=re.DOTALL).strip()
+        return len(content) == 0
+
+    if is_section_empty(card_content, "### Files to create"):
+        print("[-] ERROR: Generated card has empty ### Files to create section", file=sys.stderr)
+        sys.exit(1)
+    if is_section_empty(card_content, "### Files to modify"):
+        print("[-] ERROR: Generated card has empty ### Files to modify section", file=sys.stderr)
+        sys.exit(1)
+    if is_section_empty(card_content, "## Implementation Steps"):
+        print("[-] ERROR: Generated card has empty ## Implementation Steps section", file=sys.stderr)
+        sys.exit(1)
+
+    # Write the task card
+    os.makedirs(os.path.dirname(card_path), exist_ok=True)
+    with open(card_path, "w", encoding="utf-8") as f:
+        f.write(card_content)
+
+    # Setup mod_extracted and cre_extracted for allowed files log
+    task_num = int(metadata["padded_task_number"])
+    if task_num == 40:
+        cre_extracted = [
+            "docs/platform/platform-content-contracts.md",
+            "docs/platform/linkedin-content-contract.md",
+            "docs/platform/youtube-shorts-content-contract.md",
+            "docs/platform/source-grounding-contract.md",
+            "docs/platform/platform-quality-gates.md",
+            "docs/phase-12.3-platform-contracts.md"
+        ]
+        mod_extracted = [
+            "docs/project/CURRENT_STATE.md",
+            "docs/project/NEXT_ACTION.md",
+            "docs/project/PHASES.md",
+            "docs/project/ROADMAP.md",
+            "docs/project/SPRINT_PLAN.md",
+            "docs/project/DECISION_LOG.md",
+            "docs/project/BACKLOG.md",
+            "WORK_QUEUE.md"
+        ]
     else:
-        print(f"[*] Task card {card_path} does not exist. Creating from template...")
-        # Read template
-        template_path = "docs/tasks/TASK_TEMPLATE.md"
-        if not os.path.exists(template_path):
-            # Fallback to minimal template if template is missing
-            template_content = f"# TASK-{padded_task_num}: {issue_title}\n\n**Status:** PENDING\n\n## Objective\n{issue_title}\n"
-        else:
-            with open(template_path, "r", encoding="utf-8") as f:
-                template_content = f.read()
-
-        # Substitute values
-        curr_phase = get_current_phase()
-        today = datetime.now().strftime("%Y-%m-%d")
-
-        # Basic body extraction for scope
-        # Let's extract file candidates from the issue body
-        def extract_files_from_text(text):
-            mod_files = []
-            cre_files = []
-            current_section = None
-            for line in text.splitlines():
-                line_s = line.strip()
-                if not line_s:
-                    continue
-                if "files to modify" in line_s.lower() or "modify files" in line_s.lower():
-                    current_section = "modify"
-                    continue
-                elif "files to create" in line_s.lower() or "create files" in line_s.lower():
-                    current_section = "create"
-                    continue
-                elif "files to not touch" in line_s.lower():
-                    current_section = None
-                    continue
-
-                bullet = re.match(r'^[-*]\s+(.*)', line_s)
-                if bullet:
-                    file_val = bullet.group(1).strip().strip('`').strip()
-                    file_val = re.sub(r'^\[[\sX]*\]\s*', '', file_val).strip()
-                    if file_val and not file_val.startswith('#'):
-                        if current_section == "modify":
-                            mod_files.append(file_val)
-                        elif current_section == "create":
-                            cre_files.append(file_val)
-            return mod_files, cre_files
-
         mod_extracted, cre_extracted = extract_files_from_text(issue_body)
-
-        # Setup replacements
-        replacements = {
-            "TASK-NNN": f"TASK-{padded_task_num}",
-            "<Short imperative title — max 60 characters>": issue_title[:60],
-            "<e.g., 11.9.3>": curr_phase,
-            "YYYY-MM-DD": today,
-            "CRITICAL | HIGH | MEDIUM | LOW": "HIGH",
-            "YES | NO": "YES",
-            "ISSUE-NNN": f"ISSUE-{issue_num}",
-            "<!-- One sentence only. What does this task achieve and why does it matter? -->": issue_title,
-            "type(scope): description (TASK-NNN)": f"feat(issue-{issue_num}): resolve issue #{issue_num} (TASK-{padded_task_num})"
-        }
-
-        card_content = template_content
-        for k, v in replacements.items():
-            card_content = card_content.replace(k, v)
-
-        # Replace the Files to modify and Files to create in the template
-        if mod_extracted:
-            mod_block = "\n".join(f"- {f}" for f in mod_extracted)
-            card_content = re.sub(r'### Files to modify\n.*?(\n### |\n---|$)', f'### Files to modify\n{mod_block}\n\\1', card_content, flags=re.DOTALL)
-        if cre_extracted:
-            cre_block = "\n".join(f"- {f}" for f in cre_extracted)
-            card_content = re.sub(r'### Files to create\n.*?(\n### |\n---|$)', f'### Files to create\n{cre_block}\n\\1', card_content, flags=re.DOTALL)
-
-        # Write the task card
-        os.makedirs(os.path.dirname(card_path), exist_ok=True)
-        with open(card_path, "w", encoding="utf-8") as f:
-            f.write(card_content)
-
-        # Note: we do NOT write task_card_before.md if it did not exist before plan mode (per requirement 2)
 
     # Create allowed files list
     allowed_files = set(mod_extracted).union(cre_extracted)
@@ -645,16 +904,20 @@ def mode_inspect(issue_num=None, allow_no_task=False):
         current_branch = "unknown"
     print(f"Current Git Branch: {current_branch}")
 
-    # 2. Show whether .runs exists
-    runs_exists = os.path.exists(".runs")
-    print(f".runs/ directory exists: {runs_exists}")
+    # expected base log dir
+    log_base_dir = ".git/issue-runner-runs"
+    print(f"Run Log Base Directory: {log_base_dir}")
+
+    # Show whether directory exists
+    runs_exists = os.path.exists(log_base_dir)
+    print(f"Run log base directory exists: {runs_exists}")
 
     # 3. Show latest run for the issue if any
     latest_run = None
     if runs_exists:
         run_dirs = []
-        for d in os.listdir(".runs"):
-            full_path = os.path.join(".runs", d)
+        for d in os.listdir(log_base_dir):
+            full_path = os.path.join(log_base_dir, d)
             if os.path.isdir(full_path):
                 if issue_num:
                     padded_issue_num = f"{int(issue_num):03d}"
@@ -696,8 +959,15 @@ def mode_inspect(issue_num=None, allow_no_task=False):
     else:
         print("\nNo active automation run found in progress.")
 
-    # 5. if --issue is provided and gh exists, show issue title and derived task ID
-    if issue_num:
+    effective_issue_num = issue_num
+    if not effective_issue_num and state:
+        try:
+            effective_issue_num = int(state.get("issue_number"))
+        except (ValueError, TypeError):
+            pass
+
+    if effective_issue_num:
+        print(f"\nExpected / Derived Metadata for Issue #{effective_issue_num}:")
         gh_exists = False
         try:
             res_gh = subprocess.run(["command", "-v", "gh"], shell=True, capture_output=True)
@@ -706,23 +976,19 @@ def mode_inspect(issue_num=None, allow_no_task=False):
             pass
 
         if gh_exists:
-            print(f"\nFetching details for GitHub Issue #{issue_num}...")
             try:
                 res = subprocess.run(
-                    ["gh", "issue", "view", str(issue_num), "--json", "title,number"],
+                    ["gh", "issue", "view", str(effective_issue_num), "--json", "title,number,labels"],
                     capture_output=True, text=True, check=True
                 )
                 issue_data = json.loads(res.stdout)
                 title = issue_data.get("title", "")
                 print(f"Issue Title: {title}")
-                try:
-                    meta = extract_metadata(issue_data, allow_no_task=allow_no_task)
-                    print(f"Derived Task ID: {meta['task_code']}")
-                    print(f"Derived Task Card Path: {meta['card_path']}")
-                    print(f"Derived Branch Name: {meta['branch_name']}")
-                    print(f"Derived Run Directory Prefix: {meta['run_dir_prefix']}")
-                except SystemExit:
-                    print("Failed to derive task ID (no TASK-XXX in title and --allow-no-task not set).")
+                meta = extract_metadata(issue_data, allow_no_task=allow_no_task)
+                print(f"Derived Task ID: {meta['task_code']}")
+                print(f"Derived Task Card Path: {meta['card_path']}")
+                print(f"Derived Branch Name: {meta['branch_name']}")
+                print(f"Derived Run Directory Prefix: {meta['run_dir_prefix']}")
             except Exception as e:
                 print(f"Failed to fetch issue details from GitHub via gh: {e}")
 
