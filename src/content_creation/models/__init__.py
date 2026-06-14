@@ -1,16 +1,17 @@
 """Data models for the content creation pipeline."""
 
+from .analytics import PerformanceSnapshot, PostAnalytics
 from .brief import Brief, ReviewStatus
+from .calendar import ScheduledPost, WeeklyCalendar
+from .carousel import Carousel, CarouselSlide
+from .dryrun import AssetCheck, DryRunReport
+from .linkedin import LinkedInPost
+from .manifest import AssetEntry, TopicManifest
+from .newsletter import Newsletter, NewsletterSection
+from .review_history import ReviewHistoryEntry
 from .script import Script
 from .thumbnail import ThumbnailPrompt
-from .carousel import Carousel, CarouselSlide
-from .newsletter import Newsletter, NewsletterSection
-from .manifest import TopicManifest, AssetEntry
-from .calendar import ScheduledPost, WeeklyCalendar
-from .dryrun import AssetCheck, DryRunReport
-from .analytics import PostAnalytics, PerformanceSnapshot
 from .topic import ScoredTopicItem, TopicCategory, TopicItem, TopicStatus
-from .review_history import ReviewHistoryEntry
 
 __all__ = [
     "Brief",
@@ -21,6 +22,7 @@ __all__ = [
     "CarouselSlide",
     "Newsletter",
     "NewsletterSection",
+    "LinkedInPost",
     "TopicManifest",
     "AssetEntry",
     "ScheduledPost",
