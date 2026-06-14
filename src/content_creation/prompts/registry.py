@@ -12,6 +12,7 @@ _REGISTRY: Dict[Tuple[str, str], str] = {
     ("thumbnail", "thumbnail"): "prompts/thumbnail.md",
     ("content_intelligence", "generate"): "prompts/content_intelligence.md",
     ("storyboard", "generate"): "prompts/storyboard.md",
+    ("linkedin", "post"): "prompts/linkedin_post.md",
 }
 
 
