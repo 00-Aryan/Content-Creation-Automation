@@ -8,7 +8,7 @@
 
 ## Phase 12.3
 
-- Platform contracts.
+- Platform contracts. (Done)
 - LinkedIn generator.
 - YouTube Shorts generator.
 - Platform preview UI.
