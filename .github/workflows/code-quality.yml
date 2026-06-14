@@ -14,24 +14,42 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check for Python file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            python:
+              - '**/*.py'
+
+      - name: Print skip message if no Python changes
+        if: steps.filter.outputs.python == 'false'
+        run: echo "No Python files changed; skipping Python formatting checks."
+
       - name: Install uv
+        if: steps.filter.outputs.python == 'true'
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
 
       - name: Set up Python 3.12
+        if: steps.filter.outputs.python == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install dependencies
+        if: steps.filter.outputs.python == 'true'
         run: uv sync --all-extras --dev
 
       - name: Run Black formatter check
+        if: steps.filter.outputs.python == 'true'
         run: uv run black --check src tests
 
       - name: Run Isort import check
+        if: steps.filter.outputs.python == 'true'
         run: uv run isort --check-only src tests
 
       - name: Run Mypy static type analysis
+        if: steps.filter.outputs.python == 'true'
         run: uv run mypy src

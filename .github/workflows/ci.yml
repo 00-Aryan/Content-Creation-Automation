@@ -16,7 +16,7 @@ jobs:
         with:
           version: "latest"
       - run: uv python install 3.12
-      - run: uv sync --frozen
+      - run: uv sync --frozen --all-extras --dev
       - run: |
           export UV_CACHE_DIR=/tmp/uv-cache
           uv run python -m pytest --tb=short -q

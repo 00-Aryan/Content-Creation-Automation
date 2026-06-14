@@ -61,6 +61,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-083 | Repair issue-runner task-id mapping and trace handling | DONE    | HIGH | TASK-082 | [→](docs/tasks/task_083.md) |
 | TASK-084 | Repair issue-runner plan-mode task-card generation | DONE    | HIGH | TASK-083 | [→](docs/tasks/task_084.md) |
 | TASK-085 | Repair issue-runner direct-execution imports and inspect recovery | DONE | HIGH | TASK-084 | [→](docs/tasks/task_085.md) |
+| TASK-087 | Repair CI checks for docs-only PRs and pytest installation | DONE    | HIGH | TASK-085 | [→](docs/tasks/task_087.md) |
 
 ---
 
