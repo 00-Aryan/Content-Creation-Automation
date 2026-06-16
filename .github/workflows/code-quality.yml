@@ -13,43 +13,65 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Check for Python file changes
-        uses: dorny/paths-filter@v3
-        id: filter
         with:
-          filters: |
-            python:
-              - '**/*.py'
+          fetch-depth: 0
+
+      - name: Collect changed Python files
+        id: changed
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.sha }}"
+          fi
+
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            BASE_SHA="$(git rev-parse "$HEAD_SHA^")"
+          fi
+
+          FILES="$(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- '*.py' | tr '\n' ' ')"
+
+          if [[ -z "$FILES" ]]; then
+            echo "python=false" >> "$GITHUB_OUTPUT"
+            echo "files=" >> "$GITHUB_OUTPUT"
+            echo "No changed Python files detected."
+          else
+            echo "python=true" >> "$GITHUB_OUTPUT"
+            echo "files=$FILES" >> "$GITHUB_OUTPUT"
+            echo "Changed Python files: $FILES"
+          fi
 
       - name: Print skip message if no Python changes
-        if: steps.filter.outputs.python == 'false'
-        run: echo "No Python files changed; skipping Python formatting checks."
+        if: steps.changed.outputs.python == 'false'
+        run: echo "No Python files changed; skipping Python formatting and type checks."
 
       - name: Install uv
-        if: steps.filter.outputs.python == 'true'
+        if: steps.changed.outputs.python == 'true'
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
 
       - name: Set up Python 3.12
-        if: steps.filter.outputs.python == 'true'
+        if: steps.changed.outputs.python == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install dependencies
-        if: steps.filter.outputs.python == 'true'
+        if: steps.changed.outputs.python == 'true'
         run: uv sync --all-extras --dev
 
       - name: Run Black formatter check
-        if: steps.filter.outputs.python == 'true'
-        run: uv run black --check src tests
+        if: steps.changed.outputs.python == 'true'
+        run: uv run black --check ${{ steps.changed.outputs.files }}
 
       - name: Run Isort import check
-        if: steps.filter.outputs.python == 'true'
-        run: uv run isort --check-only src tests
+        if: steps.changed.outputs.python == 'true'
+        run: uv run isort --check-only ${{ steps.changed.outputs.files }}
 
       - name: Run Mypy static type analysis
-        if: steps.filter.outputs.python == 'true'
-        run: uv run mypy src
+        if: steps.changed.outputs.python == 'true'
+        run: uv run mypy ${{ steps.changed.outputs.files }}
