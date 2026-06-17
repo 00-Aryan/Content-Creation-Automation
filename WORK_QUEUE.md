@@ -63,6 +63,11 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-085 | Repair issue-runner direct-execution imports and inspect recovery | DONE | HIGH | TASK-084 | [→](docs/tasks/task_085.md) |
 | TASK-041 | Add LinkedIn post generator | DONE    | HIGH | TASK-040 | [→](docs/tasks/task_041.md) |
 | TASK-087 | Repair CI checks for docs-only PRs and pytest installation | DONE    | HIGH | TASK-085 | [→](docs/tasks/task_087.md) |
+| TASK-088 | Create Phase 12.3 sprint task cards | DONE | HIGH | TASK-041 | [→](docs/tasks/task_088.md) |
+| TASK-089 | Define LinkedIn quality score model | PENDING | HIGH | TASK-088 | [→](docs/tasks/task_089.md) |
+| TASK-090 | Add LinkedIn deterministic quality evaluator | PENDING | HIGH | TASK-089 | [→](docs/tasks/task_090.md) |
+| TASK-091 | Integrate LinkedIn quality evaluator | PENDING | HIGH | TASK-090 | [→](docs/tasks/task_091.md) |
+| TASK-092 | Document LinkedIn quality scoring | PENDING | MEDIUM | TASK-091 | [→](docs/tasks/task_092.md) |
 
 
 ---
@@ -98,6 +103,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-085 | Repair issue-runner direct-execution imports and inspect recovery | 2026-06-13 | fix(tooling): repair issue-runner direct execution imports (TASK-085) |
 | TASK-040 | Define platform content contracts | 2026-06-13 | docs(platform): define platform content contracts for Phase 12.3 (TASK-040) |
 | TASK-041 | Add LinkedIn post generator | 2026-06-14 | feat(platform): add LinkedIn post generator (TASK-041) |
+| TASK-088 | Create Phase 12.3 sprint task cards | 2026-06-17 | docs(tasks): add phase 12.3 LinkedIn quality sprint cards (TASK-088) |
 
 
 
