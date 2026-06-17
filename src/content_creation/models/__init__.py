@@ -6,6 +6,7 @@ from .calendar import ScheduledPost, WeeklyCalendar
 from .carousel import Carousel, CarouselSlide
 from .dryrun import AssetCheck, DryRunReport
 from .linkedin import LinkedInPost
+from .linkedin_quality import LinkedInQualityGateResult, LinkedInQualityScore
 from .manifest import AssetEntry, TopicManifest
 from .newsletter import Newsletter, NewsletterSection
 from .review_history import ReviewHistoryEntry
@@ -23,6 +24,8 @@ __all__ = [
     "Newsletter",
     "NewsletterSection",
     "LinkedInPost",
+    "LinkedInQualityGateResult",
+    "LinkedInQualityScore",
     "TopicManifest",
     "AssetEntry",
     "ScheduledPost",

@@ -1,10 +1,10 @@
 # TASK-089: Define LinkedIn quality score model
 
 **Phase:** 12.3 Platform-Aware Content
-**Status:** PENDING
+**Status:** DONE
 **Priority:** HIGH
 **Created:** 2026-06-17
-**Completed:** —
+**Completed:** 2026-06-18
 **Requires approval:** NO
 
 ---
@@ -89,11 +89,11 @@ Run:
 
 ## Success Criteria
 
-- [ ] LinkedIn quality score model exists.
-- [ ] Model supports score, passed status, issues, warnings, and gate results.
-- [ ] Model is exported from `src/content_creation/models/__init__.py`.
-- [ ] Existing model tests pass.
-- [ ] No files outside declared scope were modified.
+- [x] LinkedIn quality score model exists.
+- [x] Model supports score, passed status, issues, warnings, and gate results.
+- [x] Model is exported from `src/content_creation/models/__init__.py`.
+- [x] Existing model tests pass.
+- [x] No files outside declared scope were modified.
 
 ---
 
