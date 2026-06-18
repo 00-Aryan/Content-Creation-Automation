@@ -65,7 +65,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-087 | Repair CI checks for docs-only PRs and pytest installation | DONE    | HIGH | TASK-085 | [→](docs/tasks/task_087.md) |
 | TASK-088 | Create Phase 12.3 sprint task cards | DONE | HIGH | TASK-041 | [→](docs/tasks/task_088.md) |
 | TASK-089 | Define LinkedIn quality score model | DONE | HIGH | TASK-088 | [→](docs/tasks/task_089.md) |
-| TASK-090 | Add LinkedIn deterministic quality evaluator | PENDING | HIGH | TASK-089 | [→](docs/tasks/task_090.md) |
+| TASK-090 | Add LinkedIn deterministic quality evaluator | DONE | HIGH | TASK-089 | [→](docs/tasks/task_090.md) |
 | TASK-091 | Integrate LinkedIn quality evaluator | PENDING | HIGH | TASK-090 | [→](docs/tasks/task_091.md) |
 | TASK-092 | Document LinkedIn quality scoring | PENDING | MEDIUM | TASK-091 | [→](docs/tasks/task_092.md) |
 

@@ -1,5 +1,6 @@
 from .carousel import CarouselGenerator
 from .linkedin import LinkedInPostGenerator
+from .linkedin_quality import LinkedInQualityEvaluator
 from .newsletter import NewsletterGenerator
 from .script import ScriptGenerator
 from .thumbnail import ThumbnailGenerator
@@ -10,4 +11,5 @@ __all__ = [
     "CarouselGenerator",
     "NewsletterGenerator",
     "LinkedInPostGenerator",
+    "LinkedInQualityEvaluator",
 ]

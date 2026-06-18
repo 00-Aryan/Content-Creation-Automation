@@ -1,10 +1,10 @@
 # TASK-090: Add LinkedIn deterministic quality evaluator
 
 **Phase:** 12.3 Platform-Aware Content
-**Status:** PENDING
+**Status:** DONE
 **Priority:** HIGH
 **Created:** 2026-06-17
-**Completed:** —
+**Completed:** 2026-06-18
 **Requires approval:** NO
 
 ---
