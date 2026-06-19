@@ -1,7 +1,8 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, field_validator
 
+from content_creation.models.linkedin_quality import LinkedInQualityScore
 from content_creation.shared.enums import ReviewStatus
 from content_creation.shared.types import TopicId
 
@@ -18,6 +19,7 @@ class LinkedInPost(BaseModel):
     claims_used: List[str]
     review_status: ReviewStatus = ReviewStatus.DRAFT
     generated_at: str
+    quality_score: Optional[LinkedInQualityScore] = None
 
     @field_validator("hashtags")
     @classmethod

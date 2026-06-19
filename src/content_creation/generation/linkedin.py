@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 from content_creation.domains.storyboard.model import Storyboard
+from content_creation.generation.linkedin_quality import LinkedInQualityEvaluator
 from content_creation.inference import InferenceManager
 from content_creation.models.brief import Brief
 from content_creation.models.linkedin import LinkedInPost
@@ -35,6 +36,7 @@ class LinkedInPostGenerator:
         prompt_dir: Optional[Union[Path, PromptRegistry]] = None,
     ):
         self._manager = InferenceManager(api_key=api_key)
+        self._quality_evaluator = LinkedInQualityEvaluator()
         self._registry = prompt_dir if isinstance(prompt_dir, PromptRegistry) else None
         self.prompt_dir = prompt_dir if isinstance(prompt_dir, Path) else None
 
@@ -136,7 +138,7 @@ class LinkedInPostGenerator:
                     generated_at=generated_at,
                     **data,
                 )
-                return post
+                return self._apply_quality_result(post)
             except Exception as e:
                 logger.warning(
                     "Failed to parse LinkedIn post for topic %s: %s",
@@ -151,7 +153,7 @@ class LinkedInPostGenerator:
             )
 
         # Fallback
-        return LinkedInPost(
+        fallback_post = LinkedInPost(
             topic_id=brief.topic_id,
             hook="needs_review",
             post_body="needs_review",
@@ -163,4 +165,19 @@ class LinkedInPostGenerator:
             claims_used=["needs_review"],
             review_status=ReviewStatus.NEEDS_REVIEW,
             generated_at=generated_at,
+        )
+        return self._apply_quality_result(fallback_post)
+
+    def _apply_quality_result(self, post: LinkedInPost) -> LinkedInPost:
+        quality_score = self._quality_evaluator.evaluate(post)
+        review_status = (
+            ReviewStatus.NEEDS_REVIEW
+            if not quality_score.passed
+            else post.review_status
+        )
+        return post.model_copy(
+            update={
+                "quality_score": quality_score,
+                "review_status": review_status,
+            }
         )

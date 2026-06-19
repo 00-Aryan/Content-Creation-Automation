@@ -96,6 +96,9 @@ def test_generate_linkedin_success(sample_brief, valid_linkedin_response, prompt
     assert post.source_reference == "Paper: Attention Is All You Need"
     assert post.source_links == ["https://arxiv.org/abs/1706.03762"]
     assert post.review_status == ReviewStatus.DRAFT
+    assert post.quality_score is not None
+    assert post.quality_score.passed is True
+    assert post.quality_score.overall_score == 100
 
 
 def test_generate_linkedin_malformed_json_fallback(sample_brief, prompt_dir):
@@ -115,6 +118,8 @@ def test_generate_linkedin_malformed_json_fallback(sample_brief, prompt_dir):
     assert post.hook == "needs_review"
     assert post.post_body == "needs_review"
     assert post.review_status == ReviewStatus.NEEDS_REVIEW
+    assert post.quality_score is not None
+    assert post.quality_score.passed is False
 
 
 def test_generate_linkedin_missing_fields_fallback(sample_brief, prompt_dir):
@@ -180,6 +185,38 @@ def test_generate_linkedin_source_reference_preserved(
         post = generator.generate(None, sample_brief)
 
     assert post.source_reference == "Paper: Attention Is All You Need"
+
+
+def test_generate_linkedin_failed_quality_forces_needs_review(sample_brief, prompt_dir):
+    """6. Test failed deterministic quality gates force NEEDS_REVIEW."""
+    weak_response = json.dumps(
+        {
+            "hook": "What if machines could read entire documents instantly?",
+            "post_body": "LinkedIn ready post body goes here.",
+            "takeaway": "Actionable takeaway.",
+            "cta": "Share your thoughts.",
+            "hashtags": ["#AI", "#MachineLearning", "#Transformers"],
+            "source_reference": "Paper: Attention Is All You Need",
+            "claims_used": ["Transformers use attention to process text"],
+            "review_status": "draft",
+        }
+    )
+
+    with patch(
+        "content_creation.generation.linkedin.InferenceManager"
+    ) as mock_mgr_class:
+        mock_mgr = MagicMock()
+        mock_mgr_class.return_value = mock_mgr
+        mock_mgr.generate.return_value = _make_inference_result(weak_response)
+
+        generator = LinkedInPostGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
+        post = generator.generate(None, sample_brief)
+
+    assert post.hook == "What if machines could read entire documents instantly?"
+    assert post.review_status == ReviewStatus.NEEDS_REVIEW
+    assert post.quality_score is not None
+    assert post.quality_score.passed is False
+    assert "CTA must contain exactly one question prompt." in post.quality_score.issues
 
 
 def test_generate_linkedin_hashtag_validation(sample_brief, prompt_dir):
