@@ -1,10 +1,10 @@
 # TASK-092: Document LinkedIn quality scoring
 
 **Phase:** 12.3 Platform-Aware Content
-**Status:** PENDING
+**Status:** DONE
 **Priority:** MEDIUM
 **Created:** 2026-06-17
-**Completed:** —
+**Completed:** 2026-06-19
 **Requires approval:** NO
 
 ---
@@ -90,11 +90,11 @@ Run:
 
 ## Success Criteria
 
-- [ ] LinkedIn quality scoring document exists.
-- [ ] Document explains all implemented gates.
-- [ ] Document includes pass and fail examples.
-- [ ] Document does not describe unimplemented behavior.
-- [ ] No files outside declared scope were modified.
+- [x] LinkedIn quality scoring document exists.
+- [x] Document explains all implemented gates.
+- [x] Document includes pass and fail examples.
+- [x] Document does not describe unimplemented behavior.
+- [x] No files outside declared scope were modified.
 
 ---
 
