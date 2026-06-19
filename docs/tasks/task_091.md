@@ -1,10 +1,10 @@
 # TASK-091: Integrate LinkedIn quality evaluator
 
 **Phase:** 12.3 Platform-Aware Content
-**Status:** PENDING
+**Status:** DONE
 **Priority:** HIGH
 **Created:** 2026-06-17
-**Completed:** —
+**Completed:** 2026-06-19
 **Requires approval:** NO
 
 ---
@@ -95,12 +95,12 @@ Run:
 
 ## Success Criteria
 
-- [ ] LinkedIn generator attaches quality results.
-- [ ] Failed quality gates force `NEEDS_REVIEW`.
-- [ ] Valid outputs can remain `DRAFT`.
-- [ ] Tests cover both outcomes.
-- [ ] Full test suite passes at baseline count.
-- [ ] No files outside declared scope were modified.
+- [x] LinkedIn generator attaches quality results.
+- [x] Failed quality gates force `NEEDS_REVIEW`.
+- [x] Valid outputs can remain `DRAFT`.
+- [x] Tests cover both outcomes.
+- [x] Full test suite passes at baseline count.
+- [x] No files outside declared scope were modified.
 
 ---
 
