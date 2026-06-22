@@ -1,68 +1,154 @@
 #!/usr/bin/env python3
-import sys
+import json
 import os
+import sys
+from pathlib import Path
 
-def read_file_or_default(path, default="No log available."):
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                content = f.read().strip()
-                return content if content else default
-        except Exception as e:
-            return f"Error reading {os.path.basename(path)}: {e}"
-    return default
+from scripts import issue_runner
 
-def get_tail(content, lines=15):
-    lines_list = content.splitlines()
-    if len(lines_list) <= lines:
-        return content
-    return "\n".join(lines_list[-lines:])
+REQUIRED_FIELDS = {
+    "issue_number",
+    "task_number",
+    "branch",
+    "changed_files",
+    "changed_python_files",
+    "scope_gate_result",
+    "targeted_validation_result",
+    "black_result",
+    "isort_result",
+    "mypy_result",
+    "full_pytest_exit_code",
+    "full_pytest_pass_count",
+    "overall_verification_result",
+    "verified_working_tree_fingerprint",
+    "verified_worktree_fingerprint",
+    "verified_tree_sha",
+}
+
+
+def _require_nonempty_file(run_dir, filename):
+    path = os.path.join(run_dir, filename)
+    run_root = Path(run_dir).resolve()
+    resolved = Path(path).resolve()
+    if run_root not in resolved.parents and resolved != run_root:
+        raise ValueError(f"Evidence file escapes run directory: {path}")
+    if os.path.islink(path):
+        raise ValueError(f"Evidence file is a symlink: {path}")
+    if not os.path.exists(path):
+        raise ValueError(f"Missing evidence file: {path}")
+    if os.path.getsize(path) == 0:
+        raise ValueError(f"Empty evidence file: {path}")
+    return path
+
+
+def load_manifest(run_dir):
+    path = os.path.join(run_dir, "verification.json")
+    if not os.path.exists(path):
+        raise ValueError(f"Missing verification manifest: {path}")
+    if os.path.getsize(path) == 0:
+        raise ValueError(f"Empty verification manifest: {path}")
+    with open(path, "r", encoding="utf-8") as f:
+        manifest = json.load(f)
+    missing = sorted(REQUIRED_FIELDS.difference(manifest))
+    if missing:
+        raise ValueError(f"Verification manifest missing fields: {', '.join(missing)}")
+    return issue_runner.validate_manifest_payload(manifest)
+
+
+def load_pr_metadata(run_dir):
+    path = os.path.join(run_dir, "pr_metadata.json")
+    if not os.path.exists(path):
+        return {}
+    if os.path.getsize(path) == 0:
+        raise ValueError(f"Empty PR metadata file: {path}")
+    with open(path, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+    if not isinstance(metadata, dict):
+        raise ValueError("PR metadata must be a JSON object.")
+    return metadata
+
+
+def summarize_gate(name, result):
+    if result.get("skipped"):
+        return f"- {name}: skipped ({result.get('reason', 'not required')})"
+    status = "passed" if result.get("success") else "failed"
+    exit_code = result.get("exit_code")
+    if exit_code is None:
+        return f"- {name}: {status}"
+    return f"- {name}: {status} (exit {exit_code})"
+
 
 def generate_pr_body(issue_num, run_dir):
-    scope_check_path = os.path.join(run_dir, "scope_check.txt")
-    targeted_tests_path = os.path.join(run_dir, "targeted_tests.log")
-    full_tests_path = os.path.join(run_dir, "full_tests.log")
-    
-    scope_content = read_file_or_default(scope_check_path)
-    targeted_content = get_tail(read_file_or_default(targeted_tests_path))
-    full_content = get_tail(read_file_or_default(full_tests_path))
-    
-    pr_body = f"""# Automation PR: Issue #{issue_num}
+    manifest = load_manifest(run_dir)
+    pr_metadata = load_pr_metadata(run_dir)
+    for filename in [
+        "scope_check.txt",
+        "targeted_tests.log",
+        "quality_checks.log",
+        "full_tests.log",
+    ]:
+        _require_nonempty_file(run_dir, filename)
+
+    scope = manifest["scope_gate_result"]
+    targeted = manifest["targeted_validation_result"]
+    blocks = targeted.get("blocks", [])
+    failed_blocks = [
+        block for block in blocks if block.get("exit_code") not in (0, None)
+    ]
+    fingerprint = manifest["verified_working_tree_fingerprint"]["value"]
+    committed_head = pr_metadata.get("commit_sha")
+    pushed_head = pr_metadata.get("pushed_head_sha")
+    head_line = (
+        f"- Committed head: `{committed_head}`\n- Pushed head: `{pushed_head}`"
+        if committed_head or pushed_head
+        else "- Committed/pushed head: not recorded yet"
+    )
+
+    changed_files = manifest.get("changed_files", [])
+    changed_paths = ", ".join(item["path"] for item in changed_files) or "none"
+    changed_python = ", ".join(manifest.get("changed_python_files", [])) or "none"
+
+    body = f"""# Automation PR: Issue #{issue_num}
 
 Closes #{issue_num}
 
-## Validation Evidence
+## Verification Summary
 
-### Scope Check
-```
-{scope_content}
-```
+- Scope: {'passed' if scope.get('success') else 'failed'} (exit {scope.get('exit_code')})
+- Changed files: {changed_paths}
+- Changed Python files: {changed_python}
+- Targeted validation: {'passed' if targeted.get('success') else 'failed'} ({len(blocks)} bash block(s), {len(failed_blocks)} failed)
+{summarize_gate('Black', manifest['black_result'])}
+{summarize_gate('isort', manifest['isort_result'])}
+{summarize_gate('mypy', manifest['mypy_result'])}
+- Full pytest: {manifest['full_pytest_pass_count']} passed (exit {manifest['full_pytest_exit_code']})
+- Verified fingerprint: `{fingerprint}`
+- Verified tree: `{manifest['verified_tree_sha']}`
+{head_line}
 
-### Targeted Tests
-```
-{targeted_content}
-```
-
-### Full Test Suite
-```
-{full_content}
-```
+Complete logs are preserved in the local issue-runner run directory.
 
 ---
 *PR automatically generated by Content-Creation Automation Runner.*
 """
-    return pr_body
+    return body
+
 
 def main():
     if len(sys.argv) < 3:
         print("Usage: issue_pr_body.py <issue_number> <run_dir>", file=sys.stderr)
         sys.exit(2)
-        
+
     issue_num = sys.argv[1]
     run_dir = sys.argv[2]
-    
-    pr_body = generate_pr_body(issue_num, run_dir)
+
+    try:
+        pr_body = generate_pr_body(issue_num, run_dir)
+    except (OSError, ValueError, json.JSONDecodeError) as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(1)
     print(pr_body)
+
 
 if __name__ == "__main__":
     main()
