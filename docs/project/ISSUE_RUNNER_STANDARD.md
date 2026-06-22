@@ -39,8 +39,52 @@ To achieve this, the scripts utilize robust local import path handling (by dynam
 | **Merge** | `./scripts/issue-runner.sh merge` | Merges the PR, deletes the branch, and pulls main (only if safe). |
 | **Full** | `./scripts/issue-runner.sh full --issue <num> [--merge]` | Executes plan, run, verify, and pr sequentially. Stops before merge unless `--merge` is specified. |
 | **Inspect** | `./scripts/issue-runner.sh inspect [--issue <num>]` | Displays active run details, worktree status, and derived metadata. |
-| **Abort** | `./scripts/issue-runner.sh abort` | Discards branch, resets changes, and cleans active run state. |
+| **Abort** | `./scripts/issue-runner.sh abort` | Safely aborts only when the active branch is clean, unmerged, and has no open or merged PR. |
 | **Resume** | `./scripts/issue-runner.sh resume` | Resumes the active run from the last completed stage. |
+
+### Workflow State Machine
+
+The runner persists exactly one active workflow state in
+`.git/issue-runner-runs/active_run.json`. The only legal forward transitions are:
+
+```text
+planned -> run_completed -> verified -> pr_created -> merged
+```
+
+Each mode requires the prior state:
+
+- `run` requires `planned`
+- `verify` requires `run_completed`
+- `pr` requires `verified`
+- `merge` requires `pr_created`
+
+State files are validated before use. Missing required fields, invalid states, or
+corrupted JSON are operator-facing errors. State writes are atomic: the runner
+writes a temporary file in the run metadata directory and replaces the active
+pointer only after the write is complete. Failed operations do not advance state.
+Planning refuses to overwrite an unrelated active run.
+
+Run, verify, and PR creation require the current branch to match the branch
+stored in active state. Merge may run from another branch only after the PR has
+already been created, because it performs its own PR head and local-main checks.
+
+### Agent Completion Contract
+
+The `run` mode no longer infers success from natural language. Each run creates
+a cryptographically strong status nonce. The agent engine must exit with code
+`0` and the final non-empty stdout line must be exactly one nonce-bound status:
+
+```text
+ISSUE_RUNNER_STATUS <nonce> COMPLETED
+ISSUE_RUNNER_STATUS <nonce> FAILED <reason>
+```
+
+The prompt describes the grammar but does not include the exact accepted final
+line. Status lines are accepted only from stdout, and only when they are the
+final non-empty stdout line. Wrong or missing nonce values, duplicate status
+lines, status output on stderr, trailing explanatory output, non-zero engine
+exit, failed status, or empty output fails the run. The agent output log is
+still written on every outcome, and active state remains `planned` on failure.
 
 ### Inspect-Mode and Stale Active-Run Warnings
 
@@ -48,6 +92,12 @@ The `inspect` mode retrieves the current Git branch, the expected run log direct
 - **Missing Task Card:** If the derived task card does not exist yet on disk, it displays a clear message (e.g. `Note: Task card file '...' does not exist yet.`) instead of crashing.
 - **Stale Active Runs:** If `active_run.json` exists and points to an issue branch but the current branch is `main`, `inspect` mode tolerates this state and prints a warning (e.g. `[!] WARNING: active_run.json points to issue branch '...' but current branch is 'main'`) instead of failing or crashing.
 - **No File Modifications:** The `inspect` mode is read-only and never modifies files on disk.
+- **Evidence Visibility:** Inspect reports the current state, expected next
+  action, branch match status, manifest presence, verification result, current
+  fingerprint match status, PR number, and recorded head SHA when available.
+
+`resume` executes only the single valid next transition for the active state. It
+does not auto-advance through multiple stages.
 
 ## 3. Directory Layout for Trace Logs
 
@@ -62,7 +112,9 @@ Inside the run directory, you will find:
 - `changed_files.txt` — Actual modified files in the working directory
 - `scope_check.txt` — Output of the scope guard validation check
 - `targeted_tests.log` — Logs of targeted tests specified in the task card
+- `quality_checks.log` — Black, isort, and mypy check evidence for changed Python files
 - `full_tests.log` — Full pytest run execution logs
+- `verification.json` — Structured verification manifest and fingerprint evidence
 - `commit.txt` — Git commit message and command log
 - `pr.txt` — PR generation command output
 - `agent_output.log` — Plain text output log of the executing agent
@@ -77,6 +129,121 @@ Inside the run directory, you will find:
    - `architecture`
    - `hardening`
 4. **Test Baselines:** The full test suite must not regress below the baseline of **1000** passing tests.
+
+## 4.1 Verification Contract
+
+Verification executes every fenced `bash` block from the task card's
+`## Validation` section as one Bash program with
+`bash -e -u -o pipefail -c <block>`. It does not split blocks into lines and
+does not skip `pytest` commands. Each executed block records its index, exact
+command text, exit code, stdout, and stderr in `targeted_tests.log`. Verification
+stops at the first non-zero block. Empty or missing validation Bash blocks fail.
+
+For changed Python files reported by the scope guard, verification reproduces
+the local quality gates used by CI:
+
+```bash
+uv run black --check -- <changed-python-files>
+uv run isort --check-only -- <changed-python-files>
+uv run mypy --explicit-package-bases -- <changed-python-files>
+```
+
+These checks are skipped only when no non-deleted Python files changed, using
+the manifest reason `no_changed_python_files`. Verification never auto-formats
+files.
+
+The full pytest gate requires both a process exit code of `0` and a parsed pass
+count greater than or equal to `BASELINE_MIN`. A parseable pass count does not
+override a non-zero pytest exit. Empty pytest output or an unparseable pass count
+fails verification.
+
+After collecting gate results, verification writes `verification.json`. The
+manifest records issue number, task number, branch, timestamp, prior workflow
+state, changed files, changed Python files, scope/syntax/targeted/quality/full
+pytest results, overall result, the verified working-tree fingerprint, and the
+verified Git tree SHA for the content that PR mode is allowed to commit.
+
+### Fingerprint Contract
+
+The verified fingerprint is:
+
+```text
+sha256(
+  "issue-runner-fingerprint-v1",
+  branch name,
+  git diff --binary,
+  git diff --cached --binary,
+  path and contents of each untracked changed file
+)
+```
+
+PR creation recomputes this fingerprint and refuses stale evidence when it no
+longer matches the manifest. It also compares the current changed-file set to
+the verified changed-file set so new untracked files cannot be omitted from
+freshness checks.
+
+The verified tree SHA is computed with a temporary Git index initialized from
+`HEAD` and updated only with the allowed files that PR mode may commit. This does
+not mutate the real index. PR mode later stages the same allowed file set in the
+real index and requires `git write-tree` to match the verified tree SHA before
+committing.
+
+The manifest validator does not treat `overall_verification_result` as an
+independent authority. It derives success from the nested gate results, pytest
+exit/count, quality skip reasons, fingerprint schema, issue/task/branch, and
+tree SHA. Manual filesystem tampering with local JSON is outside the
+cryptographic trust boundary, but the runner enforces schema consistency and
+current-worktree freshness before PR creation.
+
+## 4.2 Pull Request and Merge Contract
+
+PR creation requires:
+
+- active state `verified`
+- current branch matching active state
+- successful `verification.json`
+- required logs present and non-empty
+- current changed-file set and working-tree fingerprint matching verified evidence
+- no pre-existing staged changes
+- staged tree matching the verified tree SHA
+- exactly one commit-message title from the task card
+
+The task-card commit message is used as both the Git commit message and PR
+title. Missing or malformed commit-message sections are hard failures; the
+runner does not fall back to a generic title.
+
+The PR body is generated from structured manifest evidence. Missing, empty, or
+failed evidence returns a non-zero error and never publishes `No log available.`
+as successful validation evidence.
+
+After committing, the runner records commit facts separately from immutable
+verification evidence in `pr_metadata.json`. The verification manifest is not
+modified after verify mode completes. After pushing, the runner resolves the PR
+number, URL, and PR head SHA, writes complete PR metadata, and advances to
+`pr_created` only after all operations succeed.
+
+Merge requires:
+
+- active state `pr_created`
+- recorded PR number
+- recorded committed, pushed, and PR head SHA
+- open, non-draft, mergeable PR
+- clean merge state
+- PR head equal to the recorded committed and pushed SHA
+- all PR checks returned by `gh pr checks --json name,state,bucket,workflow,link`
+  to be in the `pass` bucket for that head
+
+The merge command uses a squash merge pinned with `--match-head-commit`. There
+is no auto-merge substitute and no unguarded fallback merge. Active state is
+cleared only after GitHub confirms the PR is merged, local `main` is
+fast-forwarded to match `origin/main`, and `final_state.json` is atomically
+written and read back from the run directory.
+
+Abort is safe by default. It refuses to proceed from the wrong branch, with a
+dirty worktree, with unmerged commits relative to `origin/main`, with an open or
+merged PR, or when the aborted-state archive cannot be written and read back.
+It archives `abort_state.json`, uses normal branch deletion, preserves run logs,
+and clears active state only after all abort cleanup succeeds.
 
 ## 5. Task Card Generation & Validation Rules
 

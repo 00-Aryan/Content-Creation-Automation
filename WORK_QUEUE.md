@@ -69,6 +69,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-090 | Add LinkedIn deterministic quality evaluator | DONE | HIGH | TASK-089 | [→](docs/tasks/task_090.md) |
 | TASK-091 | Integrate LinkedIn quality evaluator | DONE | HIGH | TASK-090 | [→](docs/tasks/task_091.md) |
 | TASK-092 | Document LinkedIn quality scoring | DONE | MEDIUM | TASK-091 | [→](docs/tasks/task_092.md) |
+| TASK-093 | Make issue-runner completion and review automation reliable | DONE | HIGH | TASK-085, TASK-087 | [→](docs/tasks/task_093.md) |
 
 
 ---
@@ -110,6 +111,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 
 
 
+| TASK-093 | Make issue-runner completion and review automation reliable | 2026-06-22 | fix(tooling): harden issue-runner completion and review automation (TASK-093) |
 ---
 
 ## Blocked
