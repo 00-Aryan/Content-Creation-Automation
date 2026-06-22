@@ -1,10 +1,10 @@
 # TASK-093: Make issue-runner completion and review automation reliable
 
 **Phase:** Technical Debt and Hardening
-**Status:** DONE
+**Status:** IN_PROGRESS
 **Priority:** HIGH
 **Created:** 2026-06-22
-**Completed:** 2026-06-22
+**Completed:** —
 **GitHub Issue:** #58
 **Requires approval:** YES
 
@@ -32,9 +32,10 @@ Harden the local issue runner so it cannot report success, create a pull request
 - `scripts/issue_pr_body.py`
 - `docs/project/ISSUE_RUNNER_STANDARD.md`
 - `WORK_QUEUE.md`
+- `.github/workflows/code-quality.yml`
 
 ## Files to not touch
-- `.github/workflows/`
+- `.github/workflows/` except `.github/workflows/code-quality.yml`
 - `pyproject.toml`
 - `uv.lock`
 - `src/content_creation/`

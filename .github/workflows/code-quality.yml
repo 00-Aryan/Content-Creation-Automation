@@ -74,4 +74,4 @@ jobs:
 
       - name: Run Mypy static type analysis
         if: steps.changed.outputs.python == 'true'
-        run: uv run mypy ${{ steps.changed.outputs.files }}
+        run: uv run mypy --explicit-package-bases ${{ steps.changed.outputs.files }}
