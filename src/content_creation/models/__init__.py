@@ -10,7 +10,7 @@ from .linkedin_quality import LinkedInQualityGateResult, LinkedInQualityScore
 from .manifest import AssetEntry, TopicManifest
 from .newsletter import Newsletter, NewsletterSection
 from .review_history import ReviewHistoryEntry
-from .script import Script
+from .script import Script, YouTubeShortsSegment
 from .thumbnail import ThumbnailPrompt
 from .topic import ScoredTopicItem, TopicCategory, TopicItem, TopicStatus
 
@@ -18,6 +18,7 @@ __all__ = [
     "Brief",
     "ReviewStatus",
     "Script",
+    "YouTubeShortsSegment",
     "ThumbnailPrompt",
     "Carousel",
     "CarouselSlide",
