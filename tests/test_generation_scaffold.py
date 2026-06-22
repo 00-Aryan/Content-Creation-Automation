@@ -10,6 +10,7 @@ from content_creation.generation.script import ScriptGenerator
 from content_creation.models.brief import Brief
 from content_creation.models.script import Script
 from content_creation.shared.enums import ReviewStatus
+
 ScriptReviewStatus = ReviewStatus
 
 
@@ -43,9 +44,33 @@ def prompt_dir(tmp_path):
     return tmp_path
 
 
+def test_generate_script_rejects_invalid_format_before_prompt_lookup(sample_brief):
+    """Reject unsupported formats at the public generator boundary."""
+    with patch("content_creation.generation.script.InferenceManager"):
+        generator = ScriptGenerator(
+            api_key="test_api_key",
+            prompt_dir=Path("unused"),
+        )
+
+        with pytest.raises(ValueError, match="Invalid format"):
+            generator.generate(None, sample_brief, format="podcast")
+
+
+def test_generate_script_requires_explicit_prompt_source(sample_brief):
+    """Require either a prompt registry or an explicit prompt directory."""
+    with patch("content_creation.generation.script.InferenceManager"):
+        generator = ScriptGenerator(api_key="test_api_key")
+
+        with pytest.raises(
+            ValueError,
+            match="requires a PromptRegistry or prompt directory",
+        ):
+            generator.generate(None, sample_brief, format="short_video")
+
+
 @pytest.fixture
 def valid_script_response():
-    """Valid JSON response from Gemini for a script."""
+    """Valid JSON response from Gemini for a script (newsletter/carousel)."""
     return json.dumps(
         {
             "hook": "What if machines could read entire documents instantly?",
@@ -53,6 +78,60 @@ def valid_script_response():
                 "Context: Transformers came from a 2017 Google paper",
                 "Explanation: Attention lets each word look at every other word",
                 "Practical: You can fine-tune BERT for sentiment analysis in hours",
+            ],
+            "cta": "Try the Google Colab notebook linked in the description",
+            "claims_used": [
+                "why_it_matters: Transformers revolutionized NLP",
+                "plain_english_summary: Transformers use attention",
+            ],
+            "source_links": ["https://arxiv.org/abs/1706.03762"],
+            "review_status": "draft",
+        }
+    )
+
+
+@pytest.fixture
+def valid_shorts_script_response():
+    """Valid JSON response from Gemini for a YouTube Shorts script."""
+    return json.dumps(
+        {
+            "hook": "What if machines could read entire documents instantly?",
+            "shorts_segments": [
+                {
+                    "section": "hook",
+                    "time_range": "0:00-0:03",
+                    "visual": "Zoom in on a complex transformer attention equation.",
+                    "audio": "[SFX: Loud record scratch]",
+                    "spoken": "What if machines could read entire documents instantly?",
+                },
+                {
+                    "section": "context",
+                    "time_range": "0:03-0:08",
+                    "visual": "Clean diagram.",
+                    "audio": "[SFX: Swoosh]",
+                    "spoken": "Context: Transformers came from a 2017 Google paper",
+                },
+                {
+                    "section": "explanation",
+                    "time_range": "0:08-0:15",
+                    "visual": "Diagram of attention mechanism.",
+                    "audio": "Upbeat synth.",
+                    "spoken": "Explanation: Attention lets each word look at every other word",
+                },
+                {
+                    "section": "payoff",
+                    "time_range": "0:15-0:22",
+                    "visual": "Diagram.",
+                    "audio": "[SFX: Ding]",
+                    "spoken": "Practical: You can fine-tune BERT for sentiment analysis in hours",
+                },
+                {
+                    "section": "cta",
+                    "time_range": "0:22-0:28",
+                    "visual": "Text overlay showing the link.",
+                    "audio": "Music fades.",
+                    "spoken": "Try the Google Colab notebook linked in the description",
+                },
             ],
             "cta": "Try the Google Colab notebook linked in the description",
             "claims_used": [
@@ -74,18 +153,28 @@ def malformed_response():
 def _make_inference_result(text, success=True):
     """Helper to create a mock InferenceResult."""
     from content_creation.inference.providers.base import InferenceResult
+
     return InferenceResult(
-        text=text, provider="gemini", model="gemini-2.5-flash",
-        retries=0, duration_seconds=1.0, success=success, error=None if success else "error",
+        text=text,
+        provider="gemini",
+        model="gemini-2.5-flash",
+        retries=0,
+        duration_seconds=1.0,
+        success=success,
+        error=None if success else "error",
     )
 
 
-def test_generate_script_success(sample_brief, valid_script_response, prompt_dir):
+def test_generate_script_success(
+    sample_brief, valid_shorts_script_response, prompt_dir
+):
     """Test successful script generation with valid Gemini response."""
     with patch("content_creation.generation.script.InferenceManager") as mock_mgr_class:
         mock_mgr = MagicMock()
         mock_mgr_class.return_value = mock_mgr
-        mock_mgr.generate.return_value = _make_inference_result(valid_script_response)
+        mock_mgr.generate.return_value = _make_inference_result(
+            valid_shorts_script_response
+        )
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
         script = generator.generate(None, sample_brief, format="short_video")
@@ -125,13 +214,19 @@ def test_generate_script_malformed_json_fallback(
     assert script.format == "carousel"
 
 
-def test_generate_script_429_retry(sample_brief, valid_script_response, prompt_dir):
+def test_generate_script_429_retry(
+    sample_brief, valid_shorts_script_response, prompt_dir
+):
     """Test that retry is handled by inference layer and result still works."""
     from content_creation.inference.providers.base import InferenceResult
 
     result_with_retries = InferenceResult(
-        text=valid_script_response, provider="gemini", model="gemini-2.5-flash",
-        retries=1, duration_seconds=16.0, success=True,
+        text=valid_shorts_script_response,
+        provider="gemini",
+        model="gemini-2.5-flash",
+        retries=1,
+        duration_seconds=16.0,
+        success=True,
     )
 
     with patch("content_creation.generation.script.InferenceManager") as mock_mgr_class:
@@ -159,16 +254,19 @@ def test_generate_script_format_passed_through(
         script = generator.generate(None, sample_brief, format="newsletter")
 
     assert script.format == "newsletter"
+    assert script.shorts_segments == []
 
 
 def test_generate_script_source_url_injected(
-    sample_brief, valid_script_response, prompt_dir
+    sample_brief, valid_shorts_script_response, prompt_dir
 ):
     """Test that source_url from brief is injected into source_links."""
     with patch("content_creation.generation.script.InferenceManager") as mock_mgr_class:
         mock_mgr = MagicMock()
         mock_mgr_class.return_value = mock_mgr
-        mock_mgr.generate.return_value = _make_inference_result(valid_script_response)
+        mock_mgr.generate.return_value = _make_inference_result(
+            valid_shorts_script_response
+        )
 
         generator = ScriptGenerator(api_key="test_api_key", prompt_dir=prompt_dir)
         script = generator.generate(None, sample_brief, format="short_video")
@@ -219,20 +317,32 @@ def valid_carousel_response():
 def _make_carousel_result(text, success=True):
     """Helper to create a mock InferenceResult for carousel tests."""
     from content_creation.inference.providers.base import InferenceResult
+
     return InferenceResult(
-        text=text, provider="gemini", model="gemini-2.5-flash",
-        retries=0, duration_seconds=1.0, success=success, error=None if success else "error",
+        text=text,
+        provider="gemini",
+        model="gemini-2.5-flash",
+        retries=0,
+        duration_seconds=1.0,
+        success=success,
+        error=None if success else "error",
     )
 
 
-def test_generate_carousel_success(sample_brief, valid_carousel_response, carousel_prompt_dir):
+def test_generate_carousel_success(
+    sample_brief, valid_carousel_response, carousel_prompt_dir
+):
     """Test successful carousel generation with valid response."""
-    with patch("content_creation.generation.carousel.InferenceManager") as mock_mgr_class:
+    with patch(
+        "content_creation.generation.carousel.InferenceManager"
+    ) as mock_mgr_class:
         mock_mgr = MagicMock()
         mock_mgr_class.return_value = mock_mgr
         mock_mgr.generate.return_value = _make_carousel_result(valid_carousel_response)
 
-        generator = CarouselGenerator(api_key="test_api_key", prompt_dir=carousel_prompt_dir)
+        generator = CarouselGenerator(
+            api_key="test_api_key", prompt_dir=carousel_prompt_dir
+        )
         carousel = generator.generate(None, sample_brief)
 
     assert isinstance(carousel, Carousel)
@@ -244,14 +354,20 @@ def test_generate_carousel_success(sample_brief, valid_carousel_response, carous
     assert carousel.review_status == ScriptReviewStatus.DRAFT
 
 
-def test_generate_carousel_malformed_json_fallback(sample_brief, malformed_response, carousel_prompt_dir):
+def test_generate_carousel_malformed_json_fallback(
+    sample_brief, malformed_response, carousel_prompt_dir
+):
     """Test fallback behavior when inference returns malformed JSON."""
-    with patch("content_creation.generation.carousel.InferenceManager") as mock_mgr_class:
+    with patch(
+        "content_creation.generation.carousel.InferenceManager"
+    ) as mock_mgr_class:
         mock_mgr = MagicMock()
         mock_mgr_class.return_value = mock_mgr
         mock_mgr.generate.return_value = _make_carousel_result(malformed_response)
 
-        generator = CarouselGenerator(api_key="test_api_key", prompt_dir=carousel_prompt_dir)
+        generator = CarouselGenerator(
+            api_key="test_api_key", prompt_dir=carousel_prompt_dir
+        )
         carousel = generator.generate(None, sample_brief)
 
     assert carousel.slides[0].title == "needs_review"
@@ -260,35 +376,51 @@ def test_generate_carousel_malformed_json_fallback(sample_brief, malformed_respo
     assert carousel.topic_id == sample_brief.topic_id
 
 
-def test_generate_carousel_429_retry(sample_brief, valid_carousel_response, carousel_prompt_dir):
+def test_generate_carousel_429_retry(
+    sample_brief, valid_carousel_response, carousel_prompt_dir
+):
     """Test that retry is handled by inference layer and result still works."""
     from content_creation.inference.providers.base import InferenceResult
 
     result_with_retries = InferenceResult(
-        text=valid_carousel_response, provider="gemini", model="gemini-2.5-flash",
-        retries=1, duration_seconds=16.0, success=True,
+        text=valid_carousel_response,
+        provider="gemini",
+        model="gemini-2.5-flash",
+        retries=1,
+        duration_seconds=16.0,
+        success=True,
     )
 
-    with patch("content_creation.generation.carousel.InferenceManager") as mock_mgr_class:
+    with patch(
+        "content_creation.generation.carousel.InferenceManager"
+    ) as mock_mgr_class:
         mock_mgr = MagicMock()
         mock_mgr_class.return_value = mock_mgr
         mock_mgr.generate.return_value = result_with_retries
 
-        generator = CarouselGenerator(api_key="test_api_key", prompt_dir=carousel_prompt_dir)
+        generator = CarouselGenerator(
+            api_key="test_api_key", prompt_dir=carousel_prompt_dir
+        )
         carousel = generator.generate(None, sample_brief)
 
     assert mock_mgr.generate.call_count == 1
     assert carousel.review_status == ScriptReviewStatus.DRAFT
 
 
-def test_generate_carousel_slides_parsed_correctly(sample_brief, valid_carousel_response, carousel_prompt_dir):
+def test_generate_carousel_slides_parsed_correctly(
+    sample_brief, valid_carousel_response, carousel_prompt_dir
+):
     """Test that slides are parsed into List[CarouselSlide] correctly."""
-    with patch("content_creation.generation.carousel.InferenceManager") as mock_mgr_class:
+    with patch(
+        "content_creation.generation.carousel.InferenceManager"
+    ) as mock_mgr_class:
         mock_mgr = MagicMock()
         mock_mgr_class.return_value = mock_mgr
         mock_mgr.generate.return_value = _make_carousel_result(valid_carousel_response)
 
-        generator = CarouselGenerator(api_key="test_api_key", prompt_dir=carousel_prompt_dir)
+        generator = CarouselGenerator(
+            api_key="test_api_key", prompt_dir=carousel_prompt_dir
+        )
         carousel = generator.generate(None, sample_brief)
 
     assert isinstance(carousel.slides[0], CarouselSlide)
@@ -340,20 +472,34 @@ def valid_newsletter_response():
 def _make_newsletter_result(text, success=True):
     """Helper to create a mock InferenceResult for newsletter tests."""
     from content_creation.inference.providers.base import InferenceResult
+
     return InferenceResult(
-        text=text, provider="gemini", model="gemini-2.5-flash",
-        retries=0, duration_seconds=1.0, success=success, error=None if success else "error",
+        text=text,
+        provider="gemini",
+        model="gemini-2.5-flash",
+        retries=0,
+        duration_seconds=1.0,
+        success=success,
+        error=None if success else "error",
     )
 
 
-def test_generate_newsletter_success(sample_brief, valid_newsletter_response, newsletter_prompt_dir):
+def test_generate_newsletter_success(
+    sample_brief, valid_newsletter_response, newsletter_prompt_dir
+):
     """Test successful newsletter generation with valid response."""
-    with patch("content_creation.generation.newsletter.InferenceManager") as mock_mgr_class:
+    with patch(
+        "content_creation.generation.newsletter.InferenceManager"
+    ) as mock_mgr_class:
         mock_mgr = MagicMock()
         mock_mgr_class.return_value = mock_mgr
-        mock_mgr.generate.return_value = _make_newsletter_result(valid_newsletter_response)
+        mock_mgr.generate.return_value = _make_newsletter_result(
+            valid_newsletter_response
+        )
 
-        generator = NewsletterGenerator(api_key="test_api_key", prompt_dir=newsletter_prompt_dir)
+        generator = NewsletterGenerator(
+            api_key="test_api_key", prompt_dir=newsletter_prompt_dir
+        )
         newsletter = generator.generate(None, sample_brief)
 
     assert isinstance(newsletter, Newsletter)
@@ -366,14 +512,20 @@ def test_generate_newsletter_success(sample_brief, valid_newsletter_response, ne
     assert newsletter.review_status == ScriptReviewStatus.DRAFT
 
 
-def test_generate_newsletter_malformed_json_fallback(sample_brief, malformed_response, newsletter_prompt_dir):
+def test_generate_newsletter_malformed_json_fallback(
+    sample_brief, malformed_response, newsletter_prompt_dir
+):
     """Test fallback behavior when inference returns malformed JSON."""
-    with patch("content_creation.generation.newsletter.InferenceManager") as mock_mgr_class:
+    with patch(
+        "content_creation.generation.newsletter.InferenceManager"
+    ) as mock_mgr_class:
         mock_mgr = MagicMock()
         mock_mgr_class.return_value = mock_mgr
         mock_mgr.generate.return_value = _make_newsletter_result(malformed_response)
 
-        generator = NewsletterGenerator(api_key="test_api_key", prompt_dir=newsletter_prompt_dir)
+        generator = NewsletterGenerator(
+            api_key="test_api_key", prompt_dir=newsletter_prompt_dir
+        )
         newsletter = generator.generate(None, sample_brief)
 
     assert newsletter.subject_line == "needs_review"
@@ -383,35 +535,53 @@ def test_generate_newsletter_malformed_json_fallback(sample_brief, malformed_res
     assert newsletter.topic_id == sample_brief.topic_id
 
 
-def test_generate_newsletter_429_retry(sample_brief, valid_newsletter_response, newsletter_prompt_dir):
+def test_generate_newsletter_429_retry(
+    sample_brief, valid_newsletter_response, newsletter_prompt_dir
+):
     """Test that retry is handled by inference layer and result still works."""
     from content_creation.inference.providers.base import InferenceResult
 
     result_with_retries = InferenceResult(
-        text=valid_newsletter_response, provider="gemini", model="gemini-2.5-flash",
-        retries=1, duration_seconds=16.0, success=True,
+        text=valid_newsletter_response,
+        provider="gemini",
+        model="gemini-2.5-flash",
+        retries=1,
+        duration_seconds=16.0,
+        success=True,
     )
 
-    with patch("content_creation.generation.newsletter.InferenceManager") as mock_mgr_class:
+    with patch(
+        "content_creation.generation.newsletter.InferenceManager"
+    ) as mock_mgr_class:
         mock_mgr = MagicMock()
         mock_mgr_class.return_value = mock_mgr
         mock_mgr.generate.return_value = result_with_retries
 
-        generator = NewsletterGenerator(api_key="test_api_key", prompt_dir=newsletter_prompt_dir)
+        generator = NewsletterGenerator(
+            api_key="test_api_key", prompt_dir=newsletter_prompt_dir
+        )
         newsletter = generator.generate(None, sample_brief)
 
     assert mock_mgr.generate.call_count == 1
     assert newsletter.review_status == ScriptReviewStatus.DRAFT
 
 
-def test_generate_newsletter_sections_parsed_correctly(sample_brief, valid_newsletter_response, newsletter_prompt_dir):
+def test_generate_newsletter_sections_parsed_correctly(
+    sample_brief, valid_newsletter_response, newsletter_prompt_dir
+):
     """Test that sections are parsed into List[NewsletterSection] correctly."""
-    with patch("content_creation.generation.newsletter.InferenceManager") as mock_mgr_class:
+    with patch(
+        "content_creation.generation.newsletter.InferenceManager"
+    ) as mock_mgr_class:
         mock_mgr = MagicMock()
         mock_mgr_class.return_value = mock_mgr
-        mock_mgr.generate.return_value = _make_newsletter_result(valid_newsletter_response)
+        mock_mgr.generate.return_value = _make_newsletter_result(
+            valid_newsletter_response
+        )
 
-        generator = NewsletterGenerator(api_key="test_api_key", prompt_dir=newsletter_prompt_dir)
+        generator = NewsletterGenerator(
+            api_key="test_api_key", prompt_dir=newsletter_prompt_dir
+        )
         newsletter = generator.generate(None, sample_brief)
 
     assert isinstance(newsletter.sections[0], NewsletterSection)
@@ -447,7 +617,7 @@ def valid_thumbnail_response():
                 "circuit board heads",
                 "generic futuristic cityscape",
                 "matrix-style falling code",
-                "transformer architecture diagrams"
+                "transformer architecture diagrams",
             ],
             "readability_notes": "Dark background with white text, keep left third clear for title overlay, avoid busy patterns",
             "review_status": "draft",
@@ -458,83 +628,135 @@ def valid_thumbnail_response():
 def _make_thumbnail_result(text, success=True):
     """Helper to create a mock InferenceResult for thumbnail tests."""
     from content_creation.inference.providers.base import InferenceResult
+
     return InferenceResult(
-        text=text, provider="gemini", model="gemini-2.5-flash",
-        retries=0, duration_seconds=1.0, success=success, error=None if success else "error",
+        text=text,
+        provider="gemini",
+        model="gemini-2.5-flash",
+        retries=0,
+        duration_seconds=1.0,
+        success=success,
+        error=None if success else "error",
     )
 
 
-def test_generate_thumbnail_success(sample_brief, valid_thumbnail_response, thumbnail_prompt_dir):
+def test_generate_thumbnail_success(
+    sample_brief, valid_thumbnail_response, thumbnail_prompt_dir
+):
     """Test successful thumbnail generation with valid response."""
-    with patch("content_creation.generation.thumbnail.InferenceManager") as mock_mgr_class:
+    with patch(
+        "content_creation.generation.thumbnail.InferenceManager"
+    ) as mock_mgr_class:
         mock_mgr = MagicMock()
         mock_mgr_class.return_value = mock_mgr
-        mock_mgr.generate.return_value = _make_thumbnail_result(valid_thumbnail_response)
+        mock_mgr.generate.return_value = _make_thumbnail_result(
+            valid_thumbnail_response
+        )
 
-        generator = ThumbnailGenerator(api_key="test_api_key", prompt_dir=thumbnail_prompt_dir)
+        generator = ThumbnailGenerator(
+            api_key="test_api_key", prompt_dir=thumbnail_prompt_dir
+        )
         thumbnail = generator.generate(None, sample_brief)
 
     assert isinstance(thumbnail, ThumbnailPrompt)
     assert thumbnail.topic_id == sample_brief.topic_id
     assert thumbnail.title_text == "Why Attention Changed Everything"
     assert thumbnail.supporting_text == "The 2017 paper that redefined NLP"
-    assert thumbnail.visual_metaphor == "a librarian scanning every book simultaneously instead of reading them in order"
+    assert (
+        thumbnail.visual_metaphor
+        == "a librarian scanning every book simultaneously instead of reading them in order"
+    )
     assert thumbnail.style == "diagram_overlay"
     assert len(thumbnail.negative_prompt) == 6
     assert "neon brains" in thumbnail.negative_prompt
-    assert thumbnail.readability_notes == "Dark background with white text, keep left third clear for title overlay, avoid busy patterns"
+    assert (
+        thumbnail.readability_notes
+        == "Dark background with white text, keep left third clear for title overlay, avoid busy patterns"
+    )
     assert thumbnail.review_status == ScriptReviewStatus.DRAFT
 
 
-def test_generate_thumbnail_malformed_json_fallback(sample_brief, malformed_response, thumbnail_prompt_dir):
+def test_generate_thumbnail_malformed_json_fallback(
+    sample_brief, malformed_response, thumbnail_prompt_dir
+):
     """Test fallback behavior when inference returns malformed JSON."""
-    with patch("content_creation.generation.thumbnail.InferenceManager") as mock_mgr_class:
+    with patch(
+        "content_creation.generation.thumbnail.InferenceManager"
+    ) as mock_mgr_class:
         mock_mgr = MagicMock()
         mock_mgr_class.return_value = mock_mgr
         mock_mgr.generate.return_value = _make_thumbnail_result(malformed_response)
 
-        generator = ThumbnailGenerator(api_key="test_api_key", prompt_dir=thumbnail_prompt_dir)
+        generator = ThumbnailGenerator(
+            api_key="test_api_key", prompt_dir=thumbnail_prompt_dir
+        )
         thumbnail = generator.generate(None, sample_brief)
 
     assert thumbnail.title_text == "Pending title review"
     assert thumbnail.supporting_text == "Pending supporting text review"
     assert thumbnail.visual_metaphor == "Pending visual metaphor review"
     assert thumbnail.style == "clean_minimal"
-    assert thumbnail.negative_prompt == ["low quality", "blurry", "cluttered background", "unreadable text"]
-    assert thumbnail.readability_notes == "Fallback generated due to inference failure. Review design style and text contrast."
+    assert thumbnail.negative_prompt == [
+        "low quality",
+        "blurry",
+        "cluttered background",
+        "unreadable text",
+    ]
+    assert (
+        thumbnail.readability_notes
+        == "Fallback generated due to inference failure. Review design style and text contrast."
+    )
     assert thumbnail.review_status == ScriptReviewStatus.NEEDS_REVIEW
     assert thumbnail.topic_id == sample_brief.topic_id
 
 
-def test_generate_thumbnail_429_retry(sample_brief, valid_thumbnail_response, thumbnail_prompt_dir):
+def test_generate_thumbnail_429_retry(
+    sample_brief, valid_thumbnail_response, thumbnail_prompt_dir
+):
     """Test that retry is handled by inference layer and result still works."""
     from content_creation.inference.providers.base import InferenceResult
 
     result_with_retries = InferenceResult(
-        text=valid_thumbnail_response, provider="gemini", model="gemini-2.5-flash",
-        retries=1, duration_seconds=16.0, success=True,
+        text=valid_thumbnail_response,
+        provider="gemini",
+        model="gemini-2.5-flash",
+        retries=1,
+        duration_seconds=16.0,
+        success=True,
     )
 
-    with patch("content_creation.generation.thumbnail.InferenceManager") as mock_mgr_class:
+    with patch(
+        "content_creation.generation.thumbnail.InferenceManager"
+    ) as mock_mgr_class:
         mock_mgr = MagicMock()
         mock_mgr_class.return_value = mock_mgr
         mock_mgr.generate.return_value = result_with_retries
 
-        generator = ThumbnailGenerator(api_key="test_api_key", prompt_dir=thumbnail_prompt_dir)
+        generator = ThumbnailGenerator(
+            api_key="test_api_key", prompt_dir=thumbnail_prompt_dir
+        )
         thumbnail = generator.generate(None, sample_brief)
 
     assert mock_mgr.generate.call_count == 1
     assert thumbnail.review_status == ScriptReviewStatus.DRAFT
 
 
-def test_generate_thumbnail_negative_prompt_as_list(sample_brief, valid_thumbnail_response, thumbnail_prompt_dir):
+def test_generate_thumbnail_negative_prompt_as_list(
+    sample_brief, valid_thumbnail_response, thumbnail_prompt_dir
+):
     """Test that negative_prompt is correctly parsed as List[str]."""
-    with patch("content_creation.generation.thumbnail.InferenceManager") as mock_mgr_class:
+    with patch(
+        "content_creation.generation.thumbnail.InferenceManager"
+    ) as mock_mgr_class:
         mock_mgr = MagicMock()
         mock_mgr_class.return_value = mock_mgr
-        mock_mgr.generate.return_value = _make_thumbnail_result(valid_thumbnail_response)
+        mock_mgr.generate.return_value = _make_thumbnail_result(
+            valid_thumbnail_response
+        )
 
-        generator = ThumbnailGenerator(api_key="test_api_key", prompt_dir=thumbnail_prompt_dir)
+        generator = ThumbnailGenerator(
+            api_key="test_api_key", prompt_dir=thumbnail_prompt_dir
+        )
         thumbnail = generator.generate(None, sample_brief)
 
     assert isinstance(thumbnail.negative_prompt, list)

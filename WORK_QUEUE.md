@@ -62,6 +62,7 @@ Status values: `PENDING` | `IN_PROGRESS` | `DONE` | `BLOCKED` | `SKIPPED`
 | TASK-084 | Repair issue-runner plan-mode task-card generation | DONE    | HIGH | TASK-083 | [→](docs/tasks/task_084.md) |
 | TASK-085 | Repair issue-runner direct-execution imports and inspect recovery | DONE | HIGH | TASK-084 | [→](docs/tasks/task_085.md) |
 | TASK-041 | Add LinkedIn post generator | DONE    | HIGH | TASK-040 | [→](docs/tasks/task_041.md) |
+| TASK-042 | Add YouTube Shorts script generator | DONE | HIGH | TASK-040 | [→](docs/tasks/task_042.md) |
 | TASK-087 | Repair CI checks for docs-only PRs and pytest installation | DONE    | HIGH | TASK-085 | [→](docs/tasks/task_087.md) |
 | TASK-088 | Create Phase 12.3 sprint task cards | DONE | HIGH | TASK-041 | [→](docs/tasks/task_088.md) |
 | TASK-089 | Define LinkedIn quality score model | DONE | HIGH | TASK-088 | [→](docs/tasks/task_089.md) |
