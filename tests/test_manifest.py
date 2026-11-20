@@ -605,3 +605,85 @@ class TestManifestBuilder:
 
         # 7. ready_for_planner remains false whenever any non-skipped asset is not approved
         # Tested by case 2, 3, 4, 5 above, where ready_for_planner is False.
+
+    def test_recommended_formats_filters_review_status_leak(self, tmp_path, caplog):
+        """Review status ('needs_review') in recommended_formats must be filtered, avoiding format leaks."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        self._write_brief(
+            tmp_path,
+            "topic_leak",
+            recommended_formats=["carousel", "needs_review"],
+            status="approved",
+        )
+        self._write_asset(tmp_path, "carousel", "topic_leak", status="approved")
+        self._write_asset(tmp_path, "thumbnail", "topic_leak", status="approved")
+
+        builder = ManifestBuilder(storage)
+        with caplog.at_level(logging.WARNING):
+            manifest = builder.build(
+                topic_id="topic_leak",
+                topic_title="Topic Leak Test",
+                source_url="https://example.com",
+            )
+
+        # Script must be skipped (not forced to short_video by needs_review)
+        assert manifest.assets["script"].status == "skipped"
+        assert manifest.assets["carousel"].status == "approved"
+        assert manifest.assets["newsletter"].status == "skipped"
+        assert manifest.overall_status == "complete"
+        assert manifest.ready_for_planner is True
+
+        # No warning about needs_review being an unknown format
+        assert not any("needs_review" in r.message for r in caplog.records)
+
+    def test_recommended_formats_with_only_review_status_defaults_cleanly(self, tmp_path, caplog):
+        """Brief with only review status placeholder cleanly defaults to short_video without warning."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        self._write_brief(
+            tmp_path,
+            "topic_fallback",
+            recommended_formats=["needs_review"],
+            status="approved",
+        )
+
+        builder = ManifestBuilder(storage)
+        with caplog.at_level(logging.WARNING):
+            manifest = builder.build(
+                topic_id="topic_fallback",
+                topic_title="Fallback Test",
+                source_url="https://example.com",
+            )
+
+        assert manifest.assets["script"].status == "missing"
+        assert manifest.assets["carousel"].status == "skipped"
+        assert not any("needs_review" in r.message for r in caplog.records)
+
+    def test_recommended_formats_genuine_unknown_format_logs_warning(self, tmp_path, caplog):
+        """Genuine unknown formats still log a warning and default to short_video."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        self._write_brief(
+            tmp_path,
+            "topic_unknown",
+            recommended_formats=["podcast"],
+            status="approved",
+        )
+
+        builder = ManifestBuilder(storage)
+        with caplog.at_level(logging.WARNING):
+            manifest = builder.build(
+                topic_id="topic_unknown",
+                topic_title="Unknown Format Test",
+                source_url="https://example.com",
+            )
+
+        assert manifest.assets["script"].status == "missing"
+        assert any("Unknown format 'podcast'" in r.message for r in caplog.records)

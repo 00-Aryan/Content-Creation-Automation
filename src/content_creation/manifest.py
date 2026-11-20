@@ -1,12 +1,15 @@
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Set
+from typing import Any, Dict, List, Literal, Set, cast
 
 from content_creation.models.manifest import TopicManifest, AssetEntry
+from content_creation.shared.enums import ReviewStatus
 from content_creation.storage.local import LocalStorage
 
 logger = logging.getLogger(__name__)
+
+REVIEW_STATUS_VALUES: frozenset[str] = frozenset(s.value for s in ReviewStatus)
 
 FORMAT_TO_ASSET: Dict[str, str] = {
     "short_video": "script",
@@ -79,6 +82,7 @@ class ManifestBuilder:
             asset.status for asset in assets.values() if asset.status != "skipped"
         ]
 
+        overall_status: Literal["complete", "partial", "blocked"]
         if "missing" in non_skipped_statuses or "rejected" in non_skipped_statuses:
             overall_status = "blocked"
         elif all(s == "approved" for s in non_skipped_statuses):
@@ -171,13 +175,30 @@ class ManifestBuilder:
 
         data = self._load_json(brief_file)
         formats = data.get("recommended_formats", [])
+        if isinstance(formats, str):
+            formats = [formats]
 
         mapped_formats: Set[str] = set()
-        for fmt in formats:
+        for raw_fmt in formats:
+            if not isinstance(raw_fmt, str):
+                continue
+            fmt = raw_fmt.strip()
+            if not fmt:
+                continue
+            fmt_lower = fmt.lower()
+            if fmt_lower in REVIEW_STATUS_VALUES:
+                logger.debug(
+                    "Filtered review status '%s' from recommended_formats for topic %s",
+                    fmt,
+                    topic_id,
+                )
+                continue
             if fmt in FORMAT_TO_ASSET:
                 mapped_formats.add(fmt)
+            elif fmt_lower in FORMAT_TO_ASSET:
+                mapped_formats.add(fmt_lower)
             else:
-                mapped = FREETEXT_TO_FORMAT.get(fmt.lower())
+                mapped = FREETEXT_TO_FORMAT.get(fmt_lower)
                 if mapped:
                     logger.info("Mapped format '%s' → '%s' for topic %s", fmt, mapped, topic_id)
                     mapped_formats.add(mapped)
@@ -208,13 +229,14 @@ class ManifestBuilder:
             generated_at=None,
         )
 
-    def _load_json(self, file_path: Path) -> dict:
+    def _load_json(self, file_path: Path) -> Dict[str, Any]:
         """Load and parse a JSON file safely."""
         import json
 
         try:
             with open(file_path, "r") as f:
-                return json.load(f)
+                loaded = json.load(f)
+                return cast(Dict[str, Any], loaded) if isinstance(loaded, dict) else {}
         except (json.JSONDecodeError, OSError) as e:
             logger.error("Failed to load or parse JSON from %s: %s", file_path, e)
             return {}
