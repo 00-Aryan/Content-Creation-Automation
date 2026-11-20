@@ -1,23 +1,30 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "metadata": {
-    "last_updated": "2026-11-21T00:05:00+05:30",
+    "last_updated": "2026-11-21T00:33:00+05:30",
     "active_branch": "fix/phase1a-core-defects",
-    "audited_commit": "9cf14d75d2121d11b5bfca553db4423080d06e88",
-    "audited_commit_short": "9cf14d7",
-    "chronicler": "error-taxonomy-chronicler"
+    "audited_commit": "008755fdc9c52277200d8bef763848bcf30a7580",
+    "audited_commit_short": "008755f",
+    "chronicler": "error-taxonomy-chronicler",
+    "pytest_baseline": {
+      "passed": 1118,
+      "failed": 19,
+      "skipped": 0,
+      "xfailed": 0,
+      "duration_seconds": 19.24
+    }
   },
   "summary_counts": {
-    "total_observed_errors": 12,
-    "open_errors": 9,
+    "total_observed_errors": 17,
+    "open_errors": 14,
     "mitigated_errors": 1,
     "resolved_errors": 2,
     "total_anticipated_risks": 5,
-    "qa_covered_errors": 4,
-    "qa_coverage_percentage": 33.33,
+    "qa_covered_errors": 3,
+    "qa_coverage_percentage": 17.65,
     "by_error_class": {
       "TRANSPORT_TRANSIENT": 0,
-      "SCHEMA_VALIDATION": 0,
+      "SCHEMA_VALIDATION": 5,
       "DATA_ENCODING_IO": 2,
       "QUALITY_GROUNDING": 3,
       "STATE_WORKFLOW_CONCURRENCY": 1,
@@ -187,13 +194,13 @@
       ],
       "reproduction_command": "uv run python -m pytest tests/test_manifest.py:test_recommended_formats_filters_review_status_leak --no-cov",
       "recommended_runtime_policy": "ENRICHMENT_OR_CRITIC_LOOP",
-      "qa_coverage_status": "COVERED",
+      "qa_coverage_status": "PARTIAL",
       "qa_test_directive": "Add test_fallback_brief_does_not_contain_review_status_values asserting recommended_formats only contains valid AssetType format strings or empty list."
     },
     {
       "id": "ERR-006",
-      "title": "Non-Atomic 0-Byte Storyboard JSON Write Triggers JSONDecodeError in Asset Generation",
-      "stage": "Stage 6: Asset Generation",
+      "title": "0-Byte Storyboard JSON Truncation Triggers JSONDecodeError in Asset Generation",
+      "stage": "Stage 6: Assets",
       "error_class": "DATA_ENCODING_IO",
       "severity": "High",
       "status": "OPEN",
@@ -206,7 +213,7 @@
         "src/content_creation/application/asset_generation_service.py:66-72"
       ],
       "exception_type": "json.decoder.JSONDecodeError",
-      "symptom": "Failed to load Storyboard <topic_id>.json: Expecting value: line 1 column 1 (char 0), causing AssetGenerationService to skip asset generation",
+      "symptom": "Failed to load Storyboard <topic_id>.json: Expecting value: line 1 column 1 (char 0), causing AssetGenerationService to skip asset generation due to Storyboard Presence Gate. Creation origin of 0-byte truncation remains unconfirmed in storage backend; unhandled 0-byte read occurs in json_repository.py:59-64.",
       "affected_tests": [],
       "evidence_sources": [
         "Live pipeline smoke test: generate-assets --top 2",
@@ -374,6 +381,126 @@
       "recommended_runtime_policy": "CODE_REFACTOR_FIX",
       "qa_coverage_status": "PARTIAL",
       "qa_test_directive": "Add CI ratchet test enforcing mypy error count on cli.py does not exceed 127 and decreases as subcommand blocks are decomposed into separate modules."
+    },
+    {
+      "id": "ERR-013",
+      "title": "TopicItem Domain Model Typing.Any Metadata Leak",
+      "stage": "Stage 1: Ingestion",
+      "error_class": "SCHEMA_VALIDATION",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/models/topic.py:47"
+      ],
+      "exception_type": "PydanticSchemaViolation",
+      "symptom": "TopicItem.metadata is declared as Dict[str, Any] = Field(default_factory=dict), allowing arbitrary unvalidated dictionary structures to bypass Pydantic type validation during ingestion normalization",
+      "affected_tests": [],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:47"
+      ],
+      "reproduction_command": "uv run python -c \"from content_creation.models.topic import TopicItem; t = TopicItem(id='test', title='T', url='https://example.com', source='rss', published_at='2026-11-20T00:00:00Z', raw_text='text', metadata={'untyped_key': object()})\"",
+      "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Add schema validation test asserting TopicItem rejects non-serializable or unconstrained nested structures in metadata, or define a concrete IngestionMetadata schema."
+    },
+    {
+      "id": "ERR-014",
+      "title": "ScoredTopicItem Inherited Typing.Any Metadata Persistence Leak",
+      "stage": "Stage 2: Scoring",
+      "error_class": "SCHEMA_VALIDATION",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/models/topic.py:75"
+      ],
+      "exception_type": "PydanticSchemaViolation",
+      "symptom": "ScoredTopicItem inherits metadata: Dict[str, Any] from TopicItem, permitting arbitrary untyped payloads to propagate across the scoring stage and persist into data/scored/*.json",
+      "affected_tests": [],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:48"
+      ],
+      "reproduction_command": "uv run python -c \"from content_creation.models.topic import ScoredTopicItem; s = ScoredTopicItem(id='test', title='T', url='https://example.com', source='rss', published_at='2026-11-20T00:00:00Z', raw_text='text', priority_score=85.0, metadata={'arbitrary_untyped': 12345})\"",
+      "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Add test_scored_topic_item_rejects_untyped_metadata verifying that ScoredTopicItem enforces typed ScoringMetadata or rejects unstructured dictionary injections."
+    },
+    {
+      "id": "ERR-015",
+      "title": "WeeklyCalendar Config Snapshot Raw Untyped Dict Leak",
+      "stage": "Stage 9: Planning",
+      "error_class": "SCHEMA_VALIDATION",
+      "severity": "Low",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/models/calendar.py:31"
+      ],
+      "exception_type": "PydanticSchemaViolation",
+      "symptom": "config_snapshot: Dict in WeeklyCalendar uses raw unparameterized Dict with no key or value type constraints, allowing corrupted or arbitrary configuration objects to persist in calendar records",
+      "affected_tests": [],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:49"
+      ],
+      "reproduction_command": "uv run python -c \"from content_creation.models.calendar import WeeklyCalendar; c = WeeklyCalendar(week_start='2026-11-23', week_end='2026-11-29', posts=[], total_posts=0, format_counts={}, topics_used=[], generated_at='2026-11-20T00:00:00Z', config_snapshot={'malformed': [1, 2, 3]}); print(type(c.config_snapshot))\"",
+      "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Define a concrete PublishingConfigSnapshot Pydantic model for WeeklyCalendar.config_snapshot and assert validation failure on arbitrary dictionary structures."
+    },
+    {
+      "id": "ERR-016",
+      "title": "ContentIntelligence Quality Status Unvalidated String Leak",
+      "stage": "Stage 4: Intelligence",
+      "error_class": "SCHEMA_VALIDATION",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/domains/content_intelligence/model.py:52"
+      ],
+      "exception_type": "PydanticSchemaViolation",
+      "symptom": "quality_status: Optional[str] = None uses unconstrained str rather than Enum or Literal['ready', 'degraded', 'blocked'], allowing invalid quality states to bypass Pydantic model validation",
+      "affected_tests": [],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:50"
+      ],
+      "reproduction_command": "uv run python -c \"from content_creation.domains.content_intelligence.model import ContentIntelligence, TopicType, Hook, HookType; ci = ContentIntelligence(topic_id='t1', generated_at='now', topic_type=TopicType.NEW_INSIGHT, timeliness_hook='', primary_hook=Hook(hook_text='h', hook_type=HookType.STATISTIC, source_field='s'), secondary_hook=Hook(hook_text='h', hook_type=HookType.STATISTIC, source_field='s'), quality_status='INVALID_STATUS'); print(ci.quality_status)\"",
+      "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Add test_content_intelligence_quality_status_enum enforcing Literal['ready', 'degraded', 'blocked'] or a QualityStatus enum, verifying ValidationError on illegal strings."
+    },
+    {
+      "id": "ERR-017",
+      "title": "AssetCheck Review Status Unvalidated String Leak in Dry Run",
+      "stage": "Stage 10: Dry Run",
+      "error_class": "SCHEMA_VALIDATION",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/models/dryrun.py:12"
+      ],
+      "exception_type": "PydanticSchemaViolation",
+      "symptom": "AssetCheck.review_status is typed as unconstrained str instead of ReviewStatus enum, allowing invalid review states to pass dry run verification checks without schema error",
+      "affected_tests": [],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:51"
+      ],
+      "reproduction_command": "uv run python -c \"from content_creation.models.dryrun import AssetCheck; a = AssetCheck(topic_id='t', topic_title='T', format='newsletter', asset_path='p', review_status='unrecognized_review_state', is_ready=False); print(a.review_status)\"",
+      "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Add test_asset_check_review_status_enum asserting AssetCheck rejects arbitrary string values not defined in ReviewStatus enum."
     }
   ],
   "anticipated_risks": [
