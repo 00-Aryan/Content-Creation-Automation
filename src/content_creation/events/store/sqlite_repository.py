@@ -26,12 +26,13 @@ class SQLiteEventRepository(EventRepository):
         self._db_path = db_path
         self._local = threading.local()
         self._lock = threading.Lock()
-        self._all_conns = []
+        self._all_conns: List[sqlite3.Connection] = []
         self._init_schema()
 
     def _get_conn(self) -> sqlite3.Connection:
         """Get a thread-local SQLite connection."""
-        if not hasattr(self._local, "conn") or self._local.conn is None:
+        conn: Optional[sqlite3.Connection] = getattr(self._local, "conn", None)
+        if conn is None:
             conn = sqlite3.connect(
                 self._db_path,
                 check_same_thread=False,
@@ -43,7 +44,7 @@ class SQLiteEventRepository(EventRepository):
             self._local.conn = conn
             with self._lock:
                 self._all_conns.append(conn)
-        return self._local.conn
+        return conn
 
     def _init_schema(self) -> None:
         """Initialize schema on the main thread connection."""
@@ -126,12 +127,12 @@ class SQLiteEventRepository(EventRepository):
         conn = self._get_conn()
         if category:
             cursor = conn.execute(
-                "SELECT * FROM events WHERE category = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                "SELECT * FROM events WHERE category = ? ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?",
                 (category, limit, offset),
             )
         else:
             cursor = conn.execute(
-                "SELECT * FROM events ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                "SELECT * FROM events ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?",
                 (limit, offset),
             )
         return [self._row_to_record(row) for row in cursor.fetchall()]
@@ -144,7 +145,7 @@ class SQLiteEventRepository(EventRepository):
         """List all events sharing a correlation_id, ordered by timestamp."""
         conn = self._get_conn()
         cursor = conn.execute(
-            "SELECT * FROM events WHERE correlation_id = ? ORDER BY created_at ASC LIMIT ?",
+            "SELECT * FROM events WHERE correlation_id = ? ORDER BY created_at ASC, rowid ASC LIMIT ?",
             (correlation_id, limit),
         )
         return [self._row_to_record(row) for row in cursor.fetchall()]
@@ -158,7 +159,7 @@ class SQLiteEventRepository(EventRepository):
         """List all events for a specific entity, ordered by timestamp."""
         conn = self._get_conn()
         cursor = conn.execute(
-            "SELECT * FROM events WHERE entity_type = ? AND entity_id = ? ORDER BY created_at ASC LIMIT ?",
+            "SELECT * FROM events WHERE entity_type = ? AND entity_id = ? ORDER BY created_at ASC, rowid ASC LIMIT ?",
             (entity_type, entity_id, limit),
         )
         return [self._row_to_record(row) for row in cursor.fetchall()]
@@ -172,7 +173,7 @@ class SQLiteEventRepository(EventRepository):
         """List events by category with pagination."""
         conn = self._get_conn()
         cursor = conn.execute(
-            "SELECT * FROM events WHERE category = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            "SELECT * FROM events WHERE category = ? ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?",
             (category, limit, offset),
         )
         return [self._row_to_record(row) for row in cursor.fetchall()]
@@ -186,7 +187,7 @@ class SQLiteEventRepository(EventRepository):
         """List events within a time range, ordered by timestamp."""
         conn = self._get_conn()
         cursor = conn.execute(
-            "SELECT * FROM events WHERE created_at >= ? AND created_at <= ? ORDER BY created_at ASC LIMIT ?",
+            "SELECT * FROM events WHERE created_at >= ? AND created_at <= ? ORDER BY created_at ASC, rowid ASC LIMIT ?",
             (start.isoformat(), end.isoformat(), limit),
         )
         return [self._row_to_record(row) for row in cursor.fetchall()]
@@ -197,13 +198,23 @@ class SQLiteEventRepository(EventRepository):
         limit: int = 100,
     ) -> List[EventRecord]:
         """List events that occurred after a given event (for SSE replay)."""
-        anchor = self.get_event(event_id)
-        if anchor is None:
-            return []
         conn = self._get_conn()
         cursor = conn.execute(
-            "SELECT * FROM events WHERE created_at > ? OR (created_at = ? AND id > ?) ORDER BY created_at ASC LIMIT ?",
-            (anchor.created_at.isoformat(), anchor.created_at.isoformat(), str(event_id), limit),
+            "SELECT rowid, created_at FROM events WHERE id = ?",
+            (str(event_id),),
+        )
+        anchor_row = cursor.fetchone()
+        if anchor_row is None:
+            return []
+        anchor_rowid = int(anchor_row[0])
+        anchor_created_at = str(anchor_row[1])
+
+        cursor = conn.execute(
+            """SELECT * FROM events
+               WHERE created_at > ? OR (created_at = ? AND rowid > ?)
+               ORDER BY created_at ASC, rowid ASC
+               LIMIT ?""",
+            (anchor_created_at, anchor_created_at, anchor_rowid, limit),
         )
         return [self._row_to_record(row) for row in cursor.fetchall()]
 
@@ -216,7 +227,8 @@ class SQLiteEventRepository(EventRepository):
             )
         else:
             cursor = conn.execute("SELECT COUNT(*) FROM events")
-        return cursor.fetchone()[0]
+        row = cursor.fetchone()
+        return int(row[0]) if row else 0
 
     def delete_expired(self, before: datetime, category: Optional[str] = None) -> int:
         """Delete events older than the given timestamp. Returns count deleted."""

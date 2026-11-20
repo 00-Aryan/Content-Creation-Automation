@@ -9,7 +9,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from typing import List
 from unittest.mock import MagicMock
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -300,6 +300,39 @@ class TestSQLiteEventRepository:
         events = repo.list_after_event(r1.event_id)
         assert len(events) >= 1
         assert events[0].event_id == r2.event_id
+
+    def test_list_after_event_identical_timestamps_deterministic(self, repo):
+        """DEF-002: Replay ordering remains deterministic even with identical timestamps."""
+        fixed_time = datetime(2026, 11, 20, 12, 0, 0, tzinfo=timezone.utc)
+        id_high = UUID("ffffffff-ffff-4fff-8fff-ffffffffffff")
+        id_low = UUID("00000000-0000-4000-8000-000000000000")
+        r1 = EventRecord(
+            event_id=id_high,
+            event_name="event_1",
+            category="workflow",
+            source="test",
+            correlation_id="c1",
+            entity_type="brief",
+            entity_id="b1",
+            payload_json="{}",
+            created_at=fixed_time,
+        )
+        r2 = EventRecord(
+            event_id=id_low,
+            event_name="event_2",
+            category="workflow",
+            source="test",
+            correlation_id="c1",
+            entity_type="brief",
+            entity_id="b1",
+            payload_json="{}",
+            created_at=fixed_time,
+        )
+        repo.save_event(r1)
+        repo.save_event(r2)
+        events = repo.list_after_event(r1.event_id)
+        assert len(events) == 1
+        assert events[0].event_id == id_low
 
     def test_list_after_nonexistent_event(self, repo):
         events = repo.list_after_event(uuid4())
