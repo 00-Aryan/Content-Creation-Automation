@@ -1280,7 +1280,6 @@ Generated: {generated_at}
 
             repo = SQLiteMetricRepository(str(db_path))
             try:
-                from datetime import timedelta
                 end = datetime.now(timezone.utc)
                 start = end - timedelta(days=args.days)
 
@@ -1335,7 +1334,6 @@ Generated: {generated_at}
                     print("No metrics store found.")
                     return 0
 
-                from datetime import timedelta
                 end = datetime.now(timezone.utc)
                 start = end - timedelta(days=args.days)
 
@@ -1347,10 +1345,10 @@ Generated: {generated_at}
 
                 print(f"\n=== Telemetry Summary (last {args.days} days) ===\n")
 
-                sys = summary["system"]
+                sys_summary = summary["system"]
                 print("System:")
-                print(f"  Events stored:    {sys.total_events_stored}")
-                print(f"  Metrics stored:   {sys.total_metrics_stored}")
+                print(f"  Events stored:    {sys_summary.total_events_stored}")
+                print(f"  Metrics stored:   {sys_summary.total_metrics_stored}")
 
                 wf = summary["workflow"]
                 print("\nWorkflow:")
@@ -1476,7 +1474,6 @@ Generated: {generated_at}
                     print(f"\nReplay would process {event_count} events.")
                 else:
                     # Clear existing metrics
-                    from datetime import timedelta
                     deleted = metric_repo.delete_expired(
                         datetime.now(timezone.utc) + timedelta(days=365)
                     )
@@ -1723,7 +1720,6 @@ Generated: {generated_at}
                     print(f"\nReplay would process {event_count} events.")
                 else:
                     # Clear existing audit records
-                    from datetime import timedelta
                     deleted = audit_repo.delete_expired(
                         datetime.now(timezone.utc) + timedelta(days=365)
                     )

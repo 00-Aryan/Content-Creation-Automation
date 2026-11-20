@@ -1,7 +1,7 @@
 """Tests for CLI entry point."""
 
 import sys
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -71,3 +71,32 @@ class TestCLI:
             with patch("content_creation.cli.setup_logging", side_effect=KeyboardInterrupt):
                 result = main()
                 assert result == 130
+
+    def test_exception_handler_uses_unshadowed_sys(self, capsys):
+        """Test that main() error handler writes to sys.stderr without UnboundLocalError."""
+        with patch.object(sys, "argv", ["content-creation", "status"]):
+            with patch("content_creation.cli.LocalStorage", side_effect=RuntimeError("storage disk full")):
+                result = main()
+                assert result == 1
+                captured = capsys.readouterr()
+                assert "Error: storage disk full" in captured.err
+
+    def test_plan_week_default_date_uses_unshadowed_timedelta(self):
+        """Test plan-week computes default date using module-level timedelta."""
+        mock_calendar = MagicMock(
+            week_start="2026-11-23",
+            week_end="2026-11-29",
+            generated_at="2026-11-20T12:00:00",
+            total_posts=0,
+            format_counts={},
+            topics_used=[],
+            posts=[],
+        )
+        with patch.object(sys, "argv", ["content-creation", "plan-week"]):
+            with patch("content_creation.workflow.WorkflowActionExecutor.execute") as mock_exec:
+                mock_exec.return_value = MagicMock(success=True, raw_result=mock_calendar)
+                with patch("content_creation.storage.local.LocalStorage.save_calendar", return_value="dummy.json"):
+                    with patch("pathlib.Path.open", create=True):
+                        result = main()
+                        assert result == 0
+                        assert mock_exec.called
