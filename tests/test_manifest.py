@@ -687,3 +687,433 @@ class TestManifestBuilder:
 
         assert manifest.assets["script"].status == "missing"
         assert any("Unknown format 'podcast'" in r.message for r in caplog.records)
+
+    @pytest.mark.parametrize("status_val", [
+        "draft",
+        "needs_review",
+        "reviewed",
+        "approved",
+        "rejected",
+    ])
+    def test_recommended_formats_matrix_all_review_statuses_filtered(self, tmp_path, caplog, status_val):
+        """Covers ERR-005: all 5 ReviewStatus enum values in recommended_formats are filtered and cleanly fallback."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        self._write_brief(
+            tmp_path,
+            f"topic_{status_val}",
+            recommended_formats=[status_val],
+            status="approved",
+        )
+
+        builder = ManifestBuilder(storage)
+        with caplog.at_level(logging.WARNING):
+            manifest = builder.build(
+                topic_id=f"topic_{status_val}",
+                topic_title="Filter Test",
+                source_url="https://example.com",
+            )
+
+        # Filters review status, defaults to short_video (script missing)
+        assert manifest.assets["script"].status == "missing"
+        assert manifest.assets["carousel"].status == "skipped"
+        assert manifest.assets["newsletter"].status == "skipped"
+        # Must not log an unknown format warning
+        assert not any(f"Unknown format '{status_val}'" in r.message for r in caplog.records)
+
+    @pytest.mark.parametrize("status_val", [
+        "draft",
+        "needs_review",
+        "reviewed",
+        "approved",
+        "rejected",
+    ])
+    def test_recommended_formats_matrix_review_status_mixed_with_carousel(self, tmp_path, caplog, status_val):
+        """Covers ERR-005: each ReviewStatus value mixed with carousel only maps carousel without video format leak."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        self._write_brief(
+            tmp_path,
+            f"topic_mixed_{status_val}",
+            recommended_formats=["carousel", status_val],
+            status="approved",
+        )
+        self._write_asset(tmp_path, "carousel", f"topic_mixed_{status_val}", status="approved")
+        self._write_asset(tmp_path, "thumbnail", f"topic_mixed_{status_val}", status="approved")
+
+        builder = ManifestBuilder(storage)
+        with caplog.at_level(logging.WARNING):
+            manifest = builder.build(
+                topic_id=f"topic_mixed_{status_val}",
+                topic_title="Mixed Format Test",
+                source_url="https://example.com",
+            )
+
+        assert manifest.assets["script"].status == "skipped"
+        assert manifest.assets["carousel"].status == "approved"
+        assert manifest.assets["newsletter"].status == "skipped"
+        assert manifest.overall_status == "complete"
+        assert not any(status_val in r.message for r in caplog.records)
+
+    def test_recommended_formats_whitespace_and_case_insensitive_filtering(self, tmp_path, caplog):
+        """Covers ERR-005: review status filtering handles leading/trailing whitespace and mixed case."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        self._write_brief(
+            tmp_path,
+            "topic_ws",
+            recommended_formats=["  NEEDS_REVIEW \n", "\tDraft\t", "ReVieWed", "  APPROVED  ", "ReJeCtEd "],
+            status="approved",
+        )
+
+        builder = ManifestBuilder(storage)
+        with caplog.at_level(logging.WARNING):
+            manifest = builder.build(
+                topic_id="topic_ws",
+                topic_title="Whitespace Test",
+                source_url="https://example.com",
+            )
+
+        # All review statuses are filtered, defaults cleanly to short_video
+        assert manifest.assets["script"].status == "missing"
+        assert manifest.assets["carousel"].status == "skipped"
+        assert manifest.assets["newsletter"].status == "skipped"
+        assert not any("Unknown format" in r.message for r in caplog.records)
+
+    def test_recommended_formats_uppercase_valid_formats(self, tmp_path):
+        """Covers ERR-005: case-insensitive mapping for valid formats like SHORT_VIDEO and Carousel."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        self._write_brief(
+            tmp_path,
+            "topic_upper",
+            recommended_formats=["SHORT_VIDEO", " Carousel "],
+            status="approved",
+        )
+
+        builder = ManifestBuilder(storage)
+        manifest = builder.build(
+            topic_id="topic_upper",
+            topic_title="Upper Format Test",
+            source_url="https://example.com",
+        )
+
+        assert manifest.assets["script"].status == "missing"
+        assert manifest.assets["carousel"].status == "missing"
+        assert manifest.assets["newsletter"].status == "skipped"
+
+    def test_recommended_formats_freetext_mapping(self, tmp_path, caplog):
+        """Covers ERR-005: freetext formats like 'video', 'case study', 'email' are mapped correctly."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        self._write_brief(
+            tmp_path,
+            "topic_freetext",
+            recommended_formats=["video", "case study", "email"],
+            status="approved",
+        )
+
+        builder = ManifestBuilder(storage)
+        with caplog.at_level(logging.INFO):
+            manifest = builder.build(
+                topic_id="topic_freetext",
+                topic_title="Freetext Test",
+                source_url="https://example.com",
+            )
+
+        assert manifest.assets["script"].status == "missing"
+        assert manifest.assets["carousel"].status == "missing"
+        assert manifest.assets["newsletter"].status == "missing"
+        assert any("Mapped format 'video' → 'short_video'" in r.message for r in caplog.records)
+
+    def test_recommended_formats_non_string_elements_resilience(self, tmp_path, caplog):
+        """Covers ERR-005: non-string elements and empty strings in recommended_formats are safely ignored."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        self._write_brief(
+            tmp_path,
+            "topic_non_str",
+            recommended_formats=[None, 123, 45.6, True, {}, [], "", "   ", "carousel", "needs_review"],
+            status="approved",
+        )
+
+        builder = ManifestBuilder(storage)
+        with caplog.at_level(logging.WARNING):
+            manifest = builder.build(
+                topic_id="topic_non_str",
+                topic_title="Non-String Resilience Test",
+                source_url="https://example.com",
+            )
+
+        assert manifest.assets["script"].status == "skipped"
+        assert manifest.assets["carousel"].status == "missing"
+        assert manifest.assets["newsletter"].status == "skipped"
+        assert not any("needs_review" in r.message for r in caplog.records)
+
+    def test_recommended_formats_single_string_instead_of_list(self, tmp_path):
+        """Covers ERR-005: single string recommended_formats is normalized to list without error."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        self._write_brief(
+            tmp_path,
+            "topic_str_fmt",
+            recommended_formats="carousel",
+            status="approved",
+        )
+
+        builder = ManifestBuilder(storage)
+        manifest = builder.build(
+            topic_id="topic_str_fmt",
+            topic_title="Single String Test",
+            source_url="https://example.com",
+        )
+
+        assert manifest.assets["carousel"].status == "missing"
+        assert manifest.assets["script"].status == "skipped"
+
+    def test_recommended_formats_empty_list_defaults_cleanly(self, tmp_path, caplog):
+        """Covers ERR-005: empty recommended_formats list defaults cleanly to short_video without warnings."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        self._write_brief(
+            tmp_path,
+            "topic_empty_list",
+            recommended_formats=[],
+            status="approved",
+        )
+
+        builder = ManifestBuilder(storage)
+        with caplog.at_level(logging.WARNING):
+            manifest = builder.build(
+                topic_id="topic_empty_list",
+                topic_title="Empty List Test",
+                source_url="https://example.com",
+            )
+
+        assert manifest.assets["script"].status == "missing"
+        assert manifest.assets["carousel"].status == "skipped"
+        assert len(caplog.records) == 0
+
+    @pytest.mark.parametrize("unknown_fmt", [
+        "podcast",
+        "webinar",
+        "interactive_quiz",
+        "whitepaper",
+    ])
+    def test_recommended_formats_authentic_unknown_formats_matrix(self, tmp_path, caplog, unknown_fmt):
+        """Covers ERR-005: authentic unknown formats continue to log warning and default to short_video."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        self._write_brief(
+            tmp_path,
+            f"topic_unk_{unknown_fmt}",
+            recommended_formats=[unknown_fmt],
+            status="approved",
+        )
+
+        builder = ManifestBuilder(storage)
+        with caplog.at_level(logging.WARNING):
+            manifest = builder.build(
+                topic_id=f"topic_unk_{unknown_fmt}",
+                topic_title="Unknown Format Matrix Test",
+                source_url="https://example.com",
+            )
+
+        assert manifest.assets["script"].status == "missing"
+        assert manifest.assets["carousel"].status == "skipped"
+        assert any(f"Unknown format '{unknown_fmt}'" in r.message for r in caplog.records)
+
+    def test_manifest_builder_load_json_handles_zero_byte_and_corrupt_files(self, tmp_path, caplog):
+        """Covers ERR-006: ManifestBuilder._load_json safely catches JSONDecodeError and returns empty dict."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        builder = ManifestBuilder(storage)
+
+        empty_file = tmp_path / "empty.json"
+        empty_file.write_text("", encoding="utf-8")
+
+        corrupt_file = tmp_path / "corrupt.json"
+        corrupt_file.write_text('{"unclosed": "brace', encoding="utf-8")
+
+        nonexistent_file = tmp_path / "does_not_exist.json"
+
+        non_dict_file = tmp_path / "list.json"
+        non_dict_file.write_text("[1, 2, 3]", encoding="utf-8")
+
+        with caplog.at_level(logging.ERROR):
+            assert builder._load_json(empty_file) == {}
+            assert builder._load_json(corrupt_file) == {}
+            assert builder._load_json(nonexistent_file) == {}
+            assert builder._load_json(non_dict_file) == {}
+
+        assert any("Failed to load or parse JSON from" in r.message for r in caplog.records)
+
+    def test_manifest_builder_build_all_handles_zero_byte_and_corrupt_briefs(self, tmp_path):
+        """Covers ERR-006: build_all continues processing when encountering 0-byte or corrupted briefs."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        (tmp_path / "data" / "briefs").mkdir(parents=True, exist_ok=True)
+
+        # 1 valid brief
+        self._write_brief(tmp_path, "valid_topic_1", recommended_formats=["short_video"])
+
+        # 1 0-byte brief
+        (tmp_path / "data" / "briefs" / "empty_brief.json").write_text("", encoding="utf-8")
+
+        # 1 corrupt JSON brief
+        (tmp_path / "data" / "briefs" / "corrupt_brief.json").write_text("{broken", encoding="utf-8")
+
+        builder = ManifestBuilder(storage)
+        manifests = builder.build_all()
+
+        assert len(manifests) == 1
+        assert manifests[0].topic_id == "valid_topic_1"
+
+    def test_manifest_builder_build_all_empty_storage_or_failure(self, tmp_path, caplog):
+        """Covers ERR-006: build_all handles empty storage and recovers gracefully from individual build failures."""
+        from content_creation.storage.local import LocalStorage
+        from content_creation.manifest import ManifestBuilder
+
+        storage = LocalStorage(tmp_path)
+        builder = ManifestBuilder(storage)
+
+        # 1. Empty storage returns [] and logs warning
+        with caplog.at_level(logging.WARNING):
+            manifests = builder.build_all()
+            assert manifests == []
+            assert any("No briefs found" in r.message for r in caplog.records)
+
+        # 2. Individual brief build failure is skipped
+        caplog.clear()
+        self._write_brief(tmp_path, "topic_fail_1", recommended_formats=["short_video"])
+        self._write_brief(tmp_path, "topic_ok_2", recommended_formats=["short_video"])
+
+        with patch.object(builder, "build", side_effect=[RuntimeError("Build crashed"), MagicMock()]):
+            with caplog.at_level(logging.WARNING):
+                manifests = builder.build_all()
+                assert len(manifests) == 1
+                assert any("Skipping manifest for topic_fail_1" in r.message for r in caplog.records)
+
+        # 3. Storage exception in list_briefs handled gracefully
+        caplog.clear()
+        with patch.object(storage, "list_briefs", side_effect=OSError("Storage IO error")):
+            with caplog.at_level(logging.WARNING):
+                manifests = builder.build_all()
+                assert manifests == []
+                assert any("manifest build_all() returning empty list: Storage IO error" in r.message for r in caplog.records)
+
+
+class TestStoryboardFaultInjectionAndUpstreamProbes:
+    """Covers fault injection and upstream generator contract probes."""
+
+    def test_load_storyboard_handles_empty_or_truncated_file(self, tmp_path, caplog):
+        """Covers ERR-006: LocalStorage.get_storyboard handles 0-byte or truncated JSON files returning None without crashing."""
+        from content_creation.storage.local import LocalStorage
+
+        storage = LocalStorage(tmp_path)
+        (tmp_path / "data" / "storyboards").mkdir(parents=True, exist_ok=True)
+
+        # 0-byte storyboard
+        empty_sb = tmp_path / "data" / "storyboards" / "empty_topic.json"
+        empty_sb.write_text("", encoding="utf-8")
+
+        # Truncated storyboard
+        corrupt_sb = tmp_path / "data" / "storyboards" / "corrupt_topic.json"
+        corrupt_sb.write_text('{"topic_id": "corrupt_topic", "scenes":', encoding="utf-8")
+
+        with caplog.at_level(logging.ERROR):
+            assert storage.get_storyboard("empty_topic") is None
+            assert storage.get_storyboard("corrupt_topic") is None
+            assert storage.get_storyboard("nonexistent_topic") is None
+
+        assert any("Failed to load Storyboard empty_topic" in r.message for r in caplog.records)
+        assert any("Failed to load Storyboard corrupt_topic" in r.message for r in caplog.records)
+
+    def test_asset_generation_skips_when_storyboard_is_zero_byte(self, tmp_path, caplog):
+        """Covers ERR-006: AssetGenerationService triggers Storyboard Presence Gate when storyboard is 0 bytes."""
+        from content_creation.application.context import ApplicationContext
+        from content_creation.application.asset_generation_service import AssetGenerationService
+
+        ctx = ApplicationContext.create(tmp_path)
+        brief_data = {
+            "topic_id": "topic_zb",
+            "why_it_matters": "Test matter",
+            "plain_english_summary": ["one", "two", "three"],
+            "student_takeaway": "takeaway",
+            "analogy": "analogy",
+            "limitation": "limitation",
+            "audience_fit": "audience",
+            "recommended_formats": ["short_video"],
+            "source_url": "https://example.com",
+            "review_status": "approved",
+            "generated_at": "2026-11-20T00:00:00Z",
+        }
+        with open(ctx.storage.briefs_dir / "topic_zb.json", "w", encoding="utf-8") as f:
+            json.dump(brief_data, f)
+
+        # Write 0-byte storyboard file
+        (ctx.storage.storyboards_dir / "topic_zb.json").write_text("", encoding="utf-8")
+
+        svc = AssetGenerationService()
+        with caplog.at_level(logging.WARNING):
+            result = svc.run(ctx)
+
+        # Storyboard presence gate skips topic_zb cleanly
+        assert result.skipped_count >= 1
+        assert result.failed_count == 0
+        assert any("Skipping asset generation for topic_zb because storyboard artifact is missing" in r.message for r in caplog.records)
+
+    @pytest.mark.xfail(strict=True, reason="ERR-005: upstream brief.py:71 fallback leaks needs_review into recommended_formats")
+    def test_upstream_brief_generator_fallback_does_not_leak_review_status(self, tmp_path):
+        """Covers ERR-005: upstream brief generator fallback must not populate recommended_formats with ReviewStatus enum values."""
+        from content_creation.generation.brief import generate_brief
+        from content_creation.models.topic import ScoredTopicItem
+
+        prompt_file = tmp_path / "prompt.md"
+        prompt_file.write_text(
+            "Template {{ topic.title }} {{ topic.source }} {{ topic.url }} {{ topic.raw_text }}",
+            encoding="utf-8",
+        )
+        item = ScoredTopicItem(
+            id="test_upstream_leak",
+            title="Test Topic",
+            url="https://example.com/item",
+            source="arxiv",
+            published_at="2026-11-20T00:00:00Z",
+            raw_text="Machine learning research paper summary with sufficient text length for brief generation threshold " * 5,
+            priority_score=85.0,
+        )
+
+        with patch("content_creation.generation.brief.InferenceManager") as mock_inference_class:
+            mock_manager = MagicMock()
+            mock_manager.generate.return_value = MagicMock(success=False, error="Quota exhausted 429")
+            mock_inference_class.return_value = mock_manager
+
+            brief = generate_brief(item, prompt_file)
+
+            # Upstream defect in frozen src/content_creation/generation/brief.py:71 sets
+            # recommended_formats=["needs_review"]. This assertion fails as expected, producing an XFAIL.
+            assert "needs_review" not in brief.recommended_formats
+            assert all(fmt in {"short_video", "carousel", "newsletter"} for fmt in brief.recommended_formats)
