@@ -1,0 +1,1225 @@
+{
+  "content_creation.domains.content_intelligence.model.ContentIntelligence": {
+    "contrast_pair": {
+      "annotation": "<class 'content_creation.domains.content_intelligence.model.ContrastPair'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "curiosity_gap": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "emotional_register": {
+      "annotation": "<enum 'EmotionalRegister'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "generated_at": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "primary_hook": {
+      "annotation": "<class 'content_creation.domains.content_intelligence.model.Hook'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "quality_status": {
+      "annotation": "typing.Optional[str]",
+      "default": null,
+      "required": false
+    },
+    "review_status": {
+      "annotation": "<enum 'ReviewStatus'>",
+      "default": "ReviewStatus.DRAFT",
+      "required": false
+    },
+    "secondary_hook": {
+      "annotation": "<class 'content_creation.domains.content_intelligence.model.Hook'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "story_angle": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "timeliness_hook": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_type": {
+      "annotation": "<enum 'TopicType'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.domains.content_intelligence.model.ContrastPair": {
+    "after": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "before": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.domains.content_intelligence.model.Hook": {
+    "hook_text": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "hook_type": {
+      "annotation": "typing.Literal['question', 'bold_claim', 'contrast', 'statistic']",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "source_field": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.domains.storyboard.model.Storyboard": {
+    "carousel_claims": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "carousel_cta": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "carousel_hook": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "formats_planned": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "generated_at": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "newsletter_claims": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "newsletter_cta": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "newsletter_hook": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "review_notes": {
+      "annotation": "typing.Optional[str]",
+      "default": null,
+      "required": false
+    },
+    "review_status": {
+      "annotation": "<enum 'ReviewStatus'>",
+      "default": "ReviewStatus.DRAFT",
+      "required": false
+    },
+    "script_claims": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "script_cta": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "script_hook": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "thumbnail_hook": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "visual_metaphor": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "visual_style": {
+      "annotation": "typing.Literal['clean_minimal', 'bold_typographic', 'diagram_overlay', 'metaphor_illustration']",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.analytics.PerformanceSnapshot": {
+    "comments": {
+      "annotation": "typing.Optional[int]",
+      "default": null,
+      "required": false
+    },
+    "cta_clicks": {
+      "annotation": "typing.Optional[int]",
+      "default": null,
+      "required": false
+    },
+    "reach_24h": {
+      "annotation": "typing.Optional[int]",
+      "default": null,
+      "required": false
+    },
+    "reach_7d": {
+      "annotation": "typing.Optional[int]",
+      "default": null,
+      "required": false
+    },
+    "saves": {
+      "annotation": "typing.Optional[int]",
+      "default": null,
+      "required": false
+    },
+    "views_24h": {
+      "annotation": "typing.Optional[int]",
+      "default": null,
+      "required": false
+    },
+    "views_30d": {
+      "annotation": "typing.Optional[int]",
+      "default": null,
+      "required": false
+    },
+    "views_7d": {
+      "annotation": "typing.Optional[int]",
+      "default": null,
+      "required": false
+    },
+    "watch_time_pct": {
+      "annotation": "typing.Optional[float]",
+      "default": null,
+      "required": false
+    }
+  },
+  "content_creation.models.analytics.PostAnalytics": {
+    "asset_path": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "format": {
+      "annotation": "typing.Literal['short_video', 'carousel', 'newsletter', 'thumbnail']",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "last_updated": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "notes": {
+      "annotation": "typing.Optional[str]",
+      "default": null,
+      "required": false
+    },
+    "performance": {
+      "annotation": "<class 'content_creation.models.analytics.PerformanceSnapshot'>",
+      "default": "views_24h=None views_7d=None views_30d=None reach_24h=None reach_7d=None saves=None comments=None cta_clicks=None watch_time_pct=None",
+      "required": false
+    },
+    "post_id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "posted_at": {
+      "annotation": "typing.Optional[str]",
+      "default": null,
+      "required": false
+    },
+    "source_url": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_title": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "week_start": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.brief.Brief": {
+    "analogy": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "audience_fit": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "generated_at": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "limitation": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "plain_english_summary": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "recommended_formats": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "review_notes": {
+      "annotation": "typing.Optional[str]",
+      "default": null,
+      "required": false
+    },
+    "review_status": {
+      "annotation": "<enum 'ReviewStatus'>",
+      "default": "ReviewStatus.DRAFT",
+      "required": false
+    },
+    "source_url": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "student_takeaway": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "why_it_matters": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.calendar.ScheduledPost": {
+    "asset_path": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "date": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "day": {
+      "annotation": "<class 'int'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "format": {
+      "annotation": "typing.Literal['short_video', 'carousel', 'newsletter', 'thumbnail']",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "scheduled_at": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "source_url": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_title": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.calendar.WeeklyCalendar": {
+    "config_snapshot": {
+      "annotation": "typing.Dict",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "format_counts": {
+      "annotation": "typing.Dict[str, int]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "generated_at": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "posts": {
+      "annotation": "typing.List[content_creation.models.calendar.ScheduledPost]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topics_used": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "total_posts": {
+      "annotation": "<class 'int'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "week_end": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "week_start": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.carousel.Carousel": {
+    "claims_used": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "cta_slide": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "generated_at": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "review_status": {
+      "annotation": "<enum 'ReviewStatus'>",
+      "default": "ReviewStatus.DRAFT",
+      "required": false
+    },
+    "slides": {
+      "annotation": "typing.List[content_creation.models.carousel.CarouselSlide]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "source_links": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.carousel.CarouselSlide": {
+    "body": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "slide_number": {
+      "annotation": "<class 'int'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "title": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "visual_note": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.dryrun.AssetCheck": {
+    "asset_path": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "format": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "is_ready": {
+      "annotation": "<class 'bool'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "review_status": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_title": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "warning": {
+      "annotation": "typing.Optional[str]",
+      "default": null,
+      "required": false
+    }
+  },
+  "content_creation.models.dryrun.DryRunReport": {
+    "blocked_count": {
+      "annotation": "<class 'int'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "checks": {
+      "annotation": "typing.List[content_creation.models.dryrun.AssetCheck]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "generated_at": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "ready_count": {
+      "annotation": "<class 'int'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "recommended_actions": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "total_scheduled": {
+      "annotation": "<class 'int'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "warning_count": {
+      "annotation": "<class 'int'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "warnings": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "week_end": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "week_start": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.linkedin.LinkedInPost": {
+    "claims_used": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "cta": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "generated_at": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "hashtags": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "hook": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "post_body": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "quality_score": {
+      "annotation": "typing.Optional[content_creation.models.linkedin_quality.LinkedInQualityScore]",
+      "default": null,
+      "required": false
+    },
+    "review_status": {
+      "annotation": "<enum 'ReviewStatus'>",
+      "default": "ReviewStatus.DRAFT",
+      "required": false
+    },
+    "source_links": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "source_reference": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "takeaway": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.linkedin_quality.LinkedInQualityGateResult": {
+    "message": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "name": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "passed": {
+      "annotation": "<class 'bool'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "score": {
+      "annotation": "<class 'int'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.linkedin_quality.LinkedInQualityScore": {
+    "gate_results": {
+      "annotation": "typing.List[content_creation.models.linkedin_quality.LinkedInQualityGateResult]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "issues": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "overall_score": {
+      "annotation": "<class 'int'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "passed": {
+      "annotation": "<class 'bool'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "warnings": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.manifest.AssetEntry": {
+    "generated_at": {
+      "annotation": "typing.Optional[str]",
+      "default": null,
+      "required": false
+    },
+    "path": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "status": {
+      "annotation": "typing.Literal['draft', 'needs_review', 'reviewed', 'approved', 'rejected', 'missing', 'skipped']",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.manifest.TopicManifest": {
+    "assets": {
+      "annotation": "typing.Dict[str, content_creation.models.manifest.AssetEntry]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "blocking_reasons": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "generated_at": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "overall_status": {
+      "annotation": "typing.Literal['complete', 'partial', 'blocked']",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "ready_for_planner": {
+      "annotation": "<class 'bool'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "source_url": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_title": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.newsletter.Newsletter": {
+    "claims_used": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "cta": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "generated_at": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "review_status": {
+      "annotation": "<enum 'ReviewStatus'>",
+      "default": "ReviewStatus.DRAFT",
+      "required": false
+    },
+    "sections": {
+      "annotation": "typing.List[content_creation.models.newsletter.NewsletterSection]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "source_links": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "subject_line": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.newsletter.NewsletterSection": {
+    "content": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "section_name": {
+      "annotation": "typing.Literal['what_happened', 'why_it_matters', 'student_takeaway']",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.review_history.ReviewHistoryEntry": {
+    "action": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "asset_type": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "new_status": {
+      "annotation": "<enum 'ReviewStatus'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "notes": {
+      "annotation": "typing.Optional[str]",
+      "default": null,
+      "required": false
+    },
+    "previous_status": {
+      "annotation": "typing.Optional[content_creation.shared.enums.ReviewStatus]",
+      "default": null,
+      "required": false
+    },
+    "timestamp": {
+      "annotation": "<class 'str'>",
+      "default": "",
+      "required": false
+    },
+    "topic_id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.script.Script": {
+    "claims_used": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "cta": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "format": {
+      "annotation": "typing.Literal['short_video', 'carousel', 'newsletter']",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "generated_at": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "hook": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "review_status": {
+      "annotation": "<enum 'ReviewStatus'>",
+      "default": "ReviewStatus.DRAFT",
+      "required": false
+    },
+    "script_sections": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "shorts_segments": {
+      "annotation": "typing.List[content_creation.models.script.YouTubeShortsSegment]",
+      "default": "PydanticUndefined",
+      "required": false
+    },
+    "source_links": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.script.YouTubeShortsSegment": {
+    "audio": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "section": {
+      "annotation": "typing.Literal['hook', 'context', 'explanation', 'payoff', 'cta']",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "spoken": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "time_range": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "visual": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.thumbnail.ThumbnailPrompt": {
+    "generated_at": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "negative_prompt": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "readability_notes": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "review_status": {
+      "annotation": "<enum 'ReviewStatus'>",
+      "default": "ReviewStatus.DRAFT",
+      "required": false
+    },
+    "style": {
+      "annotation": "typing.Literal['clean_minimal', 'bold_typographic', 'diagram_overlay', 'metaphor_illustration']",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "supporting_text": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "title_text": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "visual_metaphor": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.models.topic.ScoredTopicItem": {
+    "author": {
+      "annotation": "typing.Optional[str]",
+      "default": "unknown",
+      "required": false
+    },
+    "category": {
+      "annotation": "<enum 'TopicCategory'>",
+      "default": "TopicCategory.UNKNOWN",
+      "required": false
+    },
+    "credibility_score": {
+      "annotation": "<class 'float'>",
+      "default": "0.0",
+      "required": false
+    },
+    "excerpt": {
+      "annotation": "typing.Optional[str]",
+      "default": "unknown",
+      "required": false
+    },
+    "explainability_score": {
+      "annotation": "<class 'float'>",
+      "default": "0.0",
+      "required": false
+    },
+    "hook_potential_score": {
+      "annotation": "<class 'float'>",
+      "default": "0.0",
+      "required": false
+    },
+    "id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "keyword_score": {
+      "annotation": "<class 'float'>",
+      "default": "0.0",
+      "required": false
+    },
+    "metadata": {
+      "annotation": "typing.Dict[str, typing.Any]",
+      "default": "PydanticUndefined",
+      "required": false
+    },
+    "novelty_score": {
+      "annotation": "<class 'float'>",
+      "default": "0.0",
+      "required": false
+    },
+    "priority_score": {
+      "annotation": "<class 'float'>",
+      "default": "0.0",
+      "required": false
+    },
+    "published_at": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "quality_score": {
+      "annotation": "<class 'float'>",
+      "default": "0.0",
+      "required": false
+    },
+    "raw_text": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "recency_score": {
+      "annotation": "<class 'float'>",
+      "default": "0.0",
+      "required": false
+    },
+    "scoring_rules_fired": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": false
+    },
+    "scoring_timestamp": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": false
+    },
+    "source": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "source_quality_score": {
+      "annotation": "<class 'float'>",
+      "default": "0.0",
+      "required": false
+    },
+    "status": {
+      "annotation": "<enum 'TopicStatus'>",
+      "default": "TopicStatus.RAW",
+      "required": false
+    },
+    "student_usefulness_score": {
+      "annotation": "<class 'float'>",
+      "default": "0.0",
+      "required": false
+    },
+    "title": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_tags": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": false
+    },
+    "url": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "validation_flags": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": false
+    }
+  },
+  "content_creation.models.topic.TopicItem": {
+    "author": {
+      "annotation": "typing.Optional[str]",
+      "default": "unknown",
+      "required": false
+    },
+    "category": {
+      "annotation": "<enum 'TopicCategory'>",
+      "default": "TopicCategory.UNKNOWN",
+      "required": false
+    },
+    "excerpt": {
+      "annotation": "typing.Optional[str]",
+      "default": "unknown",
+      "required": false
+    },
+    "id": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "metadata": {
+      "annotation": "typing.Dict[str, typing.Any]",
+      "default": "PydanticUndefined",
+      "required": false
+    },
+    "published_at": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "raw_text": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "source": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "status": {
+      "annotation": "<enum 'TopicStatus'>",
+      "default": "TopicStatus.RAW",
+      "required": false
+    },
+    "title": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "topic_tags": {
+      "annotation": "typing.List[str]",
+      "default": "PydanticUndefined",
+      "required": false
+    },
+    "url": {
+      "annotation": "<class 'str'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.scoring.config.RuleConfig": {
+    "enabled": {
+      "annotation": "<class 'bool'>",
+      "default": "True",
+      "required": false
+    },
+    "weight": {
+      "annotation": "<class 'float'>",
+      "default": "PydanticUndefined",
+      "required": true
+    }
+  },
+  "content_creation.scoring.config.ScoringConfig": {
+    "credibility": {
+      "annotation": "<class 'content_creation.scoring.config.RuleConfig'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "explainability": {
+      "annotation": "<class 'content_creation.scoring.config.RuleConfig'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "hook_potential": {
+      "annotation": "<class 'content_creation.scoring.config.RuleConfig'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "novelty": {
+      "annotation": "<class 'content_creation.scoring.config.RuleConfig'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "student_usefulness": {
+      "annotation": "<class 'content_creation.scoring.config.RuleConfig'>",
+      "default": "PydanticUndefined",
+      "required": true
+    },
+    "validation": {
+      "annotation": "<class 'content_creation.scoring.config.ValidationConfig'>",
+      "default": "PydanticUndefined",
+      "required": false
+    }
+  },
+  "content_creation.scoring.config.ValidationConfig": {
+    "check_consistency": {
+      "annotation": "<class 'bool'>",
+      "default": "True",
+      "required": false
+    },
+    "require_author": {
+      "annotation": "<class 'bool'>",
+      "default": "False",
+      "required": false
+    },
+    "require_published_at": {
+      "annotation": "<class 'bool'>",
+      "default": "True",
+      "required": false
+    },
+    "suspiciously_high_score": {
+      "annotation": "<class 'float'>",
+      "default": "95.0",
+      "required": false
+    },
+    "suspiciously_low_score": {
+      "annotation": "<class 'float'>",
+      "default": "10.0",
+      "required": false
+    }
+  }
+}
