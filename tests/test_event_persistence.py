@@ -8,8 +8,8 @@ import threading
 import time
 from datetime import datetime, timedelta, timezone
 from typing import List
-from unittest.mock import MagicMock
-from uuid import uuid4
+from unittest.mock import MagicMock, patch
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -301,9 +301,235 @@ class TestSQLiteEventRepository:
         assert len(events) >= 1
         assert events[0].event_id == r2.event_id
 
+    def test_list_after_event_identical_timestamps_deterministic(self, repo):
+        """DEF-002: Replay ordering remains deterministic even with identical timestamps."""
+        fixed_time = datetime(2026, 11, 20, 12, 0, 0, tzinfo=timezone.utc)
+        id_high = UUID("ffffffff-ffff-4fff-8fff-ffffffffffff")
+        id_low = UUID("00000000-0000-4000-8000-000000000000")
+        r1 = EventRecord(
+            event_id=id_high,
+            event_name="event_1",
+            category="workflow",
+            source="test",
+            correlation_id="c1",
+            entity_type="brief",
+            entity_id="b1",
+            payload_json="{}",
+            created_at=fixed_time,
+        )
+        r2 = EventRecord(
+            event_id=id_low,
+            event_name="event_2",
+            category="workflow",
+            source="test",
+            correlation_id="c1",
+            entity_type="brief",
+            entity_id="b1",
+            payload_json="{}",
+            created_at=fixed_time,
+        )
+        repo.save_event(r1)
+        repo.save_event(r2)
+        events = repo.list_after_event(r1.event_id)
+        assert len(events) == 1
+        assert events[0].event_id == id_low
+
     def test_list_after_nonexistent_event(self, repo):
         events = repo.list_after_event(uuid4())
         assert events == []
+
+    def test_list_after_event_empty_store(self, repo):
+        """Covers ERR-002: list_after_event on empty database returns empty list."""
+        assert repo.list_after_event(uuid4()) == []
+        assert repo.list_after_event(str(uuid4())) == []
+
+    def test_list_after_event_unknown_anchor_with_populated_store(self, repo):
+        """Covers ERR-002: list_after_event with unknown anchor in populated database returns empty list."""
+        for i in range(5):
+            repo.save_event(EventRecord.from_workflow_event(_make_event(payload={"i": i})))
+        assert repo.count_events() == 5
+        assert repo.list_after_event(uuid4()) == []
+        assert repo.list_after_event(str(uuid4())) == []
+
+    @pytest.mark.parametrize("limit,expected_count", [
+        (0, 0),
+        (1, 1),
+        (3, 3),
+        (5, 5),
+        (100, 5),
+    ])
+    def test_list_after_event_pagination_limit_boundaries(self, repo, limit, expected_count):
+        """Covers ERR-002: list_after_event boundary limits (0, 1, partial, exact total, greater than total)."""
+        fixed_time = datetime(2026, 11, 20, 12, 0, 0, tzinfo=timezone.utc)
+        anchor_id = UUID("ffffffff-ffff-4fff-8fff-ffffffffffff")
+        anchor = EventRecord(
+            event_id=anchor_id,
+            event_name="anchor_event",
+            category="workflow",
+            source="test",
+            correlation_id="c1",
+            entity_type="brief",
+            entity_id="b0",
+            payload_json="{}",
+            created_at=fixed_time,
+        )
+        repo.save_event(anchor)
+
+        # 5 subsequent events with identical timestamp but reverse UUIDs
+        subsequent_ids = []
+        for i in range(5):
+            eid = UUID(f"{i:08x}-0000-4000-8000-000000000000")
+            subsequent_ids.append(eid)
+            rec = EventRecord(
+                event_id=eid,
+                event_name=f"event_{i}",
+                category="workflow",
+                source="test",
+                correlation_id="c1",
+                entity_type="brief",
+                entity_id=f"b{i+1}",
+                payload_json="{}",
+                created_at=fixed_time,
+            )
+            repo.save_event(rec)
+
+        results = repo.list_after_event(anchor_id, limit=limit)
+        assert len(results) == expected_count
+        if expected_count > 0:
+            assert [r.event_id for r in results] == subsequent_ids[:expected_count]
+
+    def test_list_after_event_deterministic_sequential_paging_tied_timestamps(self, repo):
+        """Covers ERR-002: multi-page replay across tied timestamps preserves insertion order with no gaps or duplicates."""
+        fixed_time = datetime(2026, 11, 20, 12, 0, 0, tzinfo=timezone.utc)
+        event_ids = []
+        # Insert 8 events with reverse-ordered UUIDs
+        for i in range(8):
+            eid = UUID(f"{(7 - i):08x}-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
+            event_ids.append(eid)
+            rec = EventRecord(
+                event_id=eid,
+                event_name=f"event_{i}",
+                category="workflow",
+                source="test",
+                correlation_id="c_replay",
+                entity_type="brief",
+                entity_id=f"b_{i}",
+                payload_json=json.dumps({"seq": i}),
+                created_at=fixed_time,
+            )
+            repo.save_event(rec)
+
+        replayed_ids = []
+        cursor = event_ids[0]
+        while True:
+            batch = repo.list_after_event(cursor, limit=3)
+            if not batch:
+                break
+            replayed_ids.extend([b.event_id for b in batch])
+            cursor = batch[-1].event_id
+
+        # Must replay event_ids[1..7] exactly in insertion order
+        assert replayed_ids == event_ids[1:]
+        assert len(replayed_ids) == 7
+
+    def test_list_after_event_mixed_timestamps_and_tied_timestamps(self, repo):
+        """Covers ERR-002: ordering correctness across distinct timestamps and tied timestamps within groups."""
+        t1 = datetime(2026, 11, 20, 12, 0, 0, tzinfo=timezone.utc)
+        t2 = datetime(2026, 11, 20, 12, 0, 5, tzinfo=timezone.utc)
+        t3 = datetime(2026, 11, 20, 12, 0, 10, tzinfo=timezone.utc)
+
+        events_data = [
+            ("e1", t1),
+            ("e2", t1),  # tied at t1
+            ("e3", t2),
+            ("e4", t2),  # tied at t2
+            ("e5", t2),  # tied at t2
+            ("e6", t3),  # t3
+        ]
+        records = []
+        for name, ts in events_data:
+            rec = EventRecord(
+                event_id=uuid4(),
+                event_name=name,
+                category="workflow",
+                source="test",
+                correlation_id="c_mixed",
+                entity_type="brief",
+                entity_id=name,
+                payload_json="{}",
+                created_at=ts,
+            )
+            repo.save_event(rec)
+            records.append(rec)
+
+        # After e1: [e2, e3, e4, e5, e6]
+        after_e1 = repo.list_after_event(records[0].event_id)
+        assert [r.event_name for r in after_e1] == ["e2", "e3", "e4", "e5", "e6"]
+
+        # After e2: [e3, e4, e5, e6]
+        after_e2 = repo.list_after_event(records[1].event_id)
+        assert [r.event_name for r in after_e2] == ["e3", "e4", "e5", "e6"]
+
+        # After e4: [e5, e6]
+        after_e4 = repo.list_after_event(records[3].event_id)
+        assert [r.event_name for r in after_e4] == ["e5", "e6"]
+
+        # After e6 (last): []
+        after_e6 = repo.list_after_event(records[5].event_id)
+        assert after_e6 == []
+
+    def test_list_after_event_accepts_uuid_and_string_event_id(self, repo):
+        """Covers ERR-002: list_after_event produces identical results when given UUID object or str UUID."""
+        fixed_time = datetime(2026, 11, 20, 12, 0, 0, tzinfo=timezone.utc)
+        e1 = EventRecord(
+            event_id=uuid4(),
+            event_name="first",
+            category="workflow",
+            source="test",
+            correlation_id="c1",
+            entity_type="brief",
+            entity_id="b1",
+            payload_json="{}",
+            created_at=fixed_time,
+        )
+        e2 = EventRecord(
+            event_id=uuid4(),
+            event_name="second",
+            category="workflow",
+            source="test",
+            correlation_id="c1",
+            entity_type="brief",
+            entity_id="b2",
+            payload_json="{}",
+            created_at=fixed_time,
+        )
+        repo.save_event(e1)
+        repo.save_event(e2)
+
+        res_uuid = repo.list_after_event(e1.event_id)
+        res_str = repo.list_after_event(str(e1.event_id))
+
+        assert len(res_uuid) == 1
+        assert len(res_str) == 1
+        assert res_uuid[0].event_id == res_str[0].event_id == e2.event_id
+
+    def test_save_event_database_error_triggers_rollback(self, repo, sample_event):
+        """Covers ERR-002: save_event rolls back and re-raises on sqlite3.Error."""
+        record = EventRecord.from_workflow_event(sample_event)
+        mock_conn = MagicMock()
+        mock_conn.execute.side_effect = sqlite3.OperationalError("disk I/O error")
+        with patch.object(repo, "_get_conn", return_value=mock_conn):
+            with pytest.raises(sqlite3.Error):
+                repo.save_event(record)
+        assert mock_conn.rollback.called
+
+    def test_close_handles_connection_close_exception(self, repo):
+        """Covers ERR-002: repo.close() catches and logs exceptions when closing connection."""
+        mock_conn = MagicMock()
+        mock_conn.close.side_effect = sqlite3.OperationalError("Already closed")
+        with repo._lock:
+            repo._all_conns.append(mock_conn)
+        repo.close()  # Must not raise
 
     def test_count_events(self, repo):
         assert repo.count_events() == 0

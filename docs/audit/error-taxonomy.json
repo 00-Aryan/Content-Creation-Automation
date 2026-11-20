@@ -1,0 +1,578 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "metadata": {
+    "last_updated": "2026-11-21T00:33:00+05:30",
+    "active_branch": "fix/phase1a-core-defects",
+    "audited_commit": "008755fdc9c52277200d8bef763848bcf30a7580",
+    "audited_commit_short": "008755f",
+    "chronicler": "error-taxonomy-chronicler",
+    "pytest_baseline": {
+      "passed": 1118,
+      "failed": 19,
+      "skipped": 0,
+      "xfailed": 0,
+      "duration_seconds": 19.24
+    }
+  },
+  "summary_counts": {
+    "total_observed_errors": 17,
+    "open_errors": 14,
+    "mitigated_errors": 1,
+    "resolved_errors": 2,
+    "total_anticipated_risks": 5,
+    "qa_covered_errors": 3,
+    "qa_coverage_percentage": 17.65,
+    "by_error_class": {
+      "TRANSPORT_TRANSIENT": 0,
+      "SCHEMA_VALIDATION": 5,
+      "DATA_ENCODING_IO": 2,
+      "QUALITY_GROUNDING": 3,
+      "STATE_WORKFLOW_CONCURRENCY": 1,
+      "ENVIRONMENT_PLATFORM": 3,
+      "CODE_STATIC_TYPING": 3,
+      "BUDGET_QUOTA_CONFIG": 0
+    }
+  },
+  "observed_errors": [
+    {
+      "id": "ERR-001",
+      "title": "CLI Main Scope Local sys and timedelta Variable Shadowing",
+      "stage": "CLI Entrypoint",
+      "error_class": "CODE_STATIC_TYPING",
+      "severity": "High",
+      "status": "RESOLVED",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": "96ec8d7",
+      "root_cause_locations": [
+        "src/content_creation/cli.py:1350",
+        "src/content_creation/cli.py:1283",
+        "src/content_creation/cli.py:1338",
+        "src/content_creation/cli.py:1479",
+        "src/content_creation/cli.py:1726"
+      ],
+      "exception_type": "UnboundLocalError",
+      "symptom": "cannot access local variable 'sys' where it is not associated with a value / cannot access local variable 'timedelta'",
+      "affected_tests": [
+        "tests/test_cli.py:test_status_command",
+        "tests/test_cli.py:test_collect_command_real",
+        "tests/test_cli.py:test_collect_command_all",
+        "tests/test_cli.py:test_plan_week_default_date_uses_unshadowed_timedelta"
+      ],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:11",
+        "docs/audit/handoffs/fix-phase1a-core-defects.md:11, 20-21"
+      ],
+      "reproduction_command": "uv run python -m pytest tests/test_cli.py -k test_status_command --no-cov",
+      "recommended_runtime_policy": "CODE_REFACTOR_FIX",
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Add test_exception_handler_uses_unshadowed_sys verifying sys.stderr write on exception and test_plan_week_default_date_uses_unshadowed_timedelta."
+    },
+    {
+      "id": "ERR-002",
+      "title": "Event Store Replay Non-Deterministic UUID String Tie-Breaker",
+      "stage": "Stage 12: Event Store",
+      "error_class": "STATE_WORKFLOW_CONCURRENCY",
+      "severity": "Medium",
+      "status": "RESOLVED",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": "74a0031",
+      "root_cause_locations": [
+        "src/content_creation/events/store/sqlite_repository.py:205-206"
+      ],
+      "exception_type": "AssertionError",
+      "symptom": "list_after_event returns empty list due to random UUID string comparison on identical timestamps",
+      "affected_tests": [
+        "tests/test_event_persistence.py:test_list_after_event",
+        "tests/test_event_persistence.py:test_replay_after_event",
+        "tests/test_event_persistence.py:test_replay_after_event_for_sse",
+        "tests/test_event_persistence.py:test_sse_recovery_no_duplicate_delivery"
+      ],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:12",
+        "docs/audit/handoffs/fix-phase1a-core-defects.md:22-25"
+      ],
+      "reproduction_command": "uv run python -m pytest tests/test_event_persistence.py:test_list_after_event --no-cov",
+      "recommended_runtime_policy": "DETERMINISTIC_STATE_FIX",
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Add test_list_after_event_identical_timestamps_deterministic enforcing rowid sorting on events with identical timestamps and inverted UUID strings."
+    },
+    {
+      "id": "ERR-003",
+      "title": "Issue Runner Subprocess Spawns POSIX bash on Windows Hosts",
+      "stage": "Infra / Tooling",
+      "error_class": "ENVIRONMENT_PLATFORM",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "scripts/issue_runner.py:629"
+      ],
+      "exception_type": "OSError",
+      "symptom": "[WinError 1920] The file cannot be accessed by the system when invoking subprocess with bash on Windows",
+      "affected_tests": [
+        "tests/test_issue_runner.py:test_validation_sequential_failure_stops_block",
+        "tests/test_issue_runner.py:test_validation_successful_sequential_commands_pass",
+        "tests/test_issue_runner.py:test_validation_multiple_blocks_stop_at_first_failure"
+      ],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:13",
+        "tests/test_issue_runner.py:323"
+      ],
+      "reproduction_command": "uv run python -m pytest tests/test_issue_runner.py --no-cov",
+      "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Parametrize test_issue_runner.py to inspect sys.platform and use powershell.exe or mock bash execution when bash executable is absent on PATH."
+    },
+    {
+      "id": "ERR-004",
+      "title": "Notification SSE Server IPv6 Localhost Socket Connect Denial",
+      "stage": "Stage 16: Notifications",
+      "error_class": "ENVIRONMENT_PLATFORM",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/notifications/streaming/server.py:254",
+        "tests/test_notification_streaming.py:43",
+        "tests/test_notification_streaming.py:457"
+      ],
+      "exception_type": "PermissionError",
+      "symptom": "[WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions",
+      "affected_tests": [
+        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_health_endpoint",
+        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_404",
+        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_sse_connection",
+        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_broadcasts_to_connected_client",
+        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_multiple_clients",
+        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_heartbeat",
+        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_client_disconnect",
+        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_health_with_clients",
+        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_sse_no_connection_manager",
+        "tests/test_notification_streaming.py:TestSSEIntegration::test_full_lifecycle",
+        "tests/test_notification_streaming.py:TestSSEIntegration::test_multiple_notifications_stream",
+        "tests/test_notification_streaming.py:TestSSEIntegration::test_read_event_flow"
+      ],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:14",
+        "tests/test_notification_streaming.py:43"
+      ],
+      "reproduction_command": "uv run python -m pytest tests/test_notification_streaming.py -k test_server_health_endpoint --no-cov",
+      "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
+      "qa_coverage_status": "PARTIAL",
+      "qa_test_directive": "Update _local_sockets_available in test_notification_streaming.py to verify socket connect() to 127.0.0.1 and replace localhost with 127.0.0.1 in HTTPConnection calls."
+    },
+    {
+      "id": "ERR-005",
+      "title": "Brief Generator Fallback Leaks ReviewStatus String into Recommended Formats",
+      "stage": "Stage 3: Briefs",
+      "error_class": "QUALITY_GROUNDING",
+      "severity": "Medium",
+      "status": "MITIGATED",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": "aabeeeb",
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/generation/brief.py:71",
+        "src/content_creation/manifest.py:189-195"
+      ],
+      "exception_type": "ValueError",
+      "symptom": "Brief fallback sets recommended_formats=['needs_review'], causing downstream manifest builder to warn on unknown format and fallback to short_video",
+      "affected_tests": [
+        "tests/test_manifest.py:test_recommended_formats_filters_review_status_leak",
+        "tests/test_manifest.py:test_recommended_formats_with_only_review_status_defaults_cleanly",
+        "tests/test_manifest.py:test_recommended_formats_genuine_unknown_format_logs_warning"
+      ],
+      "evidence_sources": [
+        "docs/audit/handoffs/fix-phase1a-core-defects.md:26-30, 97-100",
+        "docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:93-97, 127-130"
+      ],
+      "reproduction_command": "uv run python -m pytest tests/test_manifest.py:test_recommended_formats_filters_review_status_leak --no-cov",
+      "recommended_runtime_policy": "ENRICHMENT_OR_CRITIC_LOOP",
+      "qa_coverage_status": "PARTIAL",
+      "qa_test_directive": "Add test_fallback_brief_does_not_contain_review_status_values asserting recommended_formats only contains valid AssetType format strings or empty list."
+    },
+    {
+      "id": "ERR-006",
+      "title": "0-Byte Storyboard JSON Truncation Triggers JSONDecodeError in Asset Generation",
+      "stage": "Stage 6: Assets",
+      "error_class": "DATA_ENCODING_IO",
+      "severity": "High",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/platform/storage/json_repository.py:34-36",
+        "src/content_creation/platform/storage/json_repository.py:59-64",
+        "src/content_creation/application/asset_generation_service.py:66-72"
+      ],
+      "exception_type": "json.decoder.JSONDecodeError",
+      "symptom": "Failed to load Storyboard <topic_id>.json: Expecting value: line 1 column 1 (char 0), causing AssetGenerationService to skip asset generation due to Storyboard Presence Gate. Creation origin of 0-byte truncation remains unconfirmed in storage backend; unhandled 0-byte read occurs in json_repository.py:59-64.",
+      "affected_tests": [],
+      "evidence_sources": [
+        "Live pipeline smoke test: generate-assets --top 2",
+        "src/content_creation/platform/storage/json_repository.py:63"
+      ],
+      "reproduction_command": "uv run python -c \"from pathlib import Path; p = Path('data/storyboards/test.json'); p.parent.mkdir(parents=True, exist_ok=True); p.write_text(''); from content_creation.storage.local import LocalStorage; s = LocalStorage(Path('.')); print(s.get_storyboard('test'))\"",
+      "recommended_runtime_policy": "DEFENSIVE_IO_FIX",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Add test_load_storyboard_handles_empty_or_truncated_file verifying that 0-byte or corrupted JSON files trigger defensive handling or clean error logging without aborting asset generation."
+    },
+    {
+      "id": "ERR-007",
+      "title": "Scoring Component Float Rounding Drift Violates Score Consistency Invariant",
+      "stage": "Stage 2: Scoring",
+      "error_class": "QUALITY_GROUNDING",
+      "severity": "Low",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/scoring/base.py:108-115",
+        "src/content_creation/scoring/validation.py:48-50"
+      ],
+      "exception_type": "ValidationWarning",
+      "symptom": "Score inconsistency: priority_score (65.75) != sum of components (65.76) flagged across multiple scored topics",
+      "affected_tests": [],
+      "evidence_sources": [
+        "Live pipeline smoke test: score-topics validation log",
+        "src/content_creation/scoring/validation.py:49"
+      ],
+      "reproduction_command": "uv run python -c \"from content_creation.scoring.engine import ScoringEngine; from content_creation.scoring.config import ScoringConfig; from content_creation.models.topic import TopicItem; t = TopicItem(id='test', title='Test topic', url='https://example.com', source='arxiv', category='paper', raw_text='A '*100); e = ScoringEngine(ScoringConfig()); scored = e.score_item(t); print('priority:', scored.priority_score, 'sum:', sum([scored.student_usefulness_score, scored.novelty_score, scored.credibility_score, scored.explainability_score, scored.hook_potential_score]))\"",
+      "recommended_runtime_policy": "ENRICHMENT_OR_CRITIC_LOOP",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Add test_scoring_float_consistency asserting priority_score strictly equals the sum of rounded component scores across 100 randomized topic payloads."
+    },
+    {
+      "id": "ERR-008",
+      "title": "Teaser RSS Feed Items Discarded Prematurely by Insufficient Text Filter",
+      "stage": "Stage 2: Scoring",
+      "error_class": "QUALITY_GROUNDING",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/scoring/engine.py:252"
+      ],
+      "exception_type": "TopicRejection",
+      "symptom": "290 out of 2048 topics rejected as insufficient_text when raw_text < 100 chars, discarding flagship posts (GPT-4o System Card, Introducing OpenAI o1)",
+      "affected_tests": [],
+      "evidence_sources": [
+        "Live pipeline smoke test: score-topics execution summary",
+        "src/content_creation/scoring/engine.py:252-254"
+      ],
+      "reproduction_command": "uv run python -c \"from content_creation.scoring.engine import ScoringEngine; from content_creation.scoring.config import ScoringConfig; from content_creation.models.topic import TopicItem; t = TopicItem(id='test', title='Introducing OpenAI o1', url='https://openai.com/index/o1', source='openai', category='release', raw_text='Short teaser'); e = ScoringEngine(ScoringConfig()); res = e.score_items([t]); print(res['rejected'][0].rejection_reason)\"",
+      "recommended_runtime_policy": "ENRICHMENT_OR_CRITIC_LOOP",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Add test_short_teaser_flagged_for_enrichment asserting that topics with short raw_text but high-credibility sources trigger an enrichment fetch rather than immediate rejection."
+    },
+    {
+      "id": "ERR-009",
+      "title": "CLI Subcommand Drift vs Documentation for Content Intelligence and Storyboards",
+      "stage": "CLI Entrypoint",
+      "error_class": "CODE_STATIC_TYPING",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/cli.py:56-215",
+        "README.md:445",
+        "README.md:448"
+      ],
+      "exception_type": "SystemExit",
+      "symptom": "cli.py: error: argument command: invalid choice: 'generate-ci' / 'generate-storyboards' when following README.md operational instructions",
+      "affected_tests": [],
+      "evidence_sources": [
+        "README.md:445, 448",
+        "src/content_creation/cli.py:56-215"
+      ],
+      "reproduction_command": "uv run python -m content_creation.cli generate-ci --top 5",
+      "recommended_runtime_policy": "CODE_REFACTOR_FIX",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Add test_cli_subcommands_match_readme verifying every documented CLI command in README.md is a registered parser in cli.py returning exit code 0 or 2 (valid argument parsing)."
+    },
+    {
+      "id": "ERR-010",
+      "title": "AppContainer Sandbox Permission Denial on Storage Directory Writeability Probe",
+      "stage": "Infra / Tooling",
+      "error_class": "ENVIRONMENT_PLATFORM",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/storage/local.py:64-70"
+      ],
+      "exception_type": "PermissionError",
+      "symptom": "PermissionError: [WinError 13] Access is denied: '[USER_HOME]/.../.write_test_*' during LocalStorage initialization under AppContainer sandbox",
+      "affected_tests": [
+        "tests/test_cli.py:TestCLI::test_status_command",
+        "tests/test_cli.py:TestCLI::test_collect_command_real",
+        "tests/test_cli.py:TestCLI::test_collect_command_all",
+        "tests/test_cli.py:TestCLI::test_plan_week_default_date_uses_unshadowed_timedelta"
+      ],
+      "evidence_sources": [
+        "docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:146",
+        "Live pytest sweep within AppContainer sandbox"
+      ],
+      "reproduction_command": "uv run python -m pytest tests/test_cli.py --no-cov",
+      "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Update LocalStorage._verify_writeable to probe data/ subdirectory rather than workspace root, avoiding AppContainer ACL permission blocks on root."
+    },
+    {
+      "id": "ERR-011",
+      "title": "Non-UTF-8 CP1252 Smart Quotes in Staged Feed JSON Files Trigger Decoding Warnings",
+      "stage": "Stage 1: Ingestion",
+      "error_class": "DATA_ENCODING_IO",
+      "severity": "Low",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/storage/local.py:98-100"
+      ],
+      "exception_type": "UnicodeDecodeError",
+      "symptom": "'utf-8' codec can't decode byte 0x97 in position 360: invalid start byte logged when cli status inspects 1519 staged JSON files",
+      "affected_tests": [],
+      "evidence_sources": [
+        "docs/audit/handoffs/fix-phase1a-core-defects.md:101-103",
+        "docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:131-135"
+      ],
+      "reproduction_command": "uv run python -m content_creation.cli status",
+      "recommended_runtime_policy": "DEFENSIVE_IO_FIX",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Add test_read_staged_json_handles_cp1252_encoding asserting LocalStorage._read_json safely decodes non-UTF8 smart quotes using errors='replace'."
+    },
+    {
+      "id": "ERR-012",
+      "title": "CLI Monolithic Main Function Variable Scope Collisions Under Strict Typing",
+      "stage": "CLI Entrypoint",
+      "error_class": "CODE_STATIC_TYPING",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/cli.py:224-1760"
+      ],
+      "exception_type": "MypyTypeError",
+      "symptom": "127 errors in 1 file (checked 1 source file) in cli.py due to repeated re-assignment of local variable names across 32 subcommand branches",
+      "affected_tests": [],
+      "evidence_sources": [
+        "docs/audit/handoffs/fix-phase1a-core-defects.md:68-71",
+        "docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:29, 136-139"
+      ],
+      "reproduction_command": "uv run mypy src/content_creation/cli.py --strict",
+      "recommended_runtime_policy": "CODE_REFACTOR_FIX",
+      "qa_coverage_status": "PARTIAL",
+      "qa_test_directive": "Add CI ratchet test enforcing mypy error count on cli.py does not exceed 127 and decreases as subcommand blocks are decomposed into separate modules."
+    },
+    {
+      "id": "ERR-013",
+      "title": "TopicItem Domain Model Typing.Any Metadata Leak",
+      "stage": "Stage 1: Ingestion",
+      "error_class": "SCHEMA_VALIDATION",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/models/topic.py:47"
+      ],
+      "exception_type": "PydanticSchemaViolation",
+      "symptom": "TopicItem.metadata is declared as Dict[str, Any] = Field(default_factory=dict), allowing arbitrary unvalidated dictionary structures to bypass Pydantic type validation during ingestion normalization",
+      "affected_tests": [],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:47"
+      ],
+      "reproduction_command": "uv run python -c \"from content_creation.models.topic import TopicItem; t = TopicItem(id='test', title='T', url='https://example.com', source='rss', published_at='2026-11-20T00:00:00Z', raw_text='text', metadata={'untyped_key': object()})\"",
+      "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Add schema validation test asserting TopicItem rejects non-serializable or unconstrained nested structures in metadata, or define a concrete IngestionMetadata schema."
+    },
+    {
+      "id": "ERR-014",
+      "title": "ScoredTopicItem Inherited Typing.Any Metadata Persistence Leak",
+      "stage": "Stage 2: Scoring",
+      "error_class": "SCHEMA_VALIDATION",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/models/topic.py:75"
+      ],
+      "exception_type": "PydanticSchemaViolation",
+      "symptom": "ScoredTopicItem inherits metadata: Dict[str, Any] from TopicItem, permitting arbitrary untyped payloads to propagate across the scoring stage and persist into data/scored/*.json",
+      "affected_tests": [],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:48"
+      ],
+      "reproduction_command": "uv run python -c \"from content_creation.models.topic import ScoredTopicItem; s = ScoredTopicItem(id='test', title='T', url='https://example.com', source='rss', published_at='2026-11-20T00:00:00Z', raw_text='text', priority_score=85.0, metadata={'arbitrary_untyped': 12345})\"",
+      "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Add test_scored_topic_item_rejects_untyped_metadata verifying that ScoredTopicItem enforces typed ScoringMetadata or rejects unstructured dictionary injections."
+    },
+    {
+      "id": "ERR-015",
+      "title": "WeeklyCalendar Config Snapshot Raw Untyped Dict Leak",
+      "stage": "Stage 9: Planning",
+      "error_class": "SCHEMA_VALIDATION",
+      "severity": "Low",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/models/calendar.py:31"
+      ],
+      "exception_type": "PydanticSchemaViolation",
+      "symptom": "config_snapshot: Dict in WeeklyCalendar uses raw unparameterized Dict with no key or value type constraints, allowing corrupted or arbitrary configuration objects to persist in calendar records",
+      "affected_tests": [],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:49"
+      ],
+      "reproduction_command": "uv run python -c \"from content_creation.models.calendar import WeeklyCalendar; c = WeeklyCalendar(week_start='2026-11-23', week_end='2026-11-29', posts=[], total_posts=0, format_counts={}, topics_used=[], generated_at='2026-11-20T00:00:00Z', config_snapshot={'malformed': [1, 2, 3]}); print(type(c.config_snapshot))\"",
+      "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Define a concrete PublishingConfigSnapshot Pydantic model for WeeklyCalendar.config_snapshot and assert validation failure on arbitrary dictionary structures."
+    },
+    {
+      "id": "ERR-016",
+      "title": "ContentIntelligence Quality Status Unvalidated String Leak",
+      "stage": "Stage 4: Intelligence",
+      "error_class": "SCHEMA_VALIDATION",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/domains/content_intelligence/model.py:52"
+      ],
+      "exception_type": "PydanticSchemaViolation",
+      "symptom": "quality_status: Optional[str] = None uses unconstrained str rather than Enum or Literal['ready', 'degraded', 'blocked'], allowing invalid quality states to bypass Pydantic model validation",
+      "affected_tests": [],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:50"
+      ],
+      "reproduction_command": "uv run python -c \"from content_creation.domains.content_intelligence.model import ContentIntelligence, TopicType, Hook, HookType; ci = ContentIntelligence(topic_id='t1', generated_at='now', topic_type=TopicType.NEW_INSIGHT, timeliness_hook='', primary_hook=Hook(hook_text='h', hook_type=HookType.STATISTIC, source_field='s'), secondary_hook=Hook(hook_text='h', hook_type=HookType.STATISTIC, source_field='s'), quality_status='INVALID_STATUS'); print(ci.quality_status)\"",
+      "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Add test_content_intelligence_quality_status_enum enforcing Literal['ready', 'degraded', 'blocked'] or a QualityStatus enum, verifying ValidationError on illegal strings."
+    },
+    {
+      "id": "ERR-017",
+      "title": "AssetCheck Review Status Unvalidated String Leak in Dry Run",
+      "stage": "Stage 10: Dry Run",
+      "error_class": "SCHEMA_VALIDATION",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/models/dryrun.py:12"
+      ],
+      "exception_type": "PydanticSchemaViolation",
+      "symptom": "AssetCheck.review_status is typed as unconstrained str instead of ReviewStatus enum, allowing invalid review states to pass dry run verification checks without schema error",
+      "affected_tests": [],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:51"
+      ],
+      "reproduction_command": "uv run python -c \"from content_creation.models.dryrun import AssetCheck; a = AssetCheck(topic_id='t', topic_title='T', format='newsletter', asset_path='p', review_status='unrecognized_review_state', is_ready=False); print(a.review_status)\"",
+      "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Add test_asset_check_review_status_enum asserting AssetCheck rejects arbitrary string values not defined in ReviewStatus enum."
+    }
+  ],
+  "anticipated_risks": [
+    {
+      "id": "RISK-001",
+      "title": "Live LLM Provider Quota Exhaustion & Rate Limits",
+      "stage": "Stage 3: Briefs",
+      "error_class": "TRANSPORT_TRANSIENT",
+      "severity": "High",
+      "anchored_code_paths": [
+        "src/content_creation/inference/manager.py:70",
+        "src/content_creation/inference/providers/gemini.py:71"
+      ],
+      "risk_description": "High-concurrency generation bursts without rate-limiting delays trigger HTTP 429 quota exhaustion on Gemini API endpoints.",
+      "recommended_runtime_policy": "RETRY_BACKOFF_FALLBACK",
+      "qa_test_directive": "Mock 429 response from GeminiProvider and assert failover to OpenRouter without pipeline abort."
+    },
+    {
+      "id": "RISK-002",
+      "title": "Malformed Markdown Code Fences in LLM Synthesis Outputs",
+      "stage": "Stage 4: Content Intelligence",
+      "error_class": "SCHEMA_VALIDATION",
+      "severity": "Medium",
+      "anchored_code_paths": [
+        "src/content_creation/generation/brief.py:46",
+        "src/content_creation/domains/content_intelligence/generator.py:48",
+        "src/content_creation/domains/storyboard/generator.py:53"
+      ],
+      "risk_description": "LLM outputting JSON wrapped in markdown fences (```json ... ```) or conversational commentary triggers json.JSONDecodeError in generator parsing.",
+      "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
+      "qa_test_directive": "Test ContentIntelligenceGenerator and StoryboardGenerator against synthetic responses containing markdown fences, trailing commentary, and unescaped quotes."
+    },
+    {
+      "id": "RISK-003",
+      "title": "Unchecked API Token Budget Consumption During High-Volume Batches",
+      "stage": "Stage 6: Asset Generation",
+      "error_class": "BUDGET_QUOTA_CONFIG",
+      "severity": "High",
+      "anchored_code_paths": [
+        "src/content_creation/inference/manager.py:25",
+        "src/content_creation/application/asset_generation_service.py:86"
+      ],
+      "risk_description": "Uncapped multi-format asset generation across large topic batches exhausts account token budgets mid-run, aborting downstream stages.",
+      "recommended_runtime_policy": "FAIL_FAST_NO_RETRY",
+      "qa_test_directive": "Implement pre-flight token budget validator in AssetGenerationService that calculates estimated batch cost and aborts before LLM dispatch."
+    },
+    {
+      "id": "RISK-004",
+      "title": "In-Memory Event Bus Isolation Across Worker Daemon Subprocesses",
+      "stage": "Stage 12: Event Store",
+      "error_class": "STATE_WORKFLOW_CONCURRENCY",
+      "severity": "Medium",
+      "anchored_code_paths": [
+        "src/content_creation/events/bus.py:11",
+        "src/content_creation/jobs/worker_daemon.py:35"
+      ],
+      "risk_description": "Process-bound singleton _EVENT_BUS in background worker processes drops event delivery to UI subscriber threads and SSE streaming server.",
+      "recommended_runtime_policy": "DETERMINISTIC_STATE_FIX",
+      "qa_test_directive": "Add test verifying background job completion events are persisted to SQLiteEventRepository and picked up by main process SSE subscribers."
+    },
+    {
+      "id": "RISK-005",
+      "title": "POSIX Signal Handling Incompatibility in Windows Background Worker Daemon",
+      "stage": "Stage 15: Jobs & Locks",
+      "error_class": "ENVIRONMENT_PLATFORM",
+      "severity": "Medium",
+      "anchored_code_paths": [
+        "src/content_creation/jobs/worker_daemon.py:35"
+      ],
+      "risk_description": "Signal handlers using SIGTERM or SIGQUIT fail on Windows OS process termination, leaving stale resource locks in data/jobs.db.",
+      "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
+      "qa_test_directive": "Test WorkerDaemon graceful shutdown under Windows console termination events and verify LockManager releases all held locks on process exit."
+    }
+  ]
+}
