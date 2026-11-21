@@ -716,7 +716,7 @@ def test_prompt_content_requirements(sample_brief, prompt_dir):
         Path(__file__).resolve().parents[1] / "prompts" / "short_video.md"
     )
     assert real_prompt_path.exists()
-    prompt_content = real_prompt_path.read_text()
+    prompt_content = real_prompt_path.read_text(encoding="utf-8")
 
     assert "valid JSON" in prompt_content or "JSON" in prompt_content
     assert (

@@ -174,5 +174,5 @@ Generated: {generated_at}
         for i, action in enumerate(report.recommended_actions, 1):
             md_content += f"{i}. {action}\n"
 
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write(md_content)
