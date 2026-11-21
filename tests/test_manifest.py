@@ -636,8 +636,9 @@ class TestManifestBuilder:
         assert manifest.overall_status == "complete"
         assert manifest.ready_for_planner is True
 
-        # No warning about needs_review being an unknown format
-        assert not any("needs_review" in r.message for r in caplog.records)
+        # Defensive filter logs a WARNING when filtering a leaked review status
+        assert any("Filtered review status 'needs_review'" in r.message for r in caplog.records)
+        assert not any("Unknown format" in r.message for r in caplog.records)
 
     def test_recommended_formats_with_only_review_status_defaults_cleanly(self, tmp_path, caplog):
         """Brief with only review status placeholder cleanly defaults to short_video without warning."""
@@ -662,7 +663,8 @@ class TestManifestBuilder:
 
         assert manifest.assets["script"].status == "missing"
         assert manifest.assets["carousel"].status == "skipped"
-        assert not any("needs_review" in r.message for r in caplog.records)
+        assert any("Filtered review status 'needs_review'" in r.message for r in caplog.records)
+        assert not any("Unknown format" in r.message for r in caplog.records)
 
     def test_recommended_formats_genuine_unknown_format_logs_warning(self, tmp_path, caplog):
         """Genuine unknown formats still log a warning and default to short_video."""
@@ -716,11 +718,12 @@ class TestManifestBuilder:
                 source_url="https://example.com",
             )
 
-        # Filters review status, defaults to short_video (script missing)
+        # Filters review status with WARNING, defaults to short_video (script missing)
         assert manifest.assets["script"].status == "missing"
         assert manifest.assets["carousel"].status == "skipped"
         assert manifest.assets["newsletter"].status == "skipped"
-        # Must not log an unknown format warning
+        # Must log a warning about filtered review status but not an unknown format warning
+        assert any(f"Filtered review status '{status_val}'" in r.message for r in caplog.records)
         assert not any(f"Unknown format '{status_val}'" in r.message for r in caplog.records)
 
     @pytest.mark.parametrize("status_val", [
@@ -757,7 +760,8 @@ class TestManifestBuilder:
         assert manifest.assets["carousel"].status == "approved"
         assert manifest.assets["newsletter"].status == "skipped"
         assert manifest.overall_status == "complete"
-        assert not any(status_val in r.message for r in caplog.records)
+        assert any(f"Filtered review status '{status_val}'" in r.message for r in caplog.records)
+        assert not any("Unknown format" in r.message for r in caplog.records)
 
     def test_recommended_formats_whitespace_and_case_insensitive_filtering(self, tmp_path, caplog):
         """Covers ERR-005: review status filtering handles leading/trailing whitespace and mixed case."""
@@ -860,7 +864,8 @@ class TestManifestBuilder:
         assert manifest.assets["script"].status == "skipped"
         assert manifest.assets["carousel"].status == "missing"
         assert manifest.assets["newsletter"].status == "skipped"
-        assert not any("needs_review" in r.message for r in caplog.records)
+        assert any("Filtered review status 'needs_review'" in r.message for r in caplog.records)
+        assert not any("Unknown format" in r.message for r in caplog.records)
 
     def test_recommended_formats_single_string_instead_of_list(self, tmp_path):
         """Covers ERR-005: single string recommended_formats is normalized to list without error."""
@@ -1085,7 +1090,6 @@ class TestStoryboardFaultInjectionAndUpstreamProbes:
         assert result.failed_count == 0
         assert any("Skipping asset generation for topic_zb because storyboard artifact is missing" in r.message for r in caplog.records)
 
-    @pytest.mark.xfail(strict=True, reason="ERR-005: upstream brief.py:71 fallback leaks needs_review into recommended_formats")
     def test_upstream_brief_generator_fallback_does_not_leak_review_status(self, tmp_path):
         """Covers ERR-005: upstream brief generator fallback must not populate recommended_formats with ReviewStatus enum values."""
         from content_creation.generation.brief import generate_brief

@@ -187,7 +187,7 @@ class ManifestBuilder:
                 continue
             fmt_lower = fmt.lower()
             if fmt_lower in REVIEW_STATUS_VALUES:
-                logger.debug(
+                logger.warning(
                     "Filtered review status '%s' from recommended_formats for topic %s",
                     fmt,
                     topic_id,
