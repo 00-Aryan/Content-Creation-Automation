@@ -26,9 +26,6 @@ from content_creation.notifications.schema import create_notification_schema
 from content_creation.notifications.sqlite_repository import SQLiteNotificationRepository
 from content_creation.notifications.service import NotificationService
 from content_creation.notifications.maintenance import NotificationMaintenanceService
-from content_creation.notifications.streaming.connection_manager import ConnectionManager
-from content_creation.notifications.streaming.publisher import NotificationPublisher
-from content_creation.notifications.streaming.server import NotificationSSEServer
 
 
 @dataclass(frozen=True)
@@ -496,7 +493,6 @@ class ServiceClient:
         telemetry_svc = None
         audit_repo = None
         compliance_svc = None
-        connection_mgr = None
 
         job_conn = None
         lock_conn = None
@@ -573,19 +569,13 @@ class ServiceClient:
             except Exception as e:
                 logger.warning("Failed to initialize Audit Repository for operations snapshot: %s", e)
 
-            try:
-                ConnMgrMod = importlib.import_module("content_creation.notifications.streaming.connection_manager")
-                connection_mgr = ConnMgrMod.ConnectionManager()
-            except Exception as e:
-                logger.warning("Failed to initialize Connection Manager for operations snapshot: %s", e)
-
             service = ObsServiceMod.ObservabilityService(
                 queue_engine=queue_engine,
                 lock_manager=lock_manager,
                 lock_repository=lock_repo,
                 event_repository=event_repo,
                 notification_service=notification_svc,
-                connection_manager=connection_mgr,
+                connection_manager=None,
                 metrics_repository=metrics_repo,
                 kpi_catalog=kpi_catalog,
                 telemetry_service=telemetry_svc,
