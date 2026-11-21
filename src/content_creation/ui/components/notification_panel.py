@@ -38,14 +38,14 @@ _CATEGORY_LABELS = {
 
 
 def render_notification_badge(unread_count: int) -> None:
-    """Render the unread notification count badge in the sidebar."""
+    """Render the unread notification count badge."""
     if unread_count > 0:
-        st.sidebar.markdown(
+        st.markdown(
             f"### 🔔 Notifications\n"
             f"**{unread_count}** unread notification{'s' if unread_count != 1 else ''}"
         )
     else:
-        st.sidebar.markdown("### 🔔 Notifications\nNo unread notifications")
+        st.markdown("### 🔔 Notifications\nNo unread notifications")
 
 
 @st.fragment(run_every="5s")

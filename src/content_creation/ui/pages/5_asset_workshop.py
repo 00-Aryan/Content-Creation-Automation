@@ -76,7 +76,7 @@ def main() -> None:
     st.markdown("### ⚡ Generation Action")
     col_gen, _ = st.columns([1, 2])
     with col_gen:
-        gen_assets_btn = st.button("⚡ Generate Asset Suite", type="primary", use_container_width=True)
+        gen_assets_btn = st.button("⚡ Generate Asset Suite", type="primary", width="stretch")
 
     if gen_assets_btn:
         if not client.is_generation_available():
@@ -137,7 +137,7 @@ def main() -> None:
                 "Generated At": format_timestamp(asset_entry.generated_at),
                 "File Path": asset_entry.path,
             })
-        st.dataframe(ref_data, use_container_width=True)
+        st.dataframe(ref_data, width="stretch")
 
         with st.expander("📄 View Raw Manifest JSON"):
             st.json(manifest.model_dump())
@@ -160,6 +160,8 @@ def main() -> None:
         newsletter = assets["newsletter"]
         thumbnail = assets["thumbnail"]
         storyboard = client.get_storyboard(topic_id)
+        if client.storyboard_file_exists(topic_id) and storyboard is None:
+            st.warning(f"⚠️ Storyboard file is corrupted or empty (0-byte) on disk (ID: {topic_id})")
 
         decisions = []
 
