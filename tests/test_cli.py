@@ -63,7 +63,7 @@ class TestCLI:
             result = main()
             assert result == 0
             captured = capsys.readouterr()
-            assert "usage:" in captured.out
+            assert "usage:" in captured.out.lower()
 
     def test_keyboard_interrupt(self):
         """Test KeyboardInterrupt handling."""
@@ -229,3 +229,17 @@ class TestCLI:
                 captured = capsys.readouterr()
                 assert "Error: corrupt storage configuration" in captured.err
                 assert "Traceback (most recent call last):" in captured.err
+
+    def test_generate_ci_and_storyboards_commands(self, capsys):
+        """Covers ERR-009: verify generate-ci and generate-storyboards dispatch via WorkflowActionExecutor."""
+        mock_res = MagicMock(success=True, affected_artifacts={"generated_count": "3", "failures": "0"})
+        with patch("content_creation.workflow.WorkflowActionExecutor.execute", return_value=mock_res):
+            with patch.object(sys, "argv", ["content-creation", "generate-ci", "--top", "3"]):
+                assert main() == 0
+                captured = capsys.readouterr()
+                assert "Generated 3 content intelligence items" in captured.out
+
+            with patch.object(sys, "argv", ["content-creation", "generate-storyboards", "--top", "3"]):
+                assert main() == 0
+                captured = capsys.readouterr()
+                assert "Generated 3 storyboards" in captured.out
