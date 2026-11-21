@@ -1,24 +1,24 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "metadata": {
-    "last_updated": "2026-11-21T13:10:00+05:30",
-    "active_branch": "fix/phase1b-data-and-schemas",
-    "audited_commit": "6a852f8e2d6a3cb52e3258cdd971d588a62a3947",
-    "audited_commit_short": "6a852f8",
+    "last_updated": "2026-11-21T14:20:00+05:30",
+    "active_branch": "refactor/phase2a-typer-cli",
+    "audited_commit": "ead1d463d846440da1643c2867bc9a9485f7c48d",
+    "audited_commit_short": "ead1d46",
     "chronicler": "error-taxonomy-chronicler",
     "pytest_baseline": {
-      "passed": 1264,
-      "failed": 19,
+      "passed": 1284,
+      "failed": 0,
       "skipped": 0,
       "xfailed": 0,
-      "duration_seconds": 20.34
+      "duration_seconds": 54.53
     }
   },
   "summary_counts": {
     "total_observed_errors": 19,
-    "open_errors": 9,
+    "open_errors": 6,
     "mitigated_errors": 0,
-    "resolved_errors": 10,
+    "resolved_errors": 13,
     "total_anticipated_risks": 5,
     "qa_covered_errors": 12,
     "qa_coverage_percentage": 63.16,
@@ -104,28 +104,32 @@
       "stage": "Infra / Tooling",
       "error_class": "ENVIRONMENT_PLATFORM",
       "severity": "Medium",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": null,
+      "resolved_in_commit": "91cd668",
       "root_cause_locations": [
-        "scripts/issue_runner.py:629"
+        "scripts/issue_runner.py:622-647"
       ],
       "exception_type": "OSError",
-      "symptom": "[WinError 1920] The file cannot be accessed by the system when invoking subprocess with bash on Windows",
+      "symptom": "[WinError 1920] The file cannot be accessed by the system when invoking subprocess with bash on Windows (due to 0-byte WindowsApps UWP stub at AppData\\Local\\Microsoft\\WindowsApps\\bash.exe)",
       "affected_tests": [
+        "tests/test_issue_runner.py (83 tests in suite now pass on Windows)",
         "tests/test_issue_runner.py:test_validation_sequential_failure_stops_block",
         "tests/test_issue_runner.py:test_validation_successful_sequential_commands_pass",
-        "tests/test_issue_runner.py:test_validation_multiple_blocks_stop_at_first_failure"
+        "tests/test_issue_runner.py:test_validation_multiple_blocks_stop_at_first_failure",
+        "tests/test_issue_runner.py:test_validation_uses_bash_pipefail"
       ],
       "evidence_sources": [
         "docs/audit/03-drift-and-defects-register.md:13",
-        "tests/test_issue_runner.py:323"
+        "tests/test_issue_runner.py:323",
+        "docs/audit/handoffs/refactor-phase2a-typer-cli.md:41-45",
+        "docs/audit/verification/refactor-phase2a-typer-cli-b09f85b.md:91"
       ],
       "reproduction_command": "uv run python -m pytest tests/test_issue_runner.py --no-cov",
       "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
-      "qa_coverage_status": "UNCOVERED",
-      "qa_test_directive": "Parametrize test_issue_runner.py to inspect sys.platform and use powershell.exe or mock bash execution when bash executable is absent on PATH."
+      "qa_coverage_status": "PARTIAL",
+      "qa_test_directive": "Parametrize test_issue_runner.py to inspect sys.platform and verify get_bash_executable() discovers Git Bash or falls back gracefully without WinError 1920."
     },
     {
       "id": "ERR-004",
@@ -296,26 +300,27 @@
       "stage": "CLI Entrypoint",
       "error_class": "CODE_STATIC_TYPING",
       "severity": "Medium",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": null,
+      "resolved_in_commit": "b69115d",
       "root_cause_locations": [
-        "src/content_creation/cli.py:56-215",
-        "README.md:445",
-        "README.md:448"
+        "src/content_creation/cli/pipeline.py:84-148"
       ],
       "exception_type": "SystemExit",
-      "symptom": "cli.py: error: argument command: invalid choice: 'generate-ci' / 'generate-storyboards' when following README.md operational instructions",
-      "affected_tests": [],
+      "symptom": "cli.py: error: argument command: invalid choice: 'generate-ci' / 'generate-storyboards' when following README.md operational instructions; now implemented as Typer subcommands generate-ci and generate-storyboards with --top and --topic-id options",
+      "affected_tests": [
+        "tests/test_cli.py:TestCLI::test_generate_ci_and_storyboards_commands"
+      ],
       "evidence_sources": [
         "README.md:445, 448",
-        "src/content_creation/cli.py:56-215"
+        "docs/audit/handoffs/refactor-phase2a-typer-cli.md:23",
+        "docs/audit/verification/refactor-phase2a-typer-cli-b09f85b.md:89"
       ],
       "reproduction_command": "uv run python -m content_creation.cli generate-ci --top 5",
       "recommended_runtime_policy": "CODE_REFACTOR_FIX",
-      "qa_coverage_status": "UNCOVERED",
-      "qa_test_directive": "Add test_cli_subcommands_match_readme verifying every documented CLI command in README.md is a registered parser in cli.py returning exit code 0 or 2 (valid argument parsing)."
+      "qa_coverage_status": "PARTIAL",
+      "qa_test_directive": "Add comprehensive tests verifying generate-ci and generate-storyboards handle missing API keys, invalid topic IDs, and failure responses from WorkflowActionExecutor."
     },
     {
       "id": "ERR-010",
@@ -387,24 +392,28 @@
       "stage": "CLI Entrypoint",
       "error_class": "CODE_STATIC_TYPING",
       "severity": "Medium",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": null,
+      "resolved_in_commit": "b69115d",
       "root_cause_locations": [
-        "src/content_creation/cli.py:224-1760"
+        "src/content_creation/cli/"
       ],
       "exception_type": "MypyTypeError",
-      "symptom": "127 errors in 1 file (checked 1 source file) in cli.py due to repeated re-assignment of local variable names across 32 subcommand branches",
-      "affected_tests": [],
+      "symptom": "127 errors in 1 file in monolithic cli.py due to repeated local variable scope collisions and unencoded CP1252 export; decomposed into 7 modular Typer submodules passing mypy --strict with 0 errors and explicit UTF-8 encoding",
+      "affected_tests": [
+        "tests/test_cli.py"
+      ],
       "evidence_sources": [
         "docs/audit/handoffs/fix-phase1a-core-defects.md:68-71",
-        "docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:29, 136-139"
+        "docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:29, 136-139",
+        "docs/audit/handoffs/refactor-phase2a-typer-cli.md:18-25, 64-73",
+        "docs/audit/verification/refactor-phase2a-typer-cli-b09f85b.md:19, 64-73, 90"
       ],
-      "reproduction_command": "uv run mypy src/content_creation/cli.py --strict",
+      "reproduction_command": "uv run mypy src/content_creation/cli --strict",
       "recommended_runtime_policy": "CODE_REFACTOR_FIX",
       "qa_coverage_status": "PARTIAL",
-      "qa_test_directive": "Add CI ratchet test enforcing mypy error count on cli.py does not exceed 127 and decreases as subcommand blocks are decomposed into separate modules."
+      "qa_test_directive": "Add CI strict type checking on src/content_creation/cli and verify write_text_utf8 handles Unicode characters (em-dashes, smart quotes) during calendar export on Windows hosts."
     },
     {
       "id": "ERR-013",
