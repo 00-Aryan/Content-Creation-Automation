@@ -1,17 +1,17 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "metadata": {
-    "last_updated": "2026-11-21T14:20:00+05:30",
+    "last_updated": "2026-11-21T14:40:00+05:30",
     "active_branch": "refactor/phase2a-typer-cli",
-    "audited_commit": "ead1d463d846440da1643c2867bc9a9485f7c48d",
-    "audited_commit_short": "ead1d46",
+    "audited_commit": "c3cb9c7a0f63ad02472f24713df6bded95ee315a",
+    "audited_commit_short": "c3cb9c7",
     "chronicler": "error-taxonomy-chronicler",
     "pytest_baseline": {
-      "passed": 1284,
-      "failed": 0,
+      "passed": 1343,
+      "failed": 18,
       "skipped": 0,
       "xfailed": 0,
-      "duration_seconds": 54.53
+      "duration_seconds": 20.05
     }
   },
   "summary_counts": {
@@ -20,8 +20,8 @@
     "mitigated_errors": 0,
     "resolved_errors": 13,
     "total_anticipated_risks": 5,
-    "qa_covered_errors": 12,
-    "qa_coverage_percentage": 63.16,
+    "qa_covered_errors": 15,
+    "qa_coverage_percentage": 78.95,
     "by_error_class": {
       "TRANSPORT_TRANSIENT": 0,
       "SCHEMA_VALIDATION": 5,
@@ -118,17 +118,28 @@
         "tests/test_issue_runner.py:test_validation_sequential_failure_stops_block",
         "tests/test_issue_runner.py:test_validation_successful_sequential_commands_pass",
         "tests/test_issue_runner.py:test_validation_multiple_blocks_stop_at_first_failure",
-        "tests/test_issue_runner.py:test_validation_uses_bash_pipefail"
+        "tests/test_issue_runner.py:test_validation_uses_bash_pipefail",
+        "tests/test_issue_runner.py:test_get_bash_executable_non_windows",
+        "tests/test_issue_runner.py:test_get_bash_executable_windows_valid_candidate_in_path",
+        "tests/test_issue_runner.py:test_get_bash_executable_windows_skips_windowsapps_stub_and_finds_git_bash",
+        "tests/test_issue_runner.py:test_get_bash_executable_windows_git_relative_paths",
+        "tests/test_issue_runner.py:test_get_bash_executable_windows_program_files_fallback",
+        "tests/test_issue_runner.py:test_get_bash_executable_windows_program_files_x86_fallback",
+        "tests/test_issue_runner.py:test_get_bash_executable_windows_fallback_to_bare_bash_when_not_found",
+        "tests/test_issue_runner.py:test_run_validation_blocks_invokes_resolved_bash_with_pipefail",
+        "tests/test_issue_runner.py:test_run_validation_blocks_short_circuit_and_error_propagation",
+        "tests/test_issue_runner.py:test_run_validation_blocks_empty_list"
       ],
       "evidence_sources": [
         "docs/audit/03-drift-and-defects-register.md:13",
         "tests/test_issue_runner.py:323",
         "docs/audit/handoffs/refactor-phase2a-typer-cli.md:41-45",
-        "docs/audit/verification/refactor-phase2a-typer-cli-b09f85b.md:91"
+        "docs/audit/verification/refactor-phase2a-typer-cli-b09f85b.md:91",
+        "docs/audit/qa/refactor-phase2a-typer-cli.md:15-24, 92"
       ],
       "reproduction_command": "uv run python -m pytest tests/test_issue_runner.py --no-cov",
       "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
-      "qa_coverage_status": "PARTIAL",
+      "qa_coverage_status": "COVERED",
       "qa_test_directive": "Parametrize test_issue_runner.py to inspect sys.platform and verify get_bash_executable() discovers Git Bash or falls back gracefully without WinError 1920."
     },
     {
@@ -310,16 +321,27 @@
       "exception_type": "SystemExit",
       "symptom": "cli.py: error: argument command: invalid choice: 'generate-ci' / 'generate-storyboards' when following README.md operational instructions; now implemented as Typer subcommands generate-ci and generate-storyboards with --top and --topic-id options",
       "affected_tests": [
-        "tests/test_cli.py:TestCLI::test_generate_ci_and_storyboards_commands"
+        "tests/test_cli.py:TestCLI::test_generate_ci_and_storyboards_commands",
+        "tests/test_cli.py:test_generate_ci_custom_top_and_topic_id",
+        "tests/test_cli.py:test_generate_ci_default_targets_all_with_default_top",
+        "tests/test_cli.py:test_generate_ci_unrecognized_all_option_returns_usage_error",
+        "tests/test_cli.py:test_generate_ci_executor_failure_returns_exit_code_1",
+        "tests/test_cli.py:test_generate_ci_missing_gemini_api_key_passes_none",
+        "tests/test_cli.py:test_generate_storyboards_custom_top_and_topic_id",
+        "tests/test_cli.py:test_generate_storyboards_default_targets_all_with_default_top",
+        "tests/test_cli.py:test_generate_storyboards_unrecognized_all_option_returns_usage_error",
+        "tests/test_cli.py:test_generate_storyboards_executor_failure_returns_exit_code_1",
+        "tests/test_cli.py:test_generate_storyboards_missing_gemini_api_key_passes_none"
       ],
       "evidence_sources": [
         "README.md:445, 448",
         "docs/audit/handoffs/refactor-phase2a-typer-cli.md:23",
-        "docs/audit/verification/refactor-phase2a-typer-cli-b09f85b.md:89"
+        "docs/audit/verification/refactor-phase2a-typer-cli-b09f85b.md:89",
+        "docs/audit/qa/refactor-phase2a-typer-cli.md:25-34, 93"
       ],
       "reproduction_command": "uv run python -m content_creation.cli generate-ci --top 5",
       "recommended_runtime_policy": "CODE_REFACTOR_FIX",
-      "qa_coverage_status": "PARTIAL",
+      "qa_coverage_status": "COVERED",
       "qa_test_directive": "Add comprehensive tests verifying generate-ci and generate-storyboards handle missing API keys, invalid topic IDs, and failure responses from WorkflowActionExecutor."
     },
     {
@@ -402,17 +424,29 @@
       "exception_type": "MypyTypeError",
       "symptom": "127 errors in 1 file in monolithic cli.py due to repeated local variable scope collisions and unencoded CP1252 export; decomposed into 7 modular Typer submodules passing mypy --strict with 0 errors and explicit UTF-8 encoding",
       "affected_tests": [
-        "tests/test_cli.py"
+        "tests/test_cli.py",
+        "tests/test_cli.py:test_main_programmatic_sequence_argument",
+        "tests/test_cli.py:test_main_programmatic_invalid_command_returns_code_2",
+        "tests/test_cli.py:test_main_programmatic_invalid_option_returns_code_2",
+        "tests/test_cli.py:test_main_unhandled_exception_returns_code_1",
+        "tests/test_cli.py:test_main_click_exception_with_exit_code_and_show_method",
+        "tests/test_cli.py:test_main_click_exception_without_callable_show",
+        "tests/test_cli.py:test_write_text_utf8_unicode_content",
+        "tests/test_cli.py:test_plan_week_markdown_export_utf8_with_unicode_characters",
+        "tests/test_cli.py:test_get_next_monday_bva_and_date_boundaries",
+        "tests/test_cli.py:test_get_next_monday_default_today",
+        "tests/test_cli.py:test_subcommand_dispatch_and_help_text_rendering"
       ],
       "evidence_sources": [
         "docs/audit/handoffs/fix-phase1a-core-defects.md:68-71",
         "docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:29, 136-139",
         "docs/audit/handoffs/refactor-phase2a-typer-cli.md:18-25, 64-73",
-        "docs/audit/verification/refactor-phase2a-typer-cli-b09f85b.md:19, 64-73, 90"
+        "docs/audit/verification/refactor-phase2a-typer-cli-b09f85b.md:19, 64-73, 90",
+        "docs/audit/qa/refactor-phase2a-typer-cli.md:35-45, 94"
       ],
       "reproduction_command": "uv run mypy src/content_creation/cli --strict",
       "recommended_runtime_policy": "CODE_REFACTOR_FIX",
-      "qa_coverage_status": "PARTIAL",
+      "qa_coverage_status": "COVERED",
       "qa_test_directive": "Add CI strict type checking on src/content_creation/cli and verify write_text_utf8 handles Unicode characters (em-dashes, smart quotes) during calendar export on Windows hosts."
     },
     {
