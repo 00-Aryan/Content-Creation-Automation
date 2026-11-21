@@ -308,7 +308,9 @@ def test_validation_uses_bash_pipefail(monkeypatch):
     monkeypatch.setattr(runner.subprocess, "run", fake_run)
     results = runner.run_validation_blocks(["false | true"])
 
-    assert calls == [["bash", "-e", "-u", "-o", "pipefail", "-c", "false | true"]]
+    assert len(calls) == 1
+    assert calls[0][1:] == ["-e", "-u", "-o", "pipefail", "-c", "false | true"]
+    assert calls[0][0].lower().endswith(("bash", "bash.exe"))
     assert results[0]["exit_code"] == 1
 
 
