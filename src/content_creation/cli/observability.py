@@ -1,10 +1,12 @@
 """Observability CLI subcommands: event store, metrics, telemetry, and audit reporting."""
 
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Optional, cast
 
 import typer
 
+from content_creation.application.context import ApplicationContext
 from content_creation.audit.models import AuditRecord
 from content_creation.cli.common import get_context
 from content_creation.metrics.telemetry import (
@@ -13,6 +15,18 @@ from content_creation.metrics.telemetry import (
     SystemSummary,
     WorkflowSummary,
 )
+from content_creation.platform.storage.database import get_db_path
+
+
+def _resolve_subsystem_db(ctx: ApplicationContext, legacy_name: str) -> Path:
+    """Resolve database path, preferring content_factory.db with fallback to legacy file."""
+    cf_db = get_db_path(ctx.base_dir)
+    legacy_db = ctx.base_dir / "data" / legacy_name
+    if cf_db.exists():
+        return cf_db
+    if legacy_db.exists():
+        return legacy_db
+    return cf_db
 
 
 def event_timeline(
@@ -39,7 +53,7 @@ def event_timeline(
     )
 
     ctx = get_context()
-    db_path = ctx.base_dir / "data" / "events.db"
+    db_path = _resolve_subsystem_db(ctx, "events.db")
     if not db_path.exists():
         print(
             "No event store found. Events will appear after running pipeline actions."
@@ -92,7 +106,7 @@ def event_stats() -> int:
     )
 
     ctx = get_context()
-    db_path = ctx.base_dir / "data" / "events.db"
+    db_path = _resolve_subsystem_db(ctx, "events.db")
     if not db_path.exists():
         print("No event store found.")
         return 0
@@ -155,7 +169,7 @@ def event_replay(
     )
 
     ctx = get_context()
-    db_path = ctx.base_dir / "data" / "events.db"
+    db_path = _resolve_subsystem_db(ctx, "events.db")
     if not db_path.exists():
         print("No event store found.")
         return 0
@@ -220,7 +234,7 @@ def event_cleanup(
     )
 
     ctx = get_context()
-    db_path = ctx.base_dir / "data" / "events.db"
+    db_path = _resolve_subsystem_db(ctx, "events.db")
     if not db_path.exists():
         print("No event store found.")
         return 0
@@ -257,7 +271,7 @@ def metrics_kpi(
     from content_creation.metrics import KPICatalog, SQLiteMetricRepository
 
     ctx = get_context()
-    db_path = ctx.base_dir / "data" / "metrics.db"
+    db_path = _resolve_subsystem_db(ctx, "metrics.db")
     if not db_path.exists():
         print("No metrics store found. Run pipeline actions first to generate metrics.")
         return 0
@@ -326,8 +340,8 @@ def metrics_summary(
     from content_creation.metrics import SQLiteMetricRepository, TelemetryService
 
     ctx = get_context()
-    metrics_db = ctx.base_dir / "data" / "metrics.db"
-    events_db = ctx.base_dir / "data" / "events.db"
+    metrics_db = _resolve_subsystem_db(ctx, "metrics.db")
+    events_db = _resolve_subsystem_db(ctx, "events.db")
 
     metrics_repo = None
     event_repo = None
@@ -399,7 +413,7 @@ def metrics_query(
     from content_creation.metrics import MetricType, SQLiteMetricRepository
 
     ctx = get_context()
-    db_path = ctx.base_dir / "data" / "metrics.db"
+    db_path = _resolve_subsystem_db(ctx, "metrics.db")
     if not db_path.exists():
         print("No metrics store found.")
         return 0
@@ -443,7 +457,7 @@ def metrics_cleanup(
     )
 
     ctx = get_context()
-    db_path = ctx.base_dir / "data" / "metrics.db"
+    db_path = _resolve_subsystem_db(ctx, "metrics.db")
     if not db_path.exists():
         print("No metrics store found.")
         return 0
@@ -481,8 +495,8 @@ def metrics_rebuild(
     )
 
     ctx = get_context()
-    metrics_db = ctx.base_dir / "data" / "metrics.db"
-    events_db = ctx.base_dir / "data" / "events.db"
+    metrics_db = _resolve_subsystem_db(ctx, "metrics.db")
+    events_db = _resolve_subsystem_db(ctx, "events.db")
 
     if not events_db.exists():
         print("No event store found. Cannot rebuild metrics.")
@@ -551,7 +565,7 @@ def audit_query(
     from content_creation.audit.models import AuditSeverity, AuditSource
 
     ctx = get_context()
-    db_path = ctx.base_dir / "data" / "audit.db"
+    db_path = _resolve_subsystem_db(ctx, "audit.db")
     if not db_path.exists():
         print(
             "No audit store found. Run pipeline actions first to generate audit records."
@@ -631,7 +645,7 @@ def audit_entity(
     from content_creation.audit import AuditQueryService, SQLiteAuditRepository
 
     ctx = get_context()
-    db_path = ctx.base_dir / "data" / "audit.db"
+    db_path = _resolve_subsystem_db(ctx, "audit.db")
     if not db_path.exists():
         print("No audit store found.")
         return 0
@@ -678,7 +692,7 @@ def audit_actor(
     from content_creation.audit import AuditQueryService, SQLiteAuditRepository
 
     ctx = get_context()
-    db_path = ctx.base_dir / "data" / "audit.db"
+    db_path = _resolve_subsystem_db(ctx, "audit.db")
     if not db_path.exists():
         print("No audit store found.")
         return 0
@@ -723,7 +737,7 @@ def audit_report(
     )
 
     ctx = get_context()
-    db_path = ctx.base_dir / "data" / "audit.db"
+    db_path = _resolve_subsystem_db(ctx, "audit.db")
     if not db_path.exists():
         print("No audit store found.")
         return 0
@@ -815,8 +829,8 @@ def audit_rebuild(
     )
 
     ctx = get_context()
-    events_db = ctx.base_dir / "data" / "events.db"
-    audit_db = ctx.base_dir / "data" / "audit.db"
+    events_db = _resolve_subsystem_db(ctx, "events.db")
+    audit_db = _resolve_subsystem_db(ctx, "audit.db")
 
     if not events_db.exists():
         print("No event store found. Cannot rebuild audit trail.")

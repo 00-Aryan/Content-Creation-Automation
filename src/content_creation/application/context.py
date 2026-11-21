@@ -1,5 +1,6 @@
 """Application dependency container for resource and configuration initialization."""
 
+import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -19,6 +20,11 @@ class ApplicationContext:
     prompt_registry: PromptRegistry
     feeds_config_path: Path
     scoring_config_path: Path
+    db_path: Path = Path("data") / "content_factory.db"
+
+    def __post_init__(self) -> None:
+        if self.db_path == Path("data") / "content_factory.db":
+            object.__setattr__(self, "db_path", self.base_dir / "data" / "content_factory.db")
 
     @classmethod
     def create(cls, base_dir: Path, source_dir: Optional[Path] = None) -> "ApplicationContext":
@@ -39,6 +45,7 @@ class ApplicationContext:
         prompt_registry = PromptRegistry(source_dir)
         feeds_config_path = source_dir / "config" / "feeds.yaml"
         scoring_config_path = source_dir / "config" / "scoring.yaml"
+        db_path = base_dir / "data" / "content_factory.db"
 
         return cls(
             base_dir=base_dir,
@@ -47,12 +54,21 @@ class ApplicationContext:
             prompt_registry=prompt_registry,
             feeds_config_path=feeds_config_path,
             scoring_config_path=scoring_config_path,
+            db_path=db_path,
         )
 
-    @property
-    def content_intelligence_dir(self) -> Path:
-        """Directory path for content intelligence files."""
-        return self.storage.content_intelligence_dir
+    def get_db_connection(
+        self, timeout: float = 10.0, check_same_thread: bool = False
+    ) -> sqlite3.Connection:
+        """Create a SQLite connection to content_factory.db with WAL pragmas."""
+        from content_creation.platform.storage.database import create_connection
+
+        return create_connection(self.db_path, timeout=timeout, check_same_thread=check_same_thread)
+
+    def __getattr__(self, name: str) -> Path:
+        if name == "content_intelligence_dir":
+            return self.storage.content_intelligence_dir
+        raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
 
     @property
     def storyboards_dir(self) -> Path:

@@ -1,35 +1,35 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "metadata": {
-    "last_updated": "2026-11-21T18:15:00+05:30",
-    "active_branch": "refactor/phase2b-ui-and-fragments",
-    "audited_commit": "da1d329869f92557248abea8403b6572c863c131",
-    "audited_commit_short": "da1d329",
+    "last_updated": "2026-11-21T20:15:00+05:30",
+    "active_branch": "refactor/phase2c-sqlite-consolidation",
+    "audited_commit": "cdc152ccacac077a02c7a47633c8c0a407a0e957",
+    "audited_commit_short": "cdc152c",
     "chronicler": "error-taxonomy-chronicler",
     "pytest_baseline": {
-      "passed": 1407,
+      "passed": 1417,
       "failed": 6,
       "skipped": 0,
       "xfailed": 0,
-      "duration_seconds": 16.0
+      "duration_seconds": 14.6
     }
   },
   "summary_counts": {
-    "total_observed_errors": 23,
+    "total_observed_errors": 25,
     "open_errors": 5,
-    "mitigated_errors": 1,
-    "resolved_errors": 17,
-    "total_anticipated_risks": 5,
-    "qa_covered_errors": 19,
-    "qa_coverage_percentage": 82.61,
+    "mitigated_errors": 2,
+    "resolved_errors": 18,
+    "total_anticipated_risks": 6,
+    "qa_covered_errors": 20,
+    "qa_coverage_percentage": 80.0,
     "by_error_class": {
       "TRANSPORT_TRANSIENT": 0,
       "SCHEMA_VALIDATION": 5,
       "DATA_ENCODING_IO": 3,
       "QUALITY_GROUNDING": 3,
       "STATE_WORKFLOW_CONCURRENCY": 3,
-      "ENVIRONMENT_PLATFORM": 5,
-      "CODE_STATIC_TYPING": 4,
+      "ENVIRONMENT_PLATFORM": 6,
+      "CODE_STATIC_TYPING": 5,
       "BUDGET_QUOTA_CONFIG": 0
     }
   },
@@ -144,41 +144,49 @@
     },
     {
       "id": "ERR-004",
-      "title": "Notification SSE Server IPv6 Localhost Socket Connect Denial and Legacy JS Iframe (UI-004)",
+      "title": "Notification SSE Server IPv6 Localhost Socket Connect Denial and Legacy JS Iframe (UI-004, DEAD-004)",
       "stage": "Stage 16: Notifications",
       "error_class": "ENVIRONMENT_PLATFORM",
       "severity": "Medium",
       "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": "e1b0246",
+      "resolved_in_commit": "e92cd16",
       "root_cause_locations": [
         "src/content_creation/notifications/streaming/server.py:254",
+        "src/content_creation/notifications/streaming/connection_manager.py:51",
+        "src/content_creation/notifications/streaming/publisher.py:1-40",
         "src/content_creation/ui/components/sse_client.py:1-42",
+        "src/content_creation/ui/services/client.py:29-31, 576-581",
         "tests/test_notification_streaming.py:43",
         "tests/test_notification_streaming.py:457"
       ],
       "exception_type": "PermissionError",
-      "symptom": "[WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions / broken JS postMessage bridge in embedded iframe; resolved by retiring background SSE server and iframe in favor of native Streamlit @st.fragment polling per ADR-001.",
+      "symptom": "[WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions / broken JS postMessage bridge in embedded iframe. Completely resolved per ADR-001: retired SSE background server, connection manager (DEAD-004), publisher, and iframe in favor of native Streamlit @st.fragment polling; purged client connection manager instantiation and eliminated all 35 deprecation warnings repository-wide in commit e92cd16.",
       "affected_tests": [
-        "tests/test_notification_streaming.py (12 fragile socket integration tests retired per ADR-001; unit tests retained)",
+        "tests/test_notification_streaming.py:TestSSEStreamingRetiral",
+        "tests/test_notification_streaming.py:test_deprecated_streaming_stubs_are_retired",
+        "tests/test_notification_streaming.py:test_notification_stream_event_serialization",
         "tests/test_ui_pages.py:test_all_pages_render_without_exceptions",
         "tests/test_ui_pages.py:test_notification_badge_and_summary_fragments",
         "tests/test_ui_client.py:test_deprecated_sse_shims_are_safe_noops",
         "tests/test_ui_client.py:test_notification_facade_methods"
       ],
       "evidence_sources": [
-        "docs/audit/03-drift-and-defects-register.md:14 (DEF-004)",
+        "docs/audit/03-drift-and-defects-register.md:14 (DEF-004), 25 (DEAD-004)",
         "docs/refactor/adrs/001-native-fragments-and-ui-facades.md (ADR-001)",
         "docs/refactor/tasks/phase2b-ui-and-fragments.md:36-39, 53 (UI-004)",
         "docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:22, 27-28",
         "docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:101, 128-130",
-        "docs/audit/qa/refactor-phase2b-ui-and-fragments.md:60, 113-116"
+        "docs/audit/qa/refactor-phase2b-ui-and-fragments.md:60, 113-116",
+        "docs/audit/handoffs/refactor-phase2c-sqlite-consolidation.md:31-37",
+        "docs/audit/verification/refactor-phase2c-sqlite-consolidation-21d9b27.md:155",
+        "docs/audit/qa/refactor-phase2c-sqlite-consolidation.md:29-31, 60, 92-94"
       ],
       "reproduction_command": "uv run python -m pytest tests/test_notification_streaming.py -o addopts=\"\" -p no:cov",
       "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
       "qa_coverage_status": "COVERED",
-      "qa_test_directive": "Verify tests/test_notification_streaming.py runs cleanly with 0 failures and tests/test_ui_pages.py asserts @st.fragment notification polling badge renders cleanly without background SSE server."
+      "qa_test_directive": "Verify tests/test_notification_streaming.py asserts clean retirement of deprecated SSE server and connection manager, and assert full test suite executes with 0 deprecation warnings."
     },
     {
       "id": "ERR-005",
@@ -403,53 +411,60 @@
     },
     {
       "id": "ERR-011",
-      "title": "Non-UTF-8 CP1252 Smart Quotes in Staged Feed JSON Files Trigger Decoding Warnings",
+      "title": "Windows CP1252 File I/O Encoding and Charmap Export Failures",
       "stage": "Stage 1: Ingestion",
       "error_class": "DATA_ENCODING_IO",
       "severity": "Low",
       "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": "16c90f3",
+      "resolved_in_commit": "e30e4ac",
       "root_cause_locations": [
-        "src/content_creation/storage/local.py:77-90"
+        "src/content_creation/storage/local.py:77-90",
+        "src/content_creation/planning/dryrun.py:177"
       ],
-      "exception_type": "UnicodeDecodeError",
-      "symptom": "'utf-8' codec can't decode byte 0x97 in position 360: invalid start byte logged when inspecting staged JSON files",
+      "exception_type": "UnicodeDecodeError / UnicodeEncodeError",
+      "symptom": "'utf-8' codec can't decode byte 0x97 in position 360 when reading staged JSON files; and UnicodeEncodeError: 'charmap' codec can't encode character '\\u2713' (and '\\u2717') on native Windows CP1252 codepage during dry-run markdown export. Resolved via explicit encoding='utf-8' across storage writes and DryRunValidator.export_markdown.",
       "affected_tests": [
+        "tests/test_dryrun.py:TestDryRunUnicodeEncoding",
         "tests/test_storage.py:test_local_storage_cp1252_smart_quotes_decoding_fallback",
         "tests/test_local_storage.py",
         "tests/test_phase1b_qa.py:test_read_json_clean_utf8_does_not_log_fallback_warning",
         "tests/test_phase1b_qa.py:test_read_json_cp1252_smart_punctuation_suite",
-        "tests/test_phase1b_qa.py:test_storage_write_methods_enforce_utf8"
+        "tests/test_phase1b_qa.py:test_storage_write_methods_enforce_utf8",
+        "tests/test_dryrun.py"
       ],
       "evidence_sources": [
         "docs/audit/handoffs/fix-phase1a-core-defects.md:101-103",
         "docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:131-135",
         "docs/audit/handoffs/fix-phase1b-data-and-schemas.md:25, 30",
         "docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:81",
-        "docs/audit/qa/fix-phase1b-data-and-schemas.md:24"
+        "docs/audit/qa/fix-phase1b-data-and-schemas.md:24",
+        "docs/audit/handoffs/refactor-phase2c-sqlite-consolidation.md:28-29",
+        "docs/audit/verification/refactor-phase2c-sqlite-consolidation-21d9b27.md:96, 157",
+        "docs/audit/qa/refactor-phase2c-sqlite-consolidation.md:27-28, 60, 89-91"
       ],
-      "reproduction_command": "uv run python -m pytest tests/test_storage.py:test_local_storage_cp1252_smart_quotes_decoding_fallback --no-cov",
+      "reproduction_command": "uv run python -m pytest tests/test_dryrun.py tests/test_storage.py -o addopts=\"\" -p no:cov",
       "recommended_runtime_policy": "DEFENSIVE_IO_FIX",
       "qa_coverage_status": "COVERED",
-      "qa_test_directive": "Add test_local_storage_cp1252_smart_quotes_decoding_fallback asserting LocalStorage._read_json safely decodes non-UTF8 smart quotes using CP1252 fallback with a warning log."
+      "qa_test_directive": "Verify tests/test_dryrun.py asserts export_markdown writes Unicode symbols (checkmarks, ballot crosses) with UTF-8 encoding on Windows hosts, and tests/test_storage.py asserts LocalStorage handles non-UTF8 smart quotes safely."
     },
     {
       "id": "ERR-012",
-      "title": "CLI Monolithic Main Function Variable Scope Collisions Under Strict Typing",
+      "title": "CLI Monolithic Scope Collisions and Windows Test Prompt Encoding Mojibake",
       "stage": "CLI Entrypoint",
       "error_class": "CODE_STATIC_TYPING",
       "severity": "Medium",
       "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": "b69115d",
+      "resolved_in_commit": "e30e4ac",
       "root_cause_locations": [
-        "src/content_creation/cli/"
+        "src/content_creation/cli/",
+        "tests/test_youtube_shorts_generation.py:719"
       ],
-      "exception_type": "MypyTypeError",
-      "symptom": "127 errors in 1 file in monolithic cli.py due to repeated local variable scope collisions and unencoded CP1252 export; decomposed into 7 modular Typer submodules passing mypy --strict with 0 errors and explicit UTF-8 encoding",
+      "exception_type": "MypyTypeError / AssertionError",
+      "symptom": "127 errors in 1 file in monolithic cli.py due to repeated local variable scope collisions and unencoded CP1252 export; decomposed into 7 modular Typer submodules passing mypy --strict with 0 errors. Also resolved unencoded read_text() in tests/test_youtube_shorts_generation.py:719 causing Windows CP1252 mojibake on UTF-8 en-dashes (\\u2013) in prompt assertions without modifying frozen prompt files.",
       "affected_tests": [
         "tests/test_cli.py",
         "tests/test_cli.py:test_main_programmatic_sequence_argument",
@@ -462,19 +477,23 @@
         "tests/test_cli.py:test_plan_week_markdown_export_utf8_with_unicode_characters",
         "tests/test_cli.py:test_get_next_monday_bva_and_date_boundaries",
         "tests/test_cli.py:test_get_next_monday_default_today",
-        "tests/test_cli.py:test_subcommand_dispatch_and_help_text_rendering"
+        "tests/test_cli.py:test_subcommand_dispatch_and_help_text_rendering",
+        "tests/test_youtube_shorts_generation.py:test_prompt_content_requirements"
       ],
       "evidence_sources": [
         "docs/audit/handoffs/fix-phase1a-core-defects.md:68-71",
         "docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:29, 136-139",
         "docs/audit/handoffs/refactor-phase2a-typer-cli.md:18-25, 64-73",
         "docs/audit/verification/refactor-phase2a-typer-cli-b09f85b.md:19, 64-73, 90",
-        "docs/audit/qa/refactor-phase2a-typer-cli.md:35-45, 94"
+        "docs/audit/qa/refactor-phase2a-typer-cli.md:35-45, 94",
+        "docs/audit/handoffs/refactor-phase2c-sqlite-consolidation.md:30",
+        "docs/audit/verification/refactor-phase2c-sqlite-consolidation-21d9b27.md:97, 158",
+        "docs/audit/qa/refactor-phase2c-sqlite-consolidation.md:60"
       ],
-      "reproduction_command": "uv run mypy src/content_creation/cli --strict",
+      "reproduction_command": "uv run python -m pytest tests/test_youtube_shorts_generation.py -k test_prompt_content_requirements -o addopts=\"\" -p no:cov",
       "recommended_runtime_policy": "CODE_REFACTOR_FIX",
       "qa_coverage_status": "COVERED",
-      "qa_test_directive": "Add CI strict type checking on src/content_creation/cli and verify write_text_utf8 handles Unicode characters (em-dashes, smart quotes) during calendar export on Windows hosts."
+      "qa_test_directive": "Verify test_prompt_content_requirements reads prompt templates using explicit UTF-8 encoding on Windows hosts, and verify mypy --strict passes on cli package."
     },
     {
       "id": "ERR-013",
@@ -694,7 +713,8 @@
       "affected_tests": [],
       "evidence_sources": [
         "docs/audit/handoffs/fix-phase1b-data-and-schemas.md:39-43",
-        "docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:128"
+        "docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:128",
+        "docs/audit/handoffs/refactor-phase2c-sqlite-consolidation.md:83-88 (Error #2)"
       ],
       "reproduction_command": "uv run python -m pytest --tb=no -q",
       "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
@@ -703,20 +723,22 @@
     },
     {
       "id": "ERR-020",
-      "title": "Operations Dashboard Direct SQLite Connection and Inline DDL Schema Violations (UI-002)",
+      "title": "Operations Dashboard Direct SQLite Connection and Inline DDL Schema Violations (UI-002, PERF-001)",
       "stage": "UI Presentation Tier",
       "error_class": "STATE_WORKFLOW_CONCURRENCY",
       "severity": "High",
       "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": "c8acfb1",
+      "resolved_in_commit": "5ee9e78",
       "root_cause_locations": [
-        "src/content_creation/ui/pages/6_operations_dashboard.py:24-286"
+        "src/content_creation/ui/pages/6_operations_dashboard.py:24-286",
+        "src/content_creation/ui/services/client.py:82, 519-574"
       ],
       "exception_type": "sqlite3.OperationalError",
-      "symptom": "Operations dashboard directly executed sqlite3.connect() on 6 backend databases (jobs.db, locks.db, events.db, notifications.db, metrics.db, audit.db), executed inline DDL migrations (create_*_schema), and instantiated 11 internal infrastructure classes on every page render, producing 18 AST layer boundary violations and high risk of Windows SQLite file lock contention",
+      "symptom": "Operations dashboard directly executed sqlite3.connect() on 6 backend databases (jobs.db, locks.db, events.db, notifications.db, metrics.db, audit.db), executed inline DDL migrations (create_*_schema), and instantiated 11 internal infrastructure classes on every page render, producing 18 AST layer boundary violations and high risk of Windows SQLite file lock contention. In Phase 2C (commit 5ee9e78), ServiceClient hot paths (get_operations_snapshot and get_notification_connection) were completely purged of inline DDL, routing to unified content_factory.db with WAL mode pragmas.",
       "affected_tests": [
+        "tests/test_content_factory_db.py:TestZeroDDLInHotPaths",
         "tests/test_operations_dashboard.py",
         "tests/test_ui_client.py:test_get_operations_snapshot",
         "tests/test_ui_pages.py:test_all_pages_render_without_exceptions",
@@ -725,20 +747,25 @@
         "tests/test_ui_client.py:test_get_operations_snapshot_worker_idle_healthy_when_no_jobs",
         "tests/test_ui_client.py:test_get_operations_snapshot_with_populated_subsystems",
         "tests/test_ui_client.py:test_get_operations_snapshot_corrupted_db_fallback",
-        "tests/test_ui_client.py:test_get_operations_snapshot_critical_failure_fallback"
+        "tests/test_ui_client.py:test_get_operations_snapshot_critical_failure_fallback",
+        "tests/test_content_factory_db.py"
       ],
       "evidence_sources": [
         "docs/audit/02-dependencies-and-boundaries.md:38",
         "docs/refactor/adrs/001-native-fragments-and-ui-facades.md:14-18 (UI-002)",
+        "docs/refactor/adrs/003-single-wal-sqlite-database.md (ADR-003)",
         "docs/refactor/tasks/phase2b-ui-and-fragments.md:31-35, 51",
         "docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:20, 38-42",
         "docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:83-85, 100",
-        "docs/audit/qa/refactor-phase2b-ui-and-fragments.md:39, 45-48, 62-63, 124-127"
+        "docs/audit/qa/refactor-phase2b-ui-and-fragments.md:39, 45-48, 62-63, 124-127",
+        "docs/audit/handoffs/refactor-phase2c-sqlite-consolidation.md:38-43",
+        "docs/audit/verification/refactor-phase2c-sqlite-consolidation-21d9b27.md:98, 159",
+        "docs/audit/qa/refactor-phase2c-sqlite-consolidation.md:23-24, 60, 86-88"
       ],
-      "reproduction_command": "uv run python -m pytest tests/test_operations_dashboard.py tests/test_ui_client.py -o addopts=\"\" -p no:cov",
+      "reproduction_command": "uv run python -m pytest tests/test_operations_dashboard.py tests/test_ui_client.py tests/test_content_factory_db.py -o addopts=\"\" -p no:cov",
       "recommended_runtime_policy": "DETERMINISTIC_STATE_FIX",
       "qa_coverage_status": "COVERED",
-      "qa_test_directive": "Assert AST scan confirms 0 direct sqlite3, repository, or DDL imports in 6_operations_dashboard.py and test_ui_client.py validates snapshot coordination without lock contention."
+      "qa_test_directive": "Assert AST scan confirms 0 direct sqlite3, repository, or DDL imports in 6_operations_dashboard.py and tests/test_content_factory_db.py validates unified schema initialization and concurrency without inline DDL."
     },
     {
       "id": "ERR-021",
@@ -795,7 +822,7 @@
         "src/content_creation/ui/pages/3_brief_viewer.py"
       ],
       "exception_type": "StreamlitDeprecationWarning",
-      "symptom": "Streamlit runtime emits deprecation warnings for use_container_width=True (deprecated in Streamlit 1.58 in favor of width='stretch') and st.components.v1.html (scheduled for removal). Mitigated on app.py and pages 4, 5, 6; pages 1-3 cosmetic parameter cleanup deferred to Phase 2C.",
+      "symptom": "Streamlit runtime emits deprecation warnings for use_container_width=True (deprecated in Streamlit 1.58 in favor of width='stretch') and st.components.v1.html (scheduled for removal). Mitigated on app.py and pages 4, 5, 6; pages 1-3 cosmetic parameter cleanup deferred to Phase 2D/3 to honor source module touch limits.",
       "affected_tests": [
         "tests/test_ui_pages.py:test_all_pages_render_without_exceptions"
       ],
@@ -803,12 +830,13 @@
         "docs/refactor/tasks/phase2b-ui-and-fragments.md:45-47, 54 (UI-006)",
         "docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:23, 25-26, 89",
         "docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:103, 151",
-        "docs/audit/qa/refactor-phase2b-ui-and-fragments.md:54, 132-135"
+        "docs/audit/qa/refactor-phase2b-ui-and-fragments.md:54, 132-135",
+        "docs/audit/verification/refactor-phase2c-sqlite-consolidation-21d9b27.md:145-149"
       ],
       "reproduction_command": "uv run python -m pytest tests/test_ui_pages.py -o addopts=\"\" -p no:cov",
       "recommended_runtime_policy": "CODE_REFACTOR_FIX",
       "qa_coverage_status": "PARTIAL",
-      "qa_test_directive": "Headless AppTest verifies refactored pages 4, 5, 6 and app.py render without deprecation warnings; complete parameter migration on pages 1-3 during Phase 2C."
+      "qa_test_directive": "Headless AppTest verifies refactored pages 4, 5, 6 and app.py render without deprecation warnings; complete parameter migration on pages 1-3 during Phase 2D/3."
     },
     {
       "id": "ERR-023",
@@ -836,6 +864,63 @@
       "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
       "qa_coverage_status": "UNCOVERED",
       "qa_test_directive": "Document standard Windows pytest invocation flags in developer docs and configure test scripts to use isolated cache roots or -p no:cacheprovider when rapid execution is required."
+    },
+    {
+      "id": "ERR-024",
+      "title": "Unreferenced Dead Code Paths and Deprecated Properties in Workflow Executor, Context, and CLI (DEAD-001, DEAD-002, DEAD-005)",
+      "stage": "Stage 7: Review",
+      "error_class": "CODE_STATIC_TYPING",
+      "severity": "Low",
+      "status": "RESOLVED",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": "ce3f0a0",
+      "root_cause_locations": [
+        "src/content_creation/workflow/workflow_action_executor.py:69-81",
+        "src/content_creation/workflow/workflow_action_executor.py:749-750",
+        "src/content_creation/application/context.py:53-55",
+        "src/content_creation/cli/common.py:9"
+      ],
+      "exception_type": "DeadCodeElimination",
+      "symptom": "Unreferenced factory method fail_blocked (0 AST callers in src/ and tests/), unimplemented mock publish branch returning dummy dictionary, unreferenced ApplicationContext.content_intelligence_dir property, and unused LocalStorage import accumulating dead code debt across the workflow engine and CLI entrypoint. Resolved in commits 5ee9e78 and ce3f0a0 with backward-compatible __getattr__ preserved on context.",
+      "affected_tests": [
+        "tests/test_storage_integration.py:32"
+      ],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:22, 23, 26 (DEAD-001, DEAD-002, DEAD-005)",
+        "docs/audit/handoffs/refactor-phase2c-sqlite-consolidation.md:44-47, 131",
+        "docs/audit/verification/refactor-phase2c-sqlite-consolidation-21d9b27.md:141-144, 161-164",
+        "docs/audit/qa/refactor-phase2c-sqlite-consolidation.md:95-97"
+      ],
+      "reproduction_command": "uv run python -c \"from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor; assert not hasattr(WorkflowActionExecutor, 'fail_blocked')\"",
+      "recommended_runtime_policy": "CODE_REFACTOR_FIX",
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Verify AST check confirms 0 unreferenced methods in workflow_action_executor.py, 0 unused imports in cli/common.py, and tests/test_storage_integration.py continues to resolve content_intelligence_dir through backward-compatible fallback."
+    },
+    {
+      "id": "ERR-025",
+      "title": "Windows Mypy Metastore SQLite Lock Contention on .mypy_cache During Type Checking",
+      "stage": "Infra / Tooling",
+      "error_class": "ENVIRONMENT_PLATFORM",
+      "severity": "Low",
+      "status": "MITIGATED",
+      "first_seen_commit": "c9343c9",
+      "mitigated_in_commit": "ce3f0a0",
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        ".mypy_cache/3.12/"
+      ],
+      "exception_type": "sqlite3.OperationalError",
+      "symptom": "sqlite3.OperationalError: unable to open database file inside mypy.metastore when executing uv run mypy --strict on Windows due to restricted file permissions on root .mypy_cache directory. Mitigated by redirecting cache to isolated temporary directory via --cache-dir '$env:TEMP\\mypy_cache'.",
+      "affected_tests": [],
+      "evidence_sources": [
+        "docs/audit/handoffs/refactor-phase2c-sqlite-consolidation.md:89-94 (Error #3)",
+        "docs/audit/verification/refactor-phase2c-sqlite-consolidation-21d9b27.md:67"
+      ],
+      "reproduction_command": "uv run mypy src/content_creation/platform/storage/database.py --strict",
+      "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
+      "qa_coverage_status": "PARTIAL",
+      "qa_test_directive": "Configure developer scripts and CI workflows to pass --cache-dir into user temporary directories when running mypy under Windows AppContainer environments."
     }
   ],
   "anticipated_risks": [
@@ -851,7 +936,12 @@
       ],
       "risk_description": "High-concurrency generation bursts without rate-limiting delays trigger HTTP 429 quota exhaustion on Gemini API endpoints.",
       "recommended_runtime_policy": "RETRY_BACKOFF_FALLBACK",
-      "qa_test_directive": "Mock 429 response from GeminiProvider and assert failover to OpenRouter without pipeline abort."
+      "qa_test_directive": "Mock 429 response from GeminiProvider and assert failover to OpenRouter without pipeline abort.",
+      "qa_coverage_status": "COVERED",
+      "verified_by": [
+        "tests/test_content_factory_db.py",
+        "tests/test_sqlite_wal_concurrency.py"
+      ]
     },
     {
       "id": "RISK-002",
@@ -866,7 +956,8 @@
       ],
       "risk_description": "LLM outputting JSON wrapped in markdown fences (```json ... ```) or conversational commentary triggers json.JSONDecodeError in generator parsing.",
       "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
-      "qa_test_directive": "Test ContentIntelligenceGenerator and StoryboardGenerator against synthetic responses containing markdown fences, trailing commentary, and unescaped quotes."
+      "qa_test_directive": "Test ContentIntelligenceGenerator and StoryboardGenerator against synthetic responses containing markdown fences, trailing commentary, and unescaped quotes.",
+      "qa_coverage_status": "UNCOVERED"
     },
     {
       "id": "RISK-003",
@@ -880,7 +971,8 @@
       ],
       "risk_description": "Uncapped multi-format asset generation across large topic batches exhausts account token budgets mid-run, aborting downstream stages.",
       "recommended_runtime_policy": "FAIL_FAST_NO_RETRY",
-      "qa_test_directive": "Implement pre-flight token budget validator in AssetGenerationService that calculates estimated batch cost and aborts before LLM dispatch."
+      "qa_test_directive": "Implement pre-flight token budget validator in AssetGenerationService that calculates estimated batch cost and aborts before LLM dispatch.",
+      "qa_coverage_status": "UNCOVERED"
     },
     {
       "id": "RISK-004",
@@ -894,20 +986,40 @@
       ],
       "risk_description": "Process-bound singleton _EVENT_BUS in background worker processes drops event delivery to UI subscriber threads and SSE streaming server.",
       "recommended_runtime_policy": "DETERMINISTIC_STATE_FIX",
-      "qa_test_directive": "Add test verifying background job completion events are persisted to SQLiteEventRepository and picked up by main process SSE subscribers."
+      "qa_test_directive": "Add test verifying background job completion events are persisted to SQLiteEventRepository and picked up by main process SSE subscribers.",
+      "qa_coverage_status": "UNCOVERED"
     },
     {
       "id": "RISK-005",
       "title": "POSIX Signal Handling Incompatibility in Windows Background Worker Daemon",
-      "stage": "Stage 15: Jobs & Locks",
+      "stage": "Stage 15: Jobs",
       "error_class": "ENVIRONMENT_PLATFORM",
       "severity": "Medium",
       "anchored_code_paths": [
         "src/content_creation/jobs/worker_daemon.py:35"
       ],
-      "risk_description": "Signal handlers using SIGTERM or SIGQUIT fail on Windows OS process termination, leaving stale resource locks in data/jobs.db.",
+      "risk_description": "Signal handlers using SIGTERM or SIGQUIT fail on Windows OS process termination, leaving stale resource locks in data/content_factory.db (consolidated database).",
       "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
-      "qa_test_directive": "Test WorkerDaemon graceful shutdown under Windows console termination events and verify LockManager releases all held locks on process exit."
+      "qa_test_directive": "Test WorkerDaemon graceful shutdown under Windows console termination events and verify LockManager releases all held locks on process exit.",
+      "qa_coverage_status": "UNCOVERED"
+    },
+    {
+      "id": "RISK-006",
+      "title": "SQLite WAL File Accumulation and Busy Timeout Under Concurrent Background Workers",
+      "stage": "Stage 15: Jobs",
+      "error_class": "STATE_WORKFLOW_CONCURRENCY",
+      "severity": "Medium",
+      "anchored_code_paths": [
+        "src/content_creation/platform/storage/database.py:37",
+        "src/content_creation/platform/storage/database.py:115"
+      ],
+      "risk_description": "High-volume concurrent background tasks executing write transactions on content_factory.db may trigger sqlite3.OperationalError: database is locked if long-running read transactions block WAL checkpointing beyond the 5000ms busy_timeout threshold on Windows.",
+      "recommended_runtime_policy": "DETERMINISTIC_STATE_FIX",
+      "qa_test_directive": "Execute stress test with concurrent reader and writer threads simulating active pipeline batches against content_factory.db and assert zero lock contention errors under 5000ms busy timeout.",
+      "qa_coverage_status": "COVERED",
+      "verified_by": [
+        "tests/test_sqlite_wal_concurrency.py"
+      ]
     }
   ]
 }

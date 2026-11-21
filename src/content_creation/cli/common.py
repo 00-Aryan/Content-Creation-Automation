@@ -1,12 +1,12 @@
 """Shared CLI helpers, context management, date utilities, and export helpers."""
 
 import logging
+import os
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 
 from content_creation.application.context import ApplicationContext
-from content_creation.storage.local import LocalStorage
 
 logger = logging.getLogger(__name__)
 
@@ -15,10 +15,15 @@ def get_context(base_dir: Optional[Path] = None) -> ApplicationContext:
     """Create ApplicationContext for CLI operations.
 
     Delegates storage instantiation through content_creation.cli to allow
-    test mocking while preserving layer isolation.
+    test mocking while preserving layer isolation. Respects CONTENT_FACTORY_ROOT
+    environment variable for directory isolation during CLI tests.
     """
     if base_dir is None:
-        base_dir = Path.cwd()
+        root_env = os.environ.get("CONTENT_FACTORY_ROOT")
+        if root_env:
+            base_dir = Path(root_env)
+        else:
+            base_dir = Path.cwd()
 
     # Import LocalStorage via content_creation.cli to respect test mocks
     import content_creation.cli
@@ -32,6 +37,7 @@ def get_context(base_dir: Optional[Path] = None) -> ApplicationContext:
     prompt_registry = PromptRegistry(base_dir)
     feeds_config_path = base_dir / "config" / "feeds.yaml"
     scoring_config_path = base_dir / "config" / "scoring.yaml"
+    db_path = base_dir / "data" / "content_factory.db"
 
     return ApplicationContext(
         base_dir=base_dir,
@@ -40,6 +46,7 @@ def get_context(base_dir: Optional[Path] = None) -> ApplicationContext:
         prompt_registry=prompt_registry,
         feeds_config_path=feeds_config_path,
         scoring_config_path=scoring_config_path,
+        db_path=db_path,
     )
 
 

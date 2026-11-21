@@ -407,3 +407,109 @@ class TestReadyCountMatchesApproved:
 
             assert report.ready_count == 1
             assert report.warning_count == 1
+
+
+class TestDryRunUnicodeEncoding:
+    """Verify DryRunValidator export_markdown handles non-ASCII unicode symbols safely."""
+
+    def test_export_markdown_utf8_symbols_roundtrip(self, tmp_path: Path) -> None:
+        """Covers ERR-011: export_markdown writes checkmarks, ballot crosses, and em-dashes in UTF-8."""
+        storage = LocalStorage(tmp_path)
+        config_path = tmp_path / "config" / "publishing.yaml"
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text("weekly_targets: {}", encoding="utf-8")
+
+        report = DryRunReport(
+            week_start="2026-05-18",
+            week_end="2026-05-24",
+            total_scheduled=2,
+            ready_count=1,
+            warning_count=1,
+            blocked_count=0,
+            checks=[
+                AssetCheck(
+                    topic_id="top-1",
+                    topic_title="AI Research — Deep Dive & Analysis",
+                    format="short_video",
+                    asset_path="data/scripts/top-1.json",
+                    review_status="approved",
+                    is_ready=True,
+                    warning=None,
+                ),
+                AssetCheck(
+                    topic_id="top-2",
+                    topic_title="Model Optimization — Pruning & Quantization",
+                    format="carousel",
+                    asset_path="data/carousels/top-2.json",
+                    review_status="draft",
+                    is_ready=False,
+                    warning="carousel for Model Optimization is draft — not approved for publishing",
+                ),
+            ],
+            warnings=["⚠ Warning: Unapproved draft assets scheduled for publication."],
+            recommended_actions=["Review and approve draft assets before publication."],
+            generated_at="2026-05-16T12:00:00Z",
+        )
+
+        output_path = tmp_path / "data" / "dryruns" / "2026-05-18.md"
+        validator = DryRunValidator(storage, config_path)
+        validator.export_markdown(report, output_path)
+
+        assert output_path.exists()
+
+        # 1. Verify byte-level UTF-8 encoding
+        raw_bytes = output_path.read_bytes()
+        # ✓ is \xe2\x9c\x93
+        assert b"\xe2\x9c\x93 Yes" in raw_bytes
+        # ✗ is \xe2\x9c\x97
+        assert b"\xe2\x9c\x97 No" in raw_bytes
+        # — (em-dash) is \xe2\x80\x94
+        assert b"\xe2\x80\x94" in raw_bytes
+        # ⚠ is \xe2\x9a\xa0
+        assert b"\xe2\x9a\xa0" in raw_bytes
+
+        # 2. Verify text-level roundtrip decode
+        content = output_path.read_text(encoding="utf-8")
+        assert "✓ Yes" in content
+        assert "✗ No" in content
+        assert "AI Research — Deep Dive & Analysis — short_video" in content
+        assert "⚠ Warning: Unapproved draft assets scheduled for publication." in content
+
+    def test_export_markdown_with_international_characters(self, tmp_path: Path) -> None:
+        """Covers ERR-011: export_markdown handles multilingual text without charmap codec errors."""
+        storage = LocalStorage(tmp_path)
+        config_path = tmp_path / "config" / "publishing.yaml"
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text("weekly_targets: {}", encoding="utf-8")
+
+        report = DryRunReport(
+            week_start="2026-05-18",
+            week_end="2026-05-24",
+            total_scheduled=1,
+            ready_count=1,
+            warning_count=0,
+            blocked_count=0,
+            checks=[
+                AssetCheck(
+                    topic_id="top-intl",
+                    topic_title="Machine Learning — Modèle & Résumé (München / 東京)",
+                    format="newsletter",
+                    asset_path="data/newsletters/top-intl.json",
+                    review_status="approved",
+                    is_ready=True,
+                    warning=None,
+                ),
+            ],
+            warnings=[],
+            recommended_actions=["Prêt à publier."],
+            generated_at="2026-05-16T12:00:00Z",
+        )
+
+        output_path = tmp_path / "data" / "dryruns" / "intl-report.md"
+        validator = DryRunValidator(storage, config_path)
+        validator.export_markdown(report, output_path)
+
+        content = output_path.read_text(encoding="utf-8")
+        assert "Modèle & Résumé" in content
+        assert "München / 東京" in content
+        assert "Prêt à publier." in content

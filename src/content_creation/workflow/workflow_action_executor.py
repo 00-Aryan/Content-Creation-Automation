@@ -66,20 +66,6 @@ class ActionExecutionResult:
             "emitted_events": self.emitted_events,
         }
 
-    @classmethod
-    def fail_blocked(cls, action_id: str, blocking_code: str, message: str) -> "ActionExecutionResult":
-        return cls(
-            action_id=action_id,
-            success=False,
-            execution_status=ActionExecutionStatus.BLOCKED,
-            affected_artifacts={},
-            warnings=[],
-            blocking_reasons=[f"{blocking_code}: {message}"],
-            execution_time=0.0,
-            emitted_events=[],
-            raw_result=None,
-        )
-
 
 class WorkflowActionExecutor:
     """Canonical, stateless workflow action execution manager."""
@@ -745,9 +731,6 @@ class WorkflowActionExecutor:
             analytics.last_updated = datetime.now(timezone.utc).isoformat()
             ctx.storage.save_analytics(analytics)
             return {"post_id": post_id, "updated": "true"}, analytics
-
-        elif action_id == "publish":
-            return {"published_status": "mock_published"}, None
 
         elif action_id == "run_pipeline":
             from content_creation.application.pipeline_run_service import PipelineRunService
