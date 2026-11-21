@@ -70,3 +70,72 @@ def test_invalid_date_validation():
             published_at="not-a-date",
             raw_text="Some content"
         )
+
+
+def test_topic_metadata_schema_tightening():
+    """Covers SCHEMA-001 & SCHEMA-002: TopicItem and ScoredTopicItem use typed TopicMetadata."""
+    from content_creation.models.topic import TopicMetadata
+
+    item = TopicItem(
+        id="t1",
+        title="Title",
+        url="https://example.com/1",
+        source="arxiv",
+        published_at="2026-04-30T12:00:00Z",
+        raw_text="Machine learning research",
+        metadata={"source_type": "rss", "feed_id": "openai_blog", "custom_extra": 42},
+    )
+    assert isinstance(item.metadata, TopicMetadata)
+    assert item.metadata.source_type == "rss"
+    assert item.metadata.feed_id == "openai_blog"
+    assert item.metadata["custom_extra"] == 42
+    assert item.metadata.get("feed_id") == "openai_blog"
+    assert item.metadata.get("non_existent", "fallback") == "fallback"
+
+
+def test_weekly_calendar_publishing_config_snapshot():
+    """Covers SCHEMA-003: WeeklyCalendar uses typed PublishingConfigSnapshot."""
+    from content_creation.models.calendar import PublishingConfigSnapshot, WeeklyCalendar
+
+    cal = WeeklyCalendar(
+        week_start="2026-05-18",
+        week_end="2026-05-24",
+        posts=[],
+        total_posts=0,
+        format_counts={},
+        topics_used=[],
+        generated_at="2026-05-16T12:00:00Z",
+        config_snapshot={"weekly_targets": {"short_video": 3}, "custom_rule": True},
+    )
+    assert isinstance(cal.config_snapshot, PublishingConfigSnapshot)
+    assert cal.config_snapshot.weekly_targets == {"short_video": 3}
+    assert cal.config_snapshot["custom_rule"] is True
+    assert cal.config_snapshot.get("weekly_targets") == {"short_video": 3}
+
+
+def test_content_intelligence_quality_status_schema():
+    """Covers SCHEMA-004: ContentIntelligence.quality_status validates against QualityStatus enum."""
+    from pydantic import ValidationError
+    from content_creation.domains.content_intelligence.model import (
+        ContentIntelligence, ContrastPair, EmotionalRegister, Hook, TopicType
+    )
+    from content_creation.domains.content_intelligence.quality import QualityStatus
+
+    base_kwargs = dict(
+        topic_id="t1",
+        generated_at="2026-05-16T12:00:00Z",
+        topic_type=TopicType.PAPER,
+        timeliness_hook="",
+        primary_hook=Hook(hook_text="Hook 1", hook_type="question", source_field="f1"),
+        secondary_hook=Hook(hook_text="Hook 2", hook_type="bold_claim", source_field="f2"),
+        story_angle="Angle",
+        curiosity_gap="Gap",
+        contrast_pair=ContrastPair(before="B", after="A"),
+        emotional_register=EmotionalRegister.CLARITY,
+    )
+
+    ci_valid = ContentIntelligence(**base_kwargs, quality_status="ready")
+    assert ci_valid.quality_status == QualityStatus.READY
+
+    with pytest.raises(ValidationError):
+        ContentIntelligence(**base_kwargs, quality_status="invalid_random_quality")

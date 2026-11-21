@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from content_creation.shared.types import TopicId
 
@@ -31,6 +31,52 @@ class TopicCategory(str, Enum):
     UNKNOWN = "unknown"
 
 
+class TopicMetadata(BaseModel):
+    """Structured topic metadata with dynamic field support (SCHEMA-001, SCHEMA-002)."""
+    model_config = ConfigDict(extra="allow")
+
+    source_type: Optional[str] = None
+    feed_id: Optional[str] = None
+    published_date: Optional[str] = None
+    recommended_formats: Optional[List[str]] = None
+    student_usefulness_score: Optional[float] = None
+    novelty_score: Optional[float] = None
+    credibility_score: Optional[float] = None
+    explainability_score: Optional[float] = None
+    hook_potential_score: Optional[float] = None
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if hasattr(self, key):
+            val = getattr(self, key)
+            if val is not None:
+                return val
+        if self.__pydantic_extra__ and key in self.__pydantic_extra__:
+            return self.__pydantic_extra__[key]
+        return default
+
+    def __getitem__(self, key: str) -> Any:
+        val = self.get(key)
+        if val is None and (not self.__pydantic_extra__ or key not in self.__pydantic_extra__):
+            if not hasattr(self, key) or getattr(self, key) is None:
+                raise KeyError(key)
+        return val
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        if hasattr(self, key):
+            setattr(self, key, value)
+        else:
+            if self.__pydantic_extra__ is None:
+                self.__pydantic_extra__ = {}
+            self.__pydantic_extra__[key] = value
+
+    def __contains__(self, key: object) -> bool:
+        if not isinstance(key, str):
+            return False
+        if hasattr(self, key) and getattr(self, key) is not None:
+            return True
+        return bool(self.__pydantic_extra__ and key in self.__pydantic_extra__)
+
+
 class TopicItem(BaseModel):
     """Canonical TopicItem schema for Week 1."""
     id: TopicId
@@ -44,7 +90,7 @@ class TopicItem(BaseModel):
     category: TopicCategory = TopicCategory.UNKNOWN
     topic_tags: List[str] = Field(default_factory=list)
     status: TopicStatus = TopicStatus.RAW
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: TopicMetadata = Field(default_factory=TopicMetadata)
 
     @classmethod
     def generate_id(cls, url: str) -> str:

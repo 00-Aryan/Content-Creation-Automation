@@ -1,7 +1,10 @@
+from typing import List, Literal, Optional, Union
 from pydantic import BaseModel
-from typing import List, Optional
 
+from content_creation.shared.enums import ReviewStatus
 from content_creation.shared.types import TopicId
+
+DryRunReviewStatus = Union[ReviewStatus, Literal["missing", "error", "unknown"]]
 
 
 class AssetCheck(BaseModel):
@@ -9,7 +12,7 @@ class AssetCheck(BaseModel):
     topic_title: str
     format: str
     asset_path: str
-    review_status: str
+    review_status: DryRunReviewStatus
     is_ready: bool  # True only if status == "approved"
     warning: Optional[str] = None  # None if ready, reason if not
 

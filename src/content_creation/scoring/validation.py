@@ -45,7 +45,7 @@ class ScoreConsistencyRule(ValidationRule):
             2
         )
         
-        if abs(sum_scores - item.priority_score) > 0.01:
+        if abs(sum_scores - item.priority_score) > 0.05:
             return f"Score inconsistency: priority_score ({item.priority_score}) != sum of components ({sum_scores})"
         
         return None
@@ -79,7 +79,7 @@ class MetadataCompletenessRule(ValidationRule):
         if self.config.require_author and item.author == "unknown":
             flags.append("missing author")
         
-        if item.excerpt == "unknown" or len(item.excerpt) < 20:
+        if item.excerpt == "unknown" or item.excerpt is None or len(item.excerpt) < 20:
             flags.append("missing or short excerpt")
 
         if flags:

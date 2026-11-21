@@ -1,34 +1,34 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "metadata": {
-    "last_updated": "2026-11-21T00:33:00+05:30",
-    "active_branch": "fix/phase1a-core-defects",
-    "audited_commit": "008755fdc9c52277200d8bef763848bcf30a7580",
-    "audited_commit_short": "008755f",
+    "last_updated": "2026-11-21T13:10:00+05:30",
+    "active_branch": "fix/phase1b-data-and-schemas",
+    "audited_commit": "6a852f8e2d6a3cb52e3258cdd971d588a62a3947",
+    "audited_commit_short": "6a852f8",
     "chronicler": "error-taxonomy-chronicler",
     "pytest_baseline": {
-      "passed": 1118,
+      "passed": 1264,
       "failed": 19,
       "skipped": 0,
       "xfailed": 0,
-      "duration_seconds": 19.24
+      "duration_seconds": 20.34
     }
   },
   "summary_counts": {
-    "total_observed_errors": 17,
-    "open_errors": 14,
-    "mitigated_errors": 1,
-    "resolved_errors": 2,
+    "total_observed_errors": 19,
+    "open_errors": 9,
+    "mitigated_errors": 0,
+    "resolved_errors": 10,
     "total_anticipated_risks": 5,
-    "qa_covered_errors": 3,
-    "qa_coverage_percentage": 17.65,
+    "qa_covered_errors": 12,
+    "qa_coverage_percentage": 63.16,
     "by_error_class": {
       "TRANSPORT_TRANSIENT": 0,
       "SCHEMA_VALIDATION": 5,
-      "DATA_ENCODING_IO": 2,
+      "DATA_ENCODING_IO": 3,
       "QUALITY_GROUNDING": 3,
       "STATE_WORKFLOW_CONCURRENCY": 1,
-      "ENVIRONMENT_PLATFORM": 3,
+      "ENVIRONMENT_PLATFORM": 4,
       "CODE_STATIC_TYPING": 3,
       "BUDGET_QUOTA_CONFIG": 0
     }
@@ -154,7 +154,7 @@
         "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_client_disconnect",
         "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_health_with_clients",
         "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_sse_no_connection_manager",
-        "tests/test_notification_streaming.py:TestSSEIntegration::test_full_lifecycle",
+        "tests/test_SSEIntegration::test_full_lifecycle",
         "tests/test_notification_streaming.py:TestSSEIntegration::test_multiple_notifications_stream",
         "tests/test_notification_streaming.py:TestSSEIntegration::test_read_event_flow"
       ],
@@ -173,10 +173,10 @@
       "stage": "Stage 3: Briefs",
       "error_class": "QUALITY_GROUNDING",
       "severity": "Medium",
-      "status": "MITIGATED",
+      "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": "aabeeeb",
-      "resolved_in_commit": null,
+      "resolved_in_commit": "775cea2",
       "root_cause_locations": [
         "src/content_creation/generation/brief.py:71",
         "src/content_creation/manifest.py:189-195"
@@ -184,18 +184,26 @@
       "exception_type": "ValueError",
       "symptom": "Brief fallback sets recommended_formats=['needs_review'], causing downstream manifest builder to warn on unknown format and fallback to short_video",
       "affected_tests": [
+        "tests/test_manifest.py:test_upstream_brief_generator_fallback_does_not_leak_review_status",
         "tests/test_manifest.py:test_recommended_formats_filters_review_status_leak",
         "tests/test_manifest.py:test_recommended_formats_with_only_review_status_defaults_cleanly",
-        "tests/test_manifest.py:test_recommended_formats_genuine_unknown_format_logs_warning"
+        "tests/test_manifest.py:test_recommended_formats_genuine_unknown_format_logs_warning",
+        "tests/test_phase1b_qa.py:test_fallback_brief_generates_valid_short_video_without_leak",
+        "tests/test_phase1b_qa.py:test_fallback_brief_triggered_by_malformed_json_response",
+        "tests/test_phase1b_qa.py:test_manifest_builder_filters_all_review_status_leak_variants",
+        "tests/test_phase1b_qa.py:test_manifest_builder_preserves_valid_formats_in_mixed_list"
       ],
       "evidence_sources": [
         "docs/audit/handoffs/fix-phase1a-core-defects.md:26-30, 97-100",
-        "docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:93-97, 127-130"
+        "docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:93-97, 127-130",
+        "docs/audit/handoffs/fix-phase1b-data-and-schemas.md:18-19, 81-84",
+        "docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:78-81",
+        "docs/audit/qa/fix-phase1b-data-and-schemas.md:16-17"
       ],
-      "reproduction_command": "uv run python -m pytest tests/test_manifest.py:test_recommended_formats_filters_review_status_leak --no-cov",
+      "reproduction_command": "uv run python -m pytest tests/test_manifest.py -k test_upstream_brief_generator_fallback_does_not_leak_review_status --no-cov",
       "recommended_runtime_policy": "ENRICHMENT_OR_CRITIC_LOOP",
-      "qa_coverage_status": "PARTIAL",
-      "qa_test_directive": "Add test_fallback_brief_does_not_contain_review_status_values asserting recommended_formats only contains valid AssetType format strings or empty list."
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Verify test_upstream_brief_generator_fallback_does_not_leak_review_status asserts fallback brief recommended_formats produces valid format ('short_video') without 'needs_review'."
     },
     {
       "id": "ERR-006",
@@ -230,25 +238,32 @@
       "stage": "Stage 2: Scoring",
       "error_class": "QUALITY_GROUNDING",
       "severity": "Low",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": null,
+      "resolved_in_commit": "b2ebad1",
       "root_cause_locations": [
         "src/content_creation/scoring/base.py:108-115",
         "src/content_creation/scoring/validation.py:48-50"
       ],
       "exception_type": "ValidationWarning",
-      "symptom": "Score inconsistency: priority_score (65.75) != sum of components (65.76) flagged across multiple scored topics",
-      "affected_tests": [],
+      "symptom": "Score inconsistency: priority_score (65.75) != sum of components (65.76) flagged across multiple scored topics due to floating-point representation drift",
+      "affected_tests": [
+        "tests/test_scoring.py:test_score_consistency_rule_tolerates_float_rounding_drift",
+        "tests/test_phase1b_qa.py:test_score_consistency_rule_drift_bva",
+        "tests/test_phase1b_qa.py:test_score_consistency_rule_disabled_when_config_false"
+      ],
       "evidence_sources": [
         "Live pipeline smoke test: score-topics validation log",
-        "src/content_creation/scoring/validation.py:49"
+        "src/content_creation/scoring/validation.py:49",
+        "docs/audit/handoffs/fix-phase1b-data-and-schemas.md:24, 29",
+        "docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:82",
+        "docs/audit/qa/fix-phase1b-data-and-schemas.md:23"
       ],
-      "reproduction_command": "uv run python -c \"from content_creation.scoring.engine import ScoringEngine; from content_creation.scoring.config import ScoringConfig; from content_creation.models.topic import TopicItem; t = TopicItem(id='test', title='Test topic', url='https://example.com', source='arxiv', category='paper', raw_text='A '*100); e = ScoringEngine(ScoringConfig()); scored = e.score_item(t); print('priority:', scored.priority_score, 'sum:', sum([scored.student_usefulness_score, scored.novelty_score, scored.credibility_score, scored.explainability_score, scored.hook_potential_score]))\"",
+      "reproduction_command": "uv run python -m pytest tests/test_scoring.py:test_score_consistency_rule_tolerates_float_rounding_drift --no-cov",
       "recommended_runtime_policy": "ENRICHMENT_OR_CRITIC_LOOP",
-      "qa_coverage_status": "UNCOVERED",
-      "qa_test_directive": "Add test_scoring_float_consistency asserting priority_score strictly equals the sum of rounded component scores across 100 randomized topic payloads."
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Add test_score_consistency_rule_tolerates_float_rounding_drift verifying 0.05 tolerance threshold ignores harmless floating-point delta while flagging genuine inconsistencies > 0.05."
     },
     {
       "id": "ERR-008",
@@ -338,24 +353,33 @@
       "stage": "Stage 1: Ingestion",
       "error_class": "DATA_ENCODING_IO",
       "severity": "Low",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": null,
+      "resolved_in_commit": "16c90f3",
       "root_cause_locations": [
-        "src/content_creation/storage/local.py:98-100"
+        "src/content_creation/storage/local.py:77-90"
       ],
       "exception_type": "UnicodeDecodeError",
-      "symptom": "'utf-8' codec can't decode byte 0x97 in position 360: invalid start byte logged when cli status inspects 1519 staged JSON files",
-      "affected_tests": [],
+      "symptom": "'utf-8' codec can't decode byte 0x97 in position 360: invalid start byte logged when inspecting staged JSON files",
+      "affected_tests": [
+        "tests/test_storage.py:test_local_storage_cp1252_smart_quotes_decoding_fallback",
+        "tests/test_local_storage.py",
+        "tests/test_phase1b_qa.py:test_read_json_clean_utf8_does_not_log_fallback_warning",
+        "tests/test_phase1b_qa.py:test_read_json_cp1252_smart_punctuation_suite",
+        "tests/test_phase1b_qa.py:test_storage_write_methods_enforce_utf8"
+      ],
       "evidence_sources": [
         "docs/audit/handoffs/fix-phase1a-core-defects.md:101-103",
-        "docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:131-135"
+        "docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:131-135",
+        "docs/audit/handoffs/fix-phase1b-data-and-schemas.md:25, 30",
+        "docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:81",
+        "docs/audit/qa/fix-phase1b-data-and-schemas.md:24"
       ],
-      "reproduction_command": "uv run python -m content_creation.cli status",
+      "reproduction_command": "uv run python -m pytest tests/test_storage.py:test_local_storage_cp1252_smart_quotes_decoding_fallback --no-cov",
       "recommended_runtime_policy": "DEFENSIVE_IO_FIX",
-      "qa_coverage_status": "UNCOVERED",
-      "qa_test_directive": "Add test_read_staged_json_handles_cp1252_encoding asserting LocalStorage._read_json safely decodes non-UTF8 smart quotes using errors='replace'."
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Add test_local_storage_cp1252_smart_quotes_decoding_fallback asserting LocalStorage._read_json safely decodes non-UTF8 smart quotes using CP1252 fallback with a warning log."
     },
     {
       "id": "ERR-012",
@@ -388,23 +412,32 @@
       "stage": "Stage 1: Ingestion",
       "error_class": "SCHEMA_VALIDATION",
       "severity": "Medium",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": null,
+      "resolved_in_commit": "3846d2d",
       "root_cause_locations": [
-        "src/content_creation/models/topic.py:47"
+        "src/content_creation/models/topic.py:34-60"
       ],
       "exception_type": "PydanticSchemaViolation",
-      "symptom": "TopicItem.metadata is declared as Dict[str, Any] = Field(default_factory=dict), allowing arbitrary unvalidated dictionary structures to bypass Pydantic type validation during ingestion normalization",
-      "affected_tests": [],
-      "evidence_sources": [
-        "docs/audit/03-drift-and-defects-register.md:47"
+      "symptom": "TopicItem.metadata was declared as Dict[str, Any] = Field(default_factory=dict), allowing arbitrary unvalidated dictionary structures to bypass Pydantic type validation during ingestion normalization",
+      "affected_tests": [
+        "tests/test_models.py:test_topic_metadata_schema_tightening",
+        "tests/test_phase1b_qa.py:test_topic_metadata_typed_and_dynamic_attributes",
+        "tests/test_phase1b_qa.py:test_topic_metadata_mutation_and_keyerror",
+        "tests/test_phase1b_qa.py:test_topic_item_roundtrip_preserves_extra_metadata_fields",
+        "tests/test_phase1b_qa.py:test_topic_storage_roundtrip_with_extra_metadata"
       ],
-      "reproduction_command": "uv run python -c \"from content_creation.models.topic import TopicItem; t = TopicItem(id='test', title='T', url='https://example.com', source='rss', published_at='2026-11-20T00:00:00Z', raw_text='text', metadata={'untyped_key': object()})\"",
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:47",
+        "docs/audit/handoffs/fix-phase1b-data-and-schemas.md:20, 33",
+        "docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:69",
+        "docs/audit/qa/fix-phase1b-data-and-schemas.md:18"
+      ],
+      "reproduction_command": "uv run python -m pytest tests/test_models.py:test_topic_metadata_schema_tightening --no-cov",
       "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
-      "qa_coverage_status": "UNCOVERED",
-      "qa_test_directive": "Add schema validation test asserting TopicItem rejects non-serializable or unconstrained nested structures in metadata, or define a concrete IngestionMetadata schema."
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Add test_topic_metadata_schema_tightening verifying TopicItem uses typed TopicMetadata with extra='allow' and dict access compatibility."
     },
     {
       "id": "ERR-014",
@@ -412,23 +445,30 @@
       "stage": "Stage 2: Scoring",
       "error_class": "SCHEMA_VALIDATION",
       "severity": "Medium",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": null,
+      "resolved_in_commit": "3846d2d",
       "root_cause_locations": [
         "src/content_creation/models/topic.py:75"
       ],
       "exception_type": "PydanticSchemaViolation",
-      "symptom": "ScoredTopicItem inherits metadata: Dict[str, Any] from TopicItem, permitting arbitrary untyped payloads to propagate across the scoring stage and persist into data/scored/*.json",
-      "affected_tests": [],
-      "evidence_sources": [
-        "docs/audit/03-drift-and-defects-register.md:48"
+      "symptom": "ScoredTopicItem inherited metadata: Dict[str, Any] from TopicItem, permitting arbitrary untyped payloads to propagate across the scoring stage and persist into data/scored/*.json",
+      "affected_tests": [
+        "tests/test_models.py:test_topic_metadata_schema_tightening",
+        "tests/test_phase1b_qa.py:test_scored_topic_item_inherits_topic_metadata_cleanly",
+        "tests/test_phase1b_qa.py:test_scored_topic_item_priority_score_bva"
       ],
-      "reproduction_command": "uv run python -c \"from content_creation.models.topic import ScoredTopicItem; s = ScoredTopicItem(id='test', title='T', url='https://example.com', source='rss', published_at='2026-11-20T00:00:00Z', raw_text='text', priority_score=85.0, metadata={'arbitrary_untyped': 12345})\"",
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:48",
+        "docs/audit/handoffs/fix-phase1b-data-and-schemas.md:20, 33",
+        "docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:69",
+        "docs/audit/qa/fix-phase1b-data-and-schemas.md:18-19"
+      ],
+      "reproduction_command": "uv run python -m pytest tests/test_models.py:test_topic_metadata_schema_tightening --no-cov",
       "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
-      "qa_coverage_status": "UNCOVERED",
-      "qa_test_directive": "Add test_scored_topic_item_rejects_untyped_metadata verifying that ScoredTopicItem enforces typed ScoringMetadata or rejects unstructured dictionary injections."
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Add test_topic_metadata_schema_tightening verifying ScoredTopicItem inherits typed TopicMetadata and validates schema persistence cleanly."
     },
     {
       "id": "ERR-015",
@@ -436,23 +476,31 @@
       "stage": "Stage 9: Planning",
       "error_class": "SCHEMA_VALIDATION",
       "severity": "Low",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": null,
+      "resolved_in_commit": "3846d2d",
       "root_cause_locations": [
-        "src/content_creation/models/calendar.py:31"
+        "src/content_creation/models/calendar.py:23-68"
       ],
       "exception_type": "PydanticSchemaViolation",
-      "symptom": "config_snapshot: Dict in WeeklyCalendar uses raw unparameterized Dict with no key or value type constraints, allowing corrupted or arbitrary configuration objects to persist in calendar records",
-      "affected_tests": [],
-      "evidence_sources": [
-        "docs/audit/03-drift-and-defects-register.md:49"
+      "symptom": "config_snapshot: Dict in WeeklyCalendar used raw unparameterized Dict with no key or value type constraints, allowing arbitrary unconstrained configuration objects to persist in calendar records",
+      "affected_tests": [
+        "tests/test_models.py:test_weekly_calendar_publishing_config_snapshot",
+        "tests/test_phase1b_qa.py:test_publishing_config_snapshot_typed_access_and_dict_compatibility",
+        "tests/test_phase1b_qa.py:test_publishing_config_snapshot_mutation_and_keyerror",
+        "tests/test_phase1b_qa.py:test_weekly_calendar_storage_roundtrip_with_config_snapshot_mutations"
       ],
-      "reproduction_command": "uv run python -c \"from content_creation.models.calendar import WeeklyCalendar; c = WeeklyCalendar(week_start='2026-11-23', week_end='2026-11-29', posts=[], total_posts=0, format_counts={}, topics_used=[], generated_at='2026-11-20T00:00:00Z', config_snapshot={'malformed': [1, 2, 3]}); print(type(c.config_snapshot))\"",
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:49",
+        "docs/audit/handoffs/fix-phase1b-data-and-schemas.md:21, 34",
+        "docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:70",
+        "docs/audit/qa/fix-phase1b-data-and-schemas.md:20"
+      ],
+      "reproduction_command": "uv run python -m pytest tests/test_models.py:test_weekly_calendar_publishing_config_snapshot --no-cov",
       "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
-      "qa_coverage_status": "UNCOVERED",
-      "qa_test_directive": "Define a concrete PublishingConfigSnapshot Pydantic model for WeeklyCalendar.config_snapshot and assert validation failure on arbitrary dictionary structures."
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Add test_weekly_calendar_publishing_config_snapshot asserting WeeklyCalendar uses typed PublishingConfigSnapshot preserving backward-compatible dict indexing and JSON serialization."
     },
     {
       "id": "ERR-016",
@@ -460,23 +508,31 @@
       "stage": "Stage 4: Intelligence",
       "error_class": "SCHEMA_VALIDATION",
       "severity": "Medium",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": null,
+      "resolved_in_commit": "3846d2d",
       "root_cause_locations": [
-        "src/content_creation/domains/content_intelligence/model.py:52"
+        "src/content_creation/domains/content_intelligence/model.py:53"
       ],
       "exception_type": "PydanticSchemaViolation",
-      "symptom": "quality_status: Optional[str] = None uses unconstrained str rather than Enum or Literal['ready', 'degraded', 'blocked'], allowing invalid quality states to bypass Pydantic model validation",
-      "affected_tests": [],
-      "evidence_sources": [
-        "docs/audit/03-drift-and-defects-register.md:50"
+      "symptom": "quality_status: Optional[str] = None used unconstrained str rather than QualityStatus enum, allowing invalid quality states to bypass Pydantic model validation",
+      "affected_tests": [
+        "tests/test_models.py:test_content_intelligence_quality_status_schema",
+        "tests/test_phase1b_qa.py:test_content_intelligence_quality_status_valid_variants",
+        "tests/test_phase1b_qa.py:test_content_intelligence_quality_status_invalid_variants_reject",
+        "tests/test_phase1b_qa.py:test_content_intelligence_storage_roundtrip"
       ],
-      "reproduction_command": "uv run python -c \"from content_creation.domains.content_intelligence.model import ContentIntelligence, TopicType, Hook, HookType; ci = ContentIntelligence(topic_id='t1', generated_at='now', topic_type=TopicType.NEW_INSIGHT, timeliness_hook='', primary_hook=Hook(hook_text='h', hook_type=HookType.STATISTIC, source_field='s'), secondary_hook=Hook(hook_text='h', hook_type=HookType.STATISTIC, source_field='s'), quality_status='INVALID_STATUS'); print(ci.quality_status)\"",
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:50",
+        "docs/audit/handoffs/fix-phase1b-data-and-schemas.md:23, 35",
+        "docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:72",
+        "docs/audit/qa/fix-phase1b-data-and-schemas.md:21"
+      ],
+      "reproduction_command": "uv run python -m pytest tests/test_models.py:test_content_intelligence_quality_status_schema --no-cov",
       "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
-      "qa_coverage_status": "UNCOVERED",
-      "qa_test_directive": "Add test_content_intelligence_quality_status_enum enforcing Literal['ready', 'degraded', 'blocked'] or a QualityStatus enum, verifying ValidationError on illegal strings."
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Add test_content_intelligence_quality_status_schema enforcing QualityStatus enum validation and asserting ValidationError on illegal strings."
     },
     {
       "id": "ERR-017",
@@ -484,23 +540,90 @@
       "stage": "Stage 10: Dry Run",
       "error_class": "SCHEMA_VALIDATION",
       "severity": "Medium",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": "3846d2d",
+      "root_cause_locations": [
+        "src/content_creation/models/dryrun.py:7-17"
+      ],
+      "exception_type": "PydanticSchemaViolation",
+      "symptom": "AssetCheck.review_status was typed as unconstrained str instead of ReviewStatus enum or DryRunReviewStatus union, allowing invalid review states to pass dry run verification checks without schema error",
+      "affected_tests": [
+        "tests/test_dryrun.py:test_asset_check_review_status_schema_constraint",
+        "tests/test_phase1b_qa.py:test_asset_check_review_status_valid_variants",
+        "tests/test_phase1b_qa.py:test_asset_check_review_status_invalid_variants_reject",
+        "tests/test_phase1b_qa.py:test_dryrun_report_storage_roundtrip"
+      ],
+      "evidence_sources": [
+        "docs/audit/03-drift-and-defects-register.md:51",
+        "docs/audit/handoffs/fix-phase1b-data-and-schemas.md:22, 36",
+        "docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:71",
+        "docs/audit/qa/fix-phase1b-data-and-schemas.md:22"
+      ],
+      "reproduction_command": "uv run python -m pytest tests/test_dryrun.py:test_asset_check_review_status_schema_constraint --no-cov",
+      "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Add test_asset_check_review_status_schema_constraint asserting AssetCheck rejects arbitrary string values outside ReviewStatus enum or allowed literal statuses."
+    },
+    {
+      "id": "ERR-018",
+      "title": "0-Byte Staged JSON Truncation Triggers JSONDecodeError in Ingestion Staged Store",
+      "stage": "Stage 1: Ingestion",
+      "error_class": "DATA_ENCODING_IO",
+      "severity": "Medium",
+      "status": "OPEN",
+      "first_seen_commit": "f6c3f43",
       "mitigated_in_commit": null,
       "resolved_in_commit": null,
       "root_cause_locations": [
-        "src/content_creation/models/dryrun.py:12"
+        "src/content_creation/storage/local.py:77-90",
+        "data/staged/05738f6c55b7147880500b666d1a96e73b80de79c9a4453c521b0ffc55549d70.json"
       ],
-      "exception_type": "PydanticSchemaViolation",
-      "symptom": "AssetCheck.review_status is typed as unconstrained str instead of ReviewStatus enum, allowing invalid review states to pass dry run verification checks without schema error",
+      "exception_type": "json.decoder.JSONDecodeError",
+      "symptom": "Failed to load staged item data/staged/05738f6c55b7147880500b666d1a96e73b80de79c9a4453c521b0ffc55549d70.json: Expecting value: line 1 column 1 (char 0). Creation origin of 0-byte truncation in data/staged/ remains unconfirmed in storage backend; unhandled 0-byte read occurs in LocalStorage._read_json.",
+      "affected_tests": [
+        "tests/test_phase1b_qa.py:test_list_staged_handles_zero_byte_file_gracefully",
+        "tests/test_phase1b_qa.py:test_get_staged_handles_zero_byte_file",
+        "tests/test_phase1b_qa.py:test_list_and_get_scored_handles_zero_byte_file",
+        "tests/test_phase1b_qa.py:test_list_and_get_analytics_handles_zero_byte_file",
+        "tests/test_phase1b_qa.py:test_list_staged_handles_corrupt_non_dict_json",
+        "tests/test_phase1b_qa.py:test_save_staged_deduplication_atomic_mode_x"
+      ],
+      "evidence_sources": [
+        "docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:114-117",
+        "Live LocalStorage.list_staged() scan",
+        "docs/audit/qa/fix-phase1b-data-and-schemas.md:25-26"
+      ],
+      "reproduction_command": "uv run python -c \"from content_creation.storage.local import LocalStorage; from pathlib import Path; s = LocalStorage(Path('.')); print(s.get_staged('05738f6c55b7147880500b666d1a96e73b80de79c9a4453c521b0ffc55549d70'))\"",
+      "recommended_runtime_policy": "DEFENSIVE_IO_FIX",
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Add test_read_json_handles_zero_byte_staged_file asserting LocalStorage._read_json or get_staged/list_staged detects 0-byte file and handles gracefully without raising unhandled JSONDecodeError."
+    },
+    {
+      "id": "ERR-019",
+      "title": "Windows File Lock Contention on .coverage Database During Pytest Invocations",
+      "stage": "Infra / Tooling",
+      "error_class": "ENVIRONMENT_PLATFORM",
+      "severity": "Low",
+      "status": "OPEN",
+      "first_seen_commit": "f6c3f43",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "pyproject.toml:68"
+      ],
+      "exception_type": "PermissionError",
+      "symptom": "PermissionError: [WinError 5] Access is denied: '[USER_HOME]/.../.coverage' when pytest-cov attempts to delete/recreate .coverage while a concurrent process or prior handle is locked on Windows hosts",
       "affected_tests": [],
       "evidence_sources": [
-        "docs/audit/03-drift-and-defects-register.md:51"
+        "docs/audit/handoffs/fix-phase1b-data-and-schemas.md:39-43",
+        "docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:128"
       ],
-      "reproduction_command": "uv run python -c \"from content_creation.models.dryrun import AssetCheck; a = AssetCheck(topic_id='t', topic_title='T', format='newsletter', asset_path='p', review_status='unrecognized_review_state', is_ready=False); print(a.review_status)\"",
-      "recommended_runtime_policy": "GUIDED_SCHEMA_REPAIR",
+      "reproduction_command": "uv run python -m pytest --tb=no -q",
+      "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
       "qa_coverage_status": "UNCOVERED",
-      "qa_test_directive": "Add test_asset_check_review_status_enum asserting AssetCheck rejects arbitrary string values not defined in ReviewStatus enum."
+      "qa_test_directive": "Configure pytest invocations to pass -o addopts='' -p no:cacheprovider or specify distinct COVERAGE_FILE environment variable under Windows to prevent lock contention on workspace root."
     }
   ],
   "anticipated_risks": [

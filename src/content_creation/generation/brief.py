@@ -68,7 +68,7 @@ def generate_brief(item: ScoredTopicItem, prompt_path: Union[Path, PromptRegistr
         analogy="needs_review",
         limitation="needs_review",
         audience_fit="needs_review",
-        recommended_formats=["needs_review"],
+        recommended_formats=["short_video"],
         source_url=item.url,
         review_status=ReviewStatus.NEEDS_REVIEW,
         generated_at=generated_at,

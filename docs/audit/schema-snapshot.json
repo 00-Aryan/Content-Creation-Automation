@@ -26,7 +26,7 @@
       "required": true
     },
     "quality_status": {
-      "annotation": "typing.Optional[str]",
+      "annotation": "typing.Optional[content_creation.domains.content_intelligence.quality.QualityStatus]",
       "default": null,
       "required": false
     },
@@ -343,6 +343,23 @@
       "required": true
     }
   },
+  "content_creation.models.calendar.PublishingConfigSnapshot": {
+    "diversity_rules": {
+      "annotation": "typing.Optional[typing.Dict[str, typing.Union[int, bool, str]]]",
+      "default": null,
+      "required": false
+    },
+    "scheduling_rules": {
+      "annotation": "typing.Optional[typing.Dict[str, typing.Union[int, bool, str]]]",
+      "default": null,
+      "required": false
+    },
+    "weekly_targets": {
+      "annotation": "typing.Optional[typing.Dict[str, int]]",
+      "default": null,
+      "required": false
+    }
+  },
   "content_creation.models.calendar.ScheduledPost": {
     "asset_path": {
       "annotation": "<class 'str'>",
@@ -387,9 +404,9 @@
   },
   "content_creation.models.calendar.WeeklyCalendar": {
     "config_snapshot": {
-      "annotation": "typing.Dict",
+      "annotation": "<class 'content_creation.models.calendar.PublishingConfigSnapshot'>",
       "default": "PydanticUndefined",
-      "required": true
+      "required": false
     },
     "format_counts": {
       "annotation": "typing.Dict[str, int]",
@@ -503,7 +520,7 @@
       "required": true
     },
     "review_status": {
-      "annotation": "<class 'str'>",
+      "annotation": "typing.Union[content_creation.shared.enums.ReviewStatus, typing.Literal['missing', 'error', 'unknown']]",
       "default": "PydanticUndefined",
       "required": true
     },
@@ -1004,7 +1021,7 @@
       "required": false
     },
     "metadata": {
-      "annotation": "typing.Dict[str, typing.Any]",
+      "annotation": "<class 'content_creation.models.topic.TopicMetadata'>",
       "default": "PydanticUndefined",
       "required": false
     },
@@ -1111,7 +1128,7 @@
       "required": true
     },
     "metadata": {
-      "annotation": "typing.Dict[str, typing.Any]",
+      "annotation": "<class 'content_creation.models.topic.TopicMetadata'>",
       "default": "PydanticUndefined",
       "required": false
     },
@@ -1149,6 +1166,53 @@
       "annotation": "<class 'str'>",
       "default": "PydanticUndefined",
       "required": true
+    }
+  },
+  "content_creation.models.topic.TopicMetadata": {
+    "credibility_score": {
+      "annotation": "typing.Optional[float]",
+      "default": null,
+      "required": false
+    },
+    "explainability_score": {
+      "annotation": "typing.Optional[float]",
+      "default": null,
+      "required": false
+    },
+    "feed_id": {
+      "annotation": "typing.Optional[str]",
+      "default": null,
+      "required": false
+    },
+    "hook_potential_score": {
+      "annotation": "typing.Optional[float]",
+      "default": null,
+      "required": false
+    },
+    "novelty_score": {
+      "annotation": "typing.Optional[float]",
+      "default": null,
+      "required": false
+    },
+    "published_date": {
+      "annotation": "typing.Optional[str]",
+      "default": null,
+      "required": false
+    },
+    "recommended_formats": {
+      "annotation": "typing.Optional[typing.List[str]]",
+      "default": null,
+      "required": false
+    },
+    "source_type": {
+      "annotation": "typing.Optional[str]",
+      "default": null,
+      "required": false
+    },
+    "student_usefulness_score": {
+      "annotation": "typing.Optional[float]",
+      "default": null,
+      "required": false
     }
   },
   "content_creation.scoring.config.RuleConfig": {

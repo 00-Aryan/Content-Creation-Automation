@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from content_creation.shared.enums import ReviewStatus
 from content_creation.shared.types import TopicId
+from .quality import QualityStatus
 
 
 class TopicType(str, Enum):
@@ -49,7 +50,7 @@ class ContentIntelligence(BaseModel):
     review_status: ReviewStatus = ReviewStatus.DRAFT
 
     # Quality assessment (additive — Optional for backward compat with existing stored data)
-    quality_status: Optional[str] = None  # "ready" | "degraded" | "blocked"
+    quality_status: Optional[QualityStatus] = None  # SCHEMA-004: constrained to QualityStatus enum
 
     # Deterministic
     topic_type: TopicType

@@ -17,8 +17,10 @@ from content_creation.models.manifest import TopicManifest
 from content_creation.models.calendar import WeeklyCalendar
 from content_creation.models.dryrun import DryRunReport
 from content_creation.models.analytics import PostAnalytics
+from content_creation.models.review_history import ReviewHistoryEntry
 from content_creation.models.topic import ScoredTopicItem, TopicItem
 from content_creation.platform.storage.local_backend import LocalBackend
+from content_creation.shared.enums import ReviewStatus
 from content_creation.domains.brief.repository import BriefRepository
 from content_creation.domains.script.repository import ScriptRepository
 from content_creation.domains.carousel.repository import CarouselRepository
@@ -72,7 +74,21 @@ class LocalStorage:
         self._content_intelligence_repo = ContentIntelligenceRepository(directory=self.content_intelligence_dir)
         self._storyboard_repo = StoryboardRepository(directory=self.storyboards_dir)
 
-    def save_raw(self, source_id: str, data: Any):
+    def _read_json(self, file_path: Path) -> Any:
+        """Read and parse a JSON file with utf-8 encoding and cp1252 fallback for Windows smart quotes (ERR-011)."""
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except UnicodeDecodeError as e:
+            logger.warning(
+                "UTF-8 decoding failed for %s (%s); falling back to cp1252",
+                file_path,
+                e,
+            )
+            with open(file_path, "r", encoding="cp1252", errors="replace") as f:
+                return json.load(f)
+
+    def save_raw(self, source_id: str, data: Any) -> None:
         """Save raw payload to data/raw/."""
         self._backend.save_raw(self.raw_dir, source_id, data)
 
@@ -84,7 +100,7 @@ class LocalStorage:
         """Check if a scored item already exists in scored storage."""
         return self._backend.exists(self.scored_dir, item_id)
 
-    def save_staged(self, item: TopicItem):
+    def save_staged(self, item: TopicItem) -> None:
         """Save a normalized TopicItem to data/staged/.
         
         Uses mode 'x' for atomic creation to prevent race conditions during concurrent ingestion.
@@ -93,7 +109,7 @@ class LocalStorage:
         """
         file_path = self.staged_dir / f"{item.id}.json"
         try:
-            with open(file_path, "x") as f:
+            with open(file_path, "x", encoding="utf-8") as f:
                 f.write(item.model_dump_json(indent=2))
         except FileExistsError:
             # Re-raise so ingestion engine can handle it as a duplicate
@@ -101,11 +117,11 @@ class LocalStorage:
         except Exception as e:
             logger.error(f"Failed to save staged item to {file_path}: {e}")
 
-    def save_scored(self, item: ScoredTopicItem):
+    def save_scored(self, item: ScoredTopicItem) -> None:
         """Save a scored TopicItem to data/scored/."""
         file_path = self.scored_dir / f"{item.id}.json"
         try:
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(item.model_dump_json(indent=2))
         except Exception as e:
             logger.error(f"Failed to save scored item to {file_path}: {e}")
@@ -119,9 +135,8 @@ class LocalStorage:
         items = []
         for file_path in self.staged_dir.glob("*.json"):
             try:
-                with open(file_path, "r") as f:
-                    data = json.load(f)
-                    items.append(TopicItem(**data))
+                data = self._read_json(file_path)
+                items.append(TopicItem(**data))
             except Exception as e:
                 logger.warning(f"Failed to load staged item {file_path}: {e}")
         return items
@@ -131,9 +146,8 @@ class LocalStorage:
         items = []
         for file_path in self.scored_dir.glob("*.json"):
             try:
-                with open(file_path, "r") as f:
-                    data = json.load(f)
-                    items.append(ScoredTopicItem(**data))
+                data = self._read_json(file_path)
+                items.append(ScoredTopicItem(**data))
             except Exception as e:
                 logger.warning(f"Failed to load scored item {file_path}: {e}")
         return items
@@ -202,7 +216,7 @@ class LocalStorage:
         """Save manifest JSON to data/manifests/{topic_id}.json"""
         file_path = self.manifests_dir / f"{manifest.topic_id}.json"
         try:
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(manifest.model_dump_json(indent=2))
             return file_path
         except Exception as e:
@@ -214,9 +228,8 @@ class LocalStorage:
         items = []
         for file_path in self.manifests_dir.glob("*.json"):
             try:
-                with open(file_path, "r") as f:
-                    data = json.load(f)
-                    items.append(TopicManifest(**data))
+                data = self._read_json(file_path)
+                items.append(TopicManifest(**data))
             except (ValidationError, json.JSONDecodeError) as e:
                 logger.warning("Failed to load manifest %s: %s", file_path.name, e)
         return items
@@ -225,7 +238,7 @@ class LocalStorage:
         """Save calendar JSON to data/calendars/{week_start}.json"""
         file_path = self.calendars_dir / f"{calendar.week_start}.json"
         try:
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(calendar.model_dump_json(indent=2))
             return file_path
         except Exception as e:
@@ -237,9 +250,8 @@ class LocalStorage:
         items = []
         for file_path in self.calendars_dir.glob("*.json"):
             try:
-                with open(file_path, "r") as f:
-                    data = json.load(f)
-                    items.append(WeeklyCalendar(**data))
+                data = self._read_json(file_path)
+                items.append(WeeklyCalendar(**data))
             except (ValidationError, json.JSONDecodeError) as e:
                 logger.warning("Failed to load calendar %s: %s", file_path.name, e)
         return items
@@ -248,7 +260,7 @@ class LocalStorage:
         """Save dryrun JSON to data/dryruns/{week_start}.json"""
         file_path = self.dryruns_dir / f"{report.week_start}.json"
         try:
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(report.model_dump_json(indent=2))
             return file_path
         except Exception as e:
@@ -260,9 +272,8 @@ class LocalStorage:
         items = []
         for file_path in self.dryruns_dir.glob("*.json"):
             try:
-                with open(file_path, "r") as f:
-                    data = json.load(f)
-                    items.append(DryRunReport(**data))
+                data = self._read_json(file_path)
+                items.append(DryRunReport(**data))
             except (ValidationError, json.JSONDecodeError) as e:
                 logger.warning("Failed to load dryrun %s: %s", file_path.name, e)
         return items
@@ -271,7 +282,7 @@ class LocalStorage:
         """Save analytics JSON to data/analytics/{post_id}.json"""
         file_path = self.analytics_dir / f"{analytics.post_id}.json"
         try:
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(analytics.model_dump_json(indent=2))
             return file_path
         except Exception as e:
@@ -283,9 +294,8 @@ class LocalStorage:
         items = []
         for file_path in self.analytics_dir.glob("*.json"):
             try:
-                with open(file_path, "r") as f:
-                    data = json.load(f)
-                    items.append(PostAnalytics(**data))
+                data = self._read_json(file_path)
+                items.append(PostAnalytics(**data))
             except (ValidationError, json.JSONDecodeError) as e:
                 logger.warning("Failed to load analytics %s: %s", file_path.name, e)
         return items
@@ -297,9 +307,8 @@ class LocalStorage:
             return None
 
         try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
-                return PostAnalytics(**data)
+            data = self._read_json(file_path)
+            return PostAnalytics(**data)
         except (ValidationError, json.JSONDecodeError) as e:
             logger.error("Failed to load analytics %s: %s", post_id, e)
             return None
@@ -311,9 +320,8 @@ class LocalStorage:
             return None
         
         try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
-                return TopicItem(**data)
+            data = self._read_json(file_path)
+            return TopicItem(**data)
         except Exception as e:
             logger.error(f"Failed to load staged item {file_path}: {e}")
             return None
@@ -325,9 +333,8 @@ class LocalStorage:
             return None
         
         try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
-                return ScoredTopicItem(**data)
+            data = self._read_json(file_path)
+            return ScoredTopicItem(**data)
         except Exception as e:
             logger.error(f"Failed to load scored item {file_path}: {e}")
             return None
@@ -336,7 +343,7 @@ class LocalStorage:
         self,
         asset_type: str,
         topic_id: str,
-        new_status: "ReviewStatus"
+        new_status: ReviewStatus
     ) -> bool:
         """Update review_status for an asset.
 
@@ -351,8 +358,6 @@ class LocalStorage:
         Raises:
             ValueError: If asset_type is not recognized
         """
-        from content_creation.shared.enums import ReviewStatus
-
         asset_dirs = {
             "brief": self.briefs_dir,
             "script": self.scripts_dir,
@@ -371,12 +376,11 @@ class LocalStorage:
             return False
 
         try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
+            data = self._read_json(file_path)
 
             data["review_status"] = new_status.value
 
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
 
             logger.info(f"Updated {asset_type} {topic_id} status to {new_status.value}")
@@ -389,7 +393,7 @@ class LocalStorage:
         self,
         asset_type: str,
         topic_id: str,
-        new_status: "ReviewStatus",
+        new_status: ReviewStatus,
         notes: Optional[str] = None,
     ) -> bool:
         """Update review_status and review_notes for an asset.
@@ -406,8 +410,6 @@ class LocalStorage:
         Raises:
             ValueError: If asset_type is not recognized
         """
-        from content_creation.shared.enums import ReviewStatus
-
         asset_dirs = {
             "brief": self.briefs_dir,
             "script": self.scripts_dir,
@@ -427,14 +429,13 @@ class LocalStorage:
             return False
 
         try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
+            data = self._read_json(file_path)
 
             data["review_status"] = new_status.value
             if notes is not None:
                 data["review_notes"] = notes
 
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=2)
 
             logger.info(f"Updated {asset_type} {topic_id} status to {new_status.value} with notes")
@@ -443,7 +444,7 @@ class LocalStorage:
             logger.error(f"Failed to update asset status with notes for {file_path}: {e}")
             return False
 
-    def save_review_history_entry(self, entry: "ReviewHistoryEntry") -> Path:
+    def save_review_history_entry(self, entry: ReviewHistoryEntry) -> Path:
         """Append a review history entry to the topic's history log.
 
         Args:
@@ -452,15 +453,14 @@ class LocalStorage:
         Returns:
             Path to the history file
         """
-        from content_creation.models.review_history import ReviewHistoryEntry
-
         history_file = self.review_history_dir / f"{entry.topic_id}.json"
 
-        existing: list = []
+        existing: List[Dict[str, Any]] = []
         if history_file.exists():
             try:
-                with open(history_file, "r") as f:
-                    existing = json.load(f)
+                loaded = self._read_json(history_file)
+                if isinstance(loaded, list):
+                    existing = loaded
             except (json.JSONDecodeError, Exception) as e:
                 logger.warning(f"Failed to load existing review history for {entry.topic_id}: {e}")
                 existing = []
@@ -468,14 +468,14 @@ class LocalStorage:
         existing.append(entry.model_dump())
 
         try:
-            with open(history_file, "w") as f:
+            with open(history_file, "w", encoding="utf-8") as f:
                 json.dump(existing, f, indent=2)
             return history_file
         except Exception as e:
             logger.error(f"Failed to save review history for {entry.topic_id}: {e}")
             raise
 
-    def get_review_history(self, topic_id: str) -> list:
+    def get_review_history(self, topic_id: str) -> List[ReviewHistoryEntry]:
         """Load all review history entries for a topic.
 
         Args:
@@ -484,15 +484,12 @@ class LocalStorage:
         Returns:
             List of review history entry dicts, ordered oldest to newest
         """
-        from content_creation.models.review_history import ReviewHistoryEntry
-
         history_file = self.review_history_dir / f"{topic_id}.json"
         if not history_file.exists():
             return []
 
         try:
-            with open(history_file, "r") as f:
-                data = json.load(f)
+            data = self._read_json(history_file)
             return [ReviewHistoryEntry(**entry) for entry in data]
         except (json.JSONDecodeError, Exception) as e:
             logger.error(f"Failed to load review history for {topic_id}: {e}")

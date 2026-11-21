@@ -75,6 +75,29 @@ class TestAssetCheckReady:
         )
         assert check.is_ready is False
 
+    def test_asset_check_review_status_schema_constraint(self):
+        """Covers SCHEMA-005: AssetCheck validates review_status against allowed enum/literal values."""
+        from pydantic import ValidationError
+        from content_creation.shared.enums import ReviewStatus
+
+        c1 = AssetCheck(
+            topic_id="t1", topic_title="T", format="short_video",
+            asset_path="p", review_status=ReviewStatus.APPROVED, is_ready=True
+        )
+        assert c1.review_status == ReviewStatus.APPROVED
+
+        c2 = AssetCheck(
+            topic_id="t1", topic_title="T", format="short_video",
+            asset_path="p", review_status="missing", is_ready=False
+        )
+        assert c2.review_status == "missing"
+
+        with pytest.raises(ValidationError):
+            AssetCheck(
+                topic_id="t1", topic_title="T", format="short_video",
+                asset_path="p", review_status="invalid_random_status", is_ready=False
+            )
+
     def test_is_ready_false_for_needs_review(self):
         """Test is_ready is False when review_status is needs_review."""
         check = AssetCheck(

@@ -63,3 +63,42 @@ def test_local_storage_list_staged(tmp_path):
     assert "Item 0" in titles
     assert "Item 1" in titles
     assert "Item 2" in titles
+
+
+def test_local_storage_cp1252_smart_quotes_decoding_fallback(tmp_path, caplog):
+    """Covers ERR-011: LocalStorage gracefully handles Windows CP1252 smart quotes with warning."""
+    import logging
+
+    storage = LocalStorage(tmp_path)
+    file_path = storage.staged_dir / "cp1252_item.json"
+
+    # Write JSON payload encoded in cp1252 containing smart quotes and em-dash (0x93, 0x94, 0x97)
+    raw_cp1252 = (
+        '{\n'
+        '  "id": "cp1252_item",\n'
+        '  "title": "\\u201cAI Research\\u201d \\u2014 Breakthrough",\n'
+        '  "url": "https://example.com/item",\n'
+        '  "source": "rss",\n'
+        '  "published_at": "2026-04-30T12:00:00Z",\n'
+        '  "raw_text": "Content with smart quotes \\u201ctest\\u201d and em-dash \\u2014 here."\n'
+        '}'
+    )
+    # Convert unicode characters to raw cp1252 bytes
+    encoded_bytes = (
+        '{\n'
+        '  "id": "cp1252_item",\n'
+        '  "title": "\u201cAI Research\u201d \u2014 Breakthrough",\n'
+        '  "url": "https://example.com/item",\n'
+        '  "source": "rss",\n'
+        '  "published_at": "2026-04-30T12:00:00Z",\n'
+        '  "raw_text": "Content with smart quotes \u201ctest\u201d and em-dash \u2014 here."\n'
+        '}'
+    ).encode("cp1252")
+    file_path.write_bytes(encoded_bytes)
+
+    with caplog.at_level(logging.WARNING):
+        item = storage.get_staged("cp1252_item")
+
+    assert item is not None
+    assert "AI Research" in item.title
+    assert any("falling back to cp1252" in r.message for r in caplog.records)
