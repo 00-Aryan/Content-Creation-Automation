@@ -22,7 +22,6 @@ from content_creation.application.pipeline_run_service import PipelineRunService
 from content_creation.application.asset_review_service import AssetReviewService
 from content_creation.application.brief_review_service import BriefReviewService
 from content_creation.application.storyboard_review_service import StoryboardReviewService
-from content_creation.notifications.schema import create_notification_schema
 from content_creation.notifications.sqlite_repository import SQLiteNotificationRepository
 from content_creation.notifications.service import NotificationService
 from content_creation.notifications.maintenance import NotificationMaintenanceService
@@ -63,6 +62,12 @@ def get_context() -> ApplicationContext:
 @st.cache_resource
 def get_notification_db() -> sqlite3.Connection:
     """Bootstraps and caches the notification SQLite database connection."""
+    from content_creation.platform.storage.database import (
+        create_connection,
+        get_db_path,
+        init_content_factory_db,
+    )
+
     root_env = os.environ.get("CONTENT_FACTORY_ROOT")
     if root_env:
         data_dir = Path(root_env)
@@ -71,13 +76,18 @@ def get_notification_db() -> sqlite3.Connection:
         if not (data_dir / "config").exists():
             data_dir = Path.cwd()
 
-    db_path = data_dir / "data" / "notifications.db"
-    db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(db_path), timeout=10, check_same_thread=False)
-    conn.execute("PRAGMA journal_mode=WAL;")
-    conn.execute("PRAGMA busy_timeout=5000;")
-    create_notification_schema(conn)
-    return conn
+    cf_db = get_db_path(data_dir)
+    legacy_db = data_dir / "data" / "notifications.db"
+
+    if cf_db.exists():
+        target_db = cf_db
+    elif legacy_db.exists():
+        target_db = legacy_db
+    else:
+        init_content_factory_db(cf_db)
+        target_db = cf_db
+
+    return create_connection(target_db, timeout=10.0, check_same_thread=False)
 
 
 def get_notification_service() -> NotificationService:
@@ -472,16 +482,22 @@ class ServiceClient:
         """
         import importlib
         from dataclasses import replace
+        from content_creation.platform.storage.database import create_connection
 
         data_dir = self.ctx.base_dir / "data"
         data_dir.mkdir(parents=True, exist_ok=True)
+        cf_db = data_dir / "content_factory.db"
+        discrete_jobs = data_dir / "jobs.db"
 
-        def _open_db(name: str) -> sqlite3.Connection:
-            db_path = data_dir / name
-            conn = sqlite3.connect(str(db_path), timeout=5)
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("PRAGMA busy_timeout=5000")
-            return conn
+        if cf_db.exists():
+            use_consolidated = True
+        elif discrete_jobs.exists():
+            use_consolidated = False
+        else:
+            from content_creation.platform.storage.database import init_content_factory_db
+
+            init_content_factory_db(cf_db)
+            use_consolidated = True
 
         queue_engine = None
         lock_manager = None
@@ -494,77 +510,79 @@ class ServiceClient:
         audit_repo = None
         compliance_svc = None
 
+        main_conn = None
         job_conn = None
         lock_conn = None
-        event_conn = None
         notif_conn = None
-        metrics_conn = None
-        audit_conn = None
 
         try:
             ObsServiceMod = importlib.import_module("content_creation.platform.observability.service")
             HealthMod = importlib.import_module("content_creation.platform.observability.health")
 
+            if use_consolidated:
+                main_conn = create_connection(cf_db, timeout=5.0)
+                job_conn = main_conn
+                lock_conn = main_conn
+                notif_conn = main_conn
+                event_db_path = str(cf_db)
+                metrics_db_path = str(cf_db)
+                audit_db_path = str(cf_db)
+            else:
+                def _open_db(name: str) -> sqlite3.Connection:
+                    db_path = data_dir / name
+                    conn = sqlite3.connect(str(db_path), timeout=5)
+                    conn.execute("PRAGMA journal_mode=WAL")
+                    conn.execute("PRAGMA busy_timeout=5000")
+                    return conn
+
+                job_conn = _open_db("jobs.db")
+                lock_conn = _open_db("locks.db")
+                notif_conn = _open_db("notifications.db")
+                event_db_path = str(data_dir / "events.db")
+                metrics_db_path = str(data_dir / "metrics.db")
+                audit_db_path = str(data_dir / "audit.db")
+
             try:
                 JobSqliteMod = importlib.import_module("content_creation.jobs.sqlite_repository")
-                JobSchemaMod = importlib.import_module("content_creation.jobs.schema")
                 LockSqliteMod = importlib.import_module("content_creation.jobs.sqlite_lock_repository")
                 LockMgrMod = importlib.import_module("content_creation.jobs.lock_manager")
                 QueueEngineMod = importlib.import_module("content_creation.jobs.queue_engine")
 
-                job_conn = _open_db("jobs.db")
-                JobSchemaMod.create_job_schema(job_conn)
                 job_repo = JobSqliteMod.SQLiteJobRepository(job_conn)
-
-                lock_conn = _open_db("locks.db")
-                JobSchemaMod.create_lock_schema(lock_conn)
                 lock_repo = LockSqliteMod.SQLiteLockRepository(lock_conn)
                 lock_manager = LockMgrMod.LockManager(repository=lock_repo)
-
                 queue_engine = QueueEngineMod.QueueEngine(repository=job_repo, lock_manager=lock_manager)
             except Exception as e:
                 logger.warning("Failed to initialize Job Queue for operations snapshot: %s", e)
 
             try:
-                EventSchemaMod = importlib.import_module("content_creation.events.store.schema")
                 EventSqliteMod = importlib.import_module("content_creation.events.store.sqlite_repository")
-                event_conn = _open_db("events.db")
-                EventSchemaMod.create_event_store_schema(event_conn)
-                event_repo = EventSqliteMod.SQLiteEventRepository(str(data_dir / "events.db"))
+                event_repo = EventSqliteMod.SQLiteEventRepository(event_db_path)
             except Exception as e:
                 logger.warning("Failed to initialize Event Store for operations snapshot: %s", e)
 
             try:
-                NotifSchemaMod = importlib.import_module("content_creation.notifications.schema")
                 NotifSqliteMod = importlib.import_module("content_creation.notifications.sqlite_repository")
                 NotifSvcMod = importlib.import_module("content_creation.notifications.service")
-                notif_conn = _open_db("notifications.db")
-                NotifSchemaMod.create_notification_schema(notif_conn)
                 notif_repo = NotifSqliteMod.SQLiteNotificationRepository(notif_conn)
                 notification_svc = NotifSvcMod.NotificationService(repository=notif_repo)
             except Exception as e:
                 logger.warning("Failed to initialize Notification Service for operations snapshot: %s", e)
 
             try:
-                MetricSchemaMod = importlib.import_module("content_creation.metrics.schema")
                 MetricSqliteMod = importlib.import_module("content_creation.metrics.sqlite_repository")
                 KpiMod = importlib.import_module("content_creation.metrics.kpi")
                 TelemetryMod = importlib.import_module("content_creation.metrics.telemetry")
-                metrics_conn = _open_db("metrics.db")
-                MetricSchemaMod.create_metrics_schema(metrics_conn)
-                metrics_repo = MetricSqliteMod.SQLiteMetricRepository(str(data_dir / "metrics.db"))
+                metrics_repo = MetricSqliteMod.SQLiteMetricRepository(metrics_db_path)
                 kpi_catalog = KpiMod.KPICatalog(repository=metrics_repo)
                 telemetry_svc = TelemetryMod.TelemetryService(metrics_repository=metrics_repo, event_repository=event_repo)
             except Exception as e:
                 logger.warning("Failed to initialize Metrics Repository for operations snapshot: %s", e)
 
             try:
-                AuditSchemaMod = importlib.import_module("content_creation.audit.schema")
                 AuditSqliteMod = importlib.import_module("content_creation.audit.sqlite_repository")
                 ComplianceMod = importlib.import_module("content_creation.audit.compliance")
-                audit_conn = _open_db("audit.db")
-                AuditSchemaMod.create_audit_schema(audit_conn)
-                audit_repo = AuditSqliteMod.SQLiteAuditRepository(str(data_dir / "audit.db"))
+                audit_repo = AuditSqliteMod.SQLiteAuditRepository(audit_db_path)
                 compliance_svc = ComplianceMod.ComplianceReportService(repository=audit_repo)
             except Exception as e:
                 logger.warning("Failed to initialize Audit Repository for operations snapshot: %s", e)
@@ -670,12 +688,18 @@ class ServiceClient:
             except Exception:
                 return None
         finally:
-            for conn in [job_conn, lock_conn, event_conn, notif_conn, metrics_conn, audit_conn]:
-                if conn is not None:
-                    try:
-                        conn.close()
-                    except Exception as e:
-                        logger.warning("Failed to close db connection: %s", e)
+            if main_conn is not None:
+                try:
+                    main_conn.close()
+                except Exception as e:
+                    logger.warning("Failed to close main db connection: %s", e)
+            else:
+                for conn in [job_conn, lock_conn, notif_conn]:
+                    if conn is not None:
+                        try:
+                            conn.close()
+                        except Exception as e:
+                            logger.warning("Failed to close db connection: %s", e)
             for r in [event_repo, metrics_repo, audit_repo]:
                 if r is not None:
                     try:
@@ -692,14 +716,16 @@ class ServiceClient:
     ) -> List[Any]:
         """Query and return event records formatted for UI consumption."""
         data_dir = self.ctx.base_dir / "data"
-        event_db = data_dir / "events.db"
-        if not event_db.exists():
+        cf_db = data_dir / "content_factory.db"
+        legacy_db = data_dir / "events.db"
+        target_db = cf_db if cf_db.exists() else (legacy_db if legacy_db.exists() else None)
+        if target_db is None:
             return []
         try:
             import importlib
             EventSqliteMod = importlib.import_module("content_creation.events.store.sqlite_repository")
             TimelineMod = importlib.import_module("content_creation.events.store.timeline")
-            event_repo = EventSqliteMod.SQLiteEventRepository(str(event_db))
+            event_repo = EventSqliteMod.SQLiteEventRepository(str(target_db))
             try:
                 timeline_svc = TimelineMod.EventTimelineService(event_repo)
                 if entity_type and entity_id:
