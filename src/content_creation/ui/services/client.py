@@ -99,17 +99,11 @@ def get_notification_maintenance() -> NotificationMaintenanceService:
 
 @st.cache_resource
 def get_sse_infrastructure() -> Dict[str, Any]:
-    """Bootstraps and caches the SSE infrastructure (server, manager, publisher)."""
-    conn = get_notification_db()
-    repo = SQLiteNotificationRepository(conn)
-    manager = ConnectionManager()
-    publisher = NotificationPublisher(repo, manager)
-    server = NotificationSSEServer(connection_manager=manager, port=8502)
-    server.start()
+    """Deprecated: returns stub SSE infrastructure without starting background socket server."""
     return {
-        "server": server,
-        "manager": manager,
-        "publisher": publisher,
+        "server": None,
+        "manager": None,
+        "publisher": None,
     }
 
 
@@ -730,31 +724,21 @@ class ServiceClient:
             logger.warning("Failed to query event timeline: %s", e)
             return []
 
-    # --- SSE Streaming Methods ---
-
-    @property
-    def sse_publisher(self) -> NotificationPublisher:
-        """Returns the NotificationPublisher for SSE event publishing."""
-        return self._sse["publisher"]  # type: ignore[no-any-return]
-
-    @property
-    def sse_connection_manager(self) -> ConnectionManager:
-        """Returns the ConnectionManager for SSE client tracking."""
-        return self._sse["manager"]  # type: ignore[no-any-return]
+    # --- SSE Streaming Methods (Deprecated Shims) ---
 
     @property
     def sse_port(self) -> int:
-        """Returns the SSE server port."""
-        return int(self._sse["server"].port)
+        """Returns the legacy SSE server port for backwards compatibility."""
+        return 8502
 
     def publish_notification_event(self, notification: Any) -> None:
-        """Publish a notification event to SSE subscribers."""
-        self.sse_publisher.on_notification_created(notification)
+        """Publish a notification event (no-op shim; UI uses fragment polling)."""
+        pass
 
     def publish_read_event(self, notification_id: Any) -> None:
-        """Publish a notification read event to SSE subscribers."""
-        self.sse_publisher.on_notification_read(notification_id)
+        """Publish a notification read event (no-op shim; UI uses fragment polling)."""
+        pass
 
     def publish_archive_event(self, notification_id: Any) -> None:
-        """Publish a notification archive event to SSE subscribers."""
-        self.sse_publisher.on_notification_archived(notification_id)
+        """Publish a notification archive event (no-op shim; UI uses fragment polling)."""
+        pass

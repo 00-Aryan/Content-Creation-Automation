@@ -1,6 +1,7 @@
 """Real-time notification streaming via Server-Sent Events (SSE).
 
-Pure infrastructure layer. No Streamlit, worker, or UI imports.
+Pure infrastructure layer. Deprecated per ADR-001 in favor of native
+Streamlit fragments (@st.fragment) and ServiceClient facade.
 """
 
 from content_creation.notifications.streaming.models import (

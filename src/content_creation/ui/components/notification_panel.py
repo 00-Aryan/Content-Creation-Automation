@@ -48,6 +48,27 @@ def render_notification_badge(unread_count: int) -> None:
         st.sidebar.markdown("### 🔔 Notifications\nNo unread notifications")
 
 
+@st.fragment(run_every="5s")
+def render_notification_badge_fragment(client: object) -> None:
+    """Render the unread notification count badge in the sidebar via periodic fragment polling."""
+    try:
+        unread_count = getattr(client, "get_notification_unread_count", lambda: 0)()
+    except Exception:
+        unread_count = 0
+    render_notification_badge(unread_count)
+
+
+@st.fragment(run_every="5s")
+def render_notification_summary_fragment(client: object) -> None:
+    """Render the notification summary panel on the dashboard via periodic fragment polling."""
+    try:
+        service = getattr(client, "notification_service", None)
+        if service is not None:
+            render_notification_summary_panel(service)
+    except Exception as e:
+        st.warning(f"Notification summary unavailable: {e}")
+
+
 def render_notification_summary_panel(
     service: NotificationService,
 ) -> None:
