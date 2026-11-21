@@ -1,12 +1,15 @@
 """Service adapter layer for resolving backend services in Streamlit UI."""
 
 from dataclasses import dataclass
+import logging
 import os
 from pathlib import Path
 import sqlite3
 import time
-from typing import Optional
+from typing import Any, Callable, Dict, List, Optional
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 from content_creation.application.context import ApplicationContext
 from content_creation.application.collect_topics_service import CollectTopicsService
@@ -46,7 +49,6 @@ def get_context() -> ApplicationContext:
     - source_dir: Where immutable source code lives (config/, prompts/).
                   Resolved from this script's location.
     """
-    # Data directory: CONTENT_FACTORY_ROOT or auto-detect from script location
     root_env = os.environ.get("CONTENT_FACTORY_ROOT")
     if root_env:
         data_dir = Path(root_env)
@@ -56,7 +58,6 @@ def get_context() -> ApplicationContext:
         if not (data_dir / "config").exists():
             data_dir = Path.cwd()
 
-    # Source directory: always resolved from this script's location (immutable code)
     source_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
 
     return ApplicationContext.create(data_dir, source_dir=source_dir)
@@ -97,7 +98,7 @@ def get_notification_maintenance() -> NotificationMaintenanceService:
 
 
 @st.cache_resource
-def get_sse_infrastructure() -> dict:
+def get_sse_infrastructure() -> Dict[str, Any]:
     """Bootstraps and caches the SSE infrastructure (server, manager, publisher)."""
     conn = get_notification_db()
     repo = SQLiteNotificationRepository(conn)
@@ -128,24 +129,9 @@ class ServiceClient:
         return InferenceManager.is_available()
 
     @property
-    def collect(self) -> CollectTopicsService:
-        """Resolves CollectTopicsService."""
-        return CollectTopicsService()
-
-    @property
     def score(self) -> ScoreTopicsService:
         """Resolves ScoreTopicsService."""
         return ScoreTopicsService()
-
-    @property
-    def brief(self) -> BriefGenerationService:
-        """Resolves BriefGenerationService."""
-        return BriefGenerationService()
-
-    @property
-    def content_intelligence(self) -> ContentIntelligenceService:
-        """Resolves ContentIntelligenceService."""
-        return ContentIntelligenceService()
 
     @property
     def storyboard(self) -> StoryboardService:
@@ -153,31 +139,16 @@ class ServiceClient:
         return StoryboardService()
 
     @property
-    def asset_generation(self) -> AssetGenerationService:
-        """Resolves AssetGenerationService."""
-        return AssetGenerationService()
-
-    @property
     def pipeline(self) -> PipelineRunService:
         """Resolves PipelineRunService."""
         return PipelineRunService()
-
-    @property
-    def asset_review(self) -> AssetReviewService:
-        """Resolves AssetReviewService."""
-        return AssetReviewService()
-
-    @property
-    def brief_review(self) -> BriefReviewService:
-        """Resolves BriefReviewService."""
-        return BriefReviewService()
 
     @property
     def storyboard_review(self) -> StoryboardReviewService:
         """Resolves StoryboardReviewService."""
         return StoryboardReviewService()
 
-    def _timed(self, fn, *args, **kwargs) -> TimedServiceResult:
+    def _timed(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> TimedServiceResult:
         started_at = time.perf_counter()
         result = fn(*args, **kwargs)
         return TimedServiceResult(
@@ -191,7 +162,7 @@ class ServiceClient:
         source_filter: Optional[str] = None,
     ) -> TimedServiceResult:
         """Runs the approved end-to-end pipeline service."""
-        def _run():
+        def _run() -> Any:
             res = self.executor.execute(
                 self.ctx,
                 "run_pipeline",
@@ -210,7 +181,7 @@ class ServiceClient:
 
     def collect_topics(self, source_filter: Optional[str] = None) -> TimedServiceResult:
         """Runs topic collection through CollectTopicsService."""
-        def _run():
+        def _run() -> Any:
             res = self.executor.execute(
                 self.ctx,
                 "collect",
@@ -225,7 +196,7 @@ class ServiceClient:
 
     def score_topics(self) -> TimedServiceResult:
         """Runs topic scoring through ScoreTopicsService."""
-        def _run():
+        def _run() -> Any:
             res = self.executor.execute(
                 self.ctx,
                 "score_topics",
@@ -244,7 +215,7 @@ class ServiceClient:
         rate_limit_delay: float = 5.0,
     ) -> TimedServiceResult:
         """Runs brief generation through BriefGenerationService."""
-        def _run():
+        def _run() -> Any:
             res = self.executor.execute(
                 self.ctx,
                 "generate_briefs",
@@ -265,11 +236,11 @@ class ServiceClient:
         top_n: int = 5,
         rate_limit_delay: float = 5.0,
     ) -> TimedServiceResult:
-        """Runs content intelligence generation through ContentIntelligenceService."""
-        def _run():
+        """Runs content intelligence generation."""
+        def _run() -> Any:
             res = self.executor.execute(
                 self.ctx,
-                "generate_ci",
+                "generate_content_intelligence",
                 "content_intelligence",
                 "all",
                 {
@@ -278,7 +249,7 @@ class ServiceClient:
                 }
             )
             if not res.success:
-                raise RuntimeError(f"Content Intelligence generation failed: {res.blocking_reasons}")
+                raise RuntimeError(f"Content intelligence failed: {res.blocking_reasons}")
             return res.raw_result
         return self._timed(_run)
 
@@ -287,8 +258,8 @@ class ServiceClient:
         top_n: int = 5,
         rate_limit_delay: float = 5.0,
     ) -> TimedServiceResult:
-        """Runs storyboard generation through StoryboardService."""
-        def _run():
+        """Runs storyboard generation."""
+        def _run() -> Any:
             res = self.executor.execute(
                 self.ctx,
                 "generate_storyboards",
@@ -310,7 +281,7 @@ class ServiceClient:
         rate_limit_delay: float = 5.0,
     ) -> TimedServiceResult:
         """Runs storyboard-first asset generation through AssetGenerationService."""
-        def _run():
+        def _run() -> Any:
             res = self.executor.execute(
                 self.ctx,
                 "generate_assets",
@@ -326,9 +297,9 @@ class ServiceClient:
             return res.raw_result
         return self._timed(_run)
 
-    def apply_asset_decisions(self, topic_id: str, decisions: list) -> TimedServiceResult:
+    def apply_asset_decisions(self, topic_id: str, decisions: List[Any]) -> TimedServiceResult:
         """Applies asset review decisions through AssetReviewService."""
-        def _run():
+        def _run() -> Any:
             last_res = None
             for decision in decisions:
                 action_id = "approve_asset" if decision.status.value == "approved" else "reject_asset"
@@ -346,9 +317,9 @@ class ServiceClient:
             return last_res
         return self._timed(_run)
 
-    def apply_brief_decision(self, topic_id: str, decision) -> TimedServiceResult:
+    def apply_brief_decision(self, topic_id: str, decision: Any) -> TimedServiceResult:
         """Applies a brief review decision through BriefReviewService."""
-        def _run():
+        def _run() -> Any:
             action_id = "approve_brief" if decision.status.value == "approved" else "reject_brief"
             res = self.executor.execute(
                 self.ctx,
@@ -363,9 +334,9 @@ class ServiceClient:
             return res.raw_result
         return self._timed(_run)
 
-    def apply_storyboard_decision(self, topic_id: str, decision) -> TimedServiceResult:
+    def apply_storyboard_decision(self, topic_id: str, decision: Any) -> TimedServiceResult:
         """Applies a storyboard review decision through StoryboardReviewService."""
-        def _run():
+        def _run() -> Any:
             action_id = "approve_storyboard" if decision.status.value == "approved" else "reject_storyboard"
             res = self.executor.execute(
                 self.ctx,
@@ -380,23 +351,23 @@ class ServiceClient:
             return res.raw_result
         return self._timed(_run)
 
-    def get_review_history(self, topic_id: str) -> list:
+    def get_review_history(self, topic_id: str) -> List[Any]:
         """Returns all review history entries for a topic via BriefReviewService."""
-        return self.brief_review.get_all_history(self.ctx, topic_id)
+        return list(BriefReviewService().get_all_history(self.ctx, topic_id))
 
-    def get_brief_review_history(self, topic_id: str) -> list:
+    def get_brief_review_history(self, topic_id: str) -> List[Any]:
         """Returns review history entries for briefs only."""
-        return self.brief_review.get_history(self.ctx, topic_id)
+        return list(BriefReviewService().get_history(self.ctx, topic_id))
 
-    def get_storyboard_review_history(self, topic_id: str) -> list:
+    def get_storyboard_review_history(self, topic_id: str) -> List[Any]:
         """Returns review history entries for storyboards only."""
-        return self.storyboard_review.get_history(self.ctx, topic_id)
+        return list(StoryboardReviewService().get_history(self.ctx, topic_id))
 
-    def get_asset_review_history(self, topic_id: str) -> list:
+    def get_asset_review_history(self, topic_id: str) -> List[Any]:
         """Returns review history entries for assets only."""
-        return self.asset_review.get_history(self.ctx, topic_id)
+        return list(AssetReviewService().get_history(self.ctx, topic_id))
 
-    def get_metric_counts(self) -> dict:
+    def get_metric_counts(self) -> Dict[str, Any]:
         """Returns current pipeline queue counts for dashboard metrics."""
         def _count_json_files(directory: Optional[Path]) -> int:
             if not directory or not directory.exists():
@@ -423,44 +394,52 @@ class ServiceClient:
             "manifests": manifests_count,
         }
 
+    def list_staged_topics(self) -> List[Any]:
+        return list(self.ctx.storage.list_staged())
 
-    def list_staged_topics(self) -> list:
-        return self.ctx.storage.list_staged()
+    def list_scored_topics(self) -> List[Any]:
+        return list(self.ctx.storage.list_scored())
 
-    def list_scored_topics(self) -> list:
-        return self.ctx.storage.list_scored()
-
-    def get_scored_topic(self, topic_id: str):
+    def get_scored_topic(self, topic_id: str) -> Any:
         return self.ctx.storage.get_scored(topic_id)
 
-    def list_briefs(self) -> list:
-        return self.ctx.storage.list_briefs()
+    def list_briefs(self) -> List[Any]:
+        return list(self.ctx.storage.list_briefs())
 
-    def get_brief(self, topic_id: str):
+    def get_brief(self, topic_id: str) -> Any:
         return self.ctx.storage.get_brief(topic_id)
 
-    def list_content_intelligence(self) -> list:
-        return self.ctx.storage.list_content_intelligence()
+    def list_content_intelligence(self) -> List[Any]:
+        return list(self.ctx.storage.list_content_intelligence())
 
-    def get_content_intelligence(self, topic_id: str):
+    def get_content_intelligence(self, topic_id: str) -> Any:
         return next(
             (item for item in self.ctx.storage.list_content_intelligence() if item.topic_id == topic_id),
             None,
         )
 
-    def get_storyboard(self, topic_id: str):
+    def get_storyboard(self, topic_id: str) -> Any:
         return self.ctx.storage.get_storyboard(topic_id)
 
-    def list_manifests(self) -> list:
-        return self.ctx.storage.list_manifests()
+    def storyboard_file_exists(self, topic_id: str) -> bool:
+        """Check whether a storyboard file exists on disk for the given topic ID.
 
-    def get_manifest(self, topic_id: str):
+        Used by UI to distinguish between an ungenerated storyboard
+        and a corrupted/empty (0-byte) file on disk.
+        """
+        storyboards_dir = self.ctx.storyboards_dir
+        return (storyboards_dir / f"{topic_id}.json").exists()
+
+    def list_manifests(self) -> List[Any]:
+        return list(self.ctx.storage.list_manifests())
+
+    def get_manifest(self, topic_id: str) -> Any:
         return next(
             (manifest for manifest in self.ctx.storage.list_manifests() if manifest.topic_id == topic_id),
             None,
         )
 
-    def get_topic_assets(self, topic_id: str) -> dict:
+    def get_topic_assets(self, topic_id: str) -> Dict[str, Any]:
         return {
             "script": next((s for s in self.ctx.storage.list_scripts() if s.topic_id == topic_id), None),
             "carousel": next((c for c in self.ctx.storage.list_carousels() if c.topic_id == topic_id), None),
@@ -468,7 +447,7 @@ class ServiceClient:
             "thumbnail": next((t for t in self.ctx.storage.list_thumbnails() if t.topic_id == topic_id), None),
         }
 
-    def list_workflow_states(self) -> list:
+    def list_workflow_states(self) -> List[Any]:
         workflow_files = list(self.ctx.workflow._dir.glob("*.json"))
         return [self.ctx.workflow.load_state(path.stem) for path in workflow_files]
 
@@ -486,37 +465,296 @@ class ServiceClient:
 
     def get_notification_unread_count(self) -> int:
         """Returns the current unread notification count."""
-        return self.notification_service.unread_count()
+        return int(self.notification_service.unread_count())
 
-    def get_notification_summary(self):
+    def get_notification_summary(self) -> Any:
         """Returns the notification summary for dashboard display."""
         return self.notification_service.summary()
+
+    # --- Operations Dashboard & Event Timeline Facade Methods ---
+
+    def get_operations_snapshot(self) -> Any:
+        """Build and return a unified platform observability snapshot.
+
+        Coordinates queue, lock, event, notification, metric, and audit
+        subsystems via ObservabilityService, closing database connections cleanly.
+        """
+        import importlib
+        from dataclasses import replace
+
+        data_dir = self.ctx.base_dir / "data"
+        data_dir.mkdir(parents=True, exist_ok=True)
+
+        def _open_db(name: str) -> sqlite3.Connection:
+            db_path = data_dir / name
+            conn = sqlite3.connect(str(db_path), timeout=5)
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=5000")
+            return conn
+
+        queue_engine = None
+        lock_manager = None
+        lock_repo = None
+        event_repo = None
+        notification_svc = None
+        metrics_repo = None
+        kpi_catalog = None
+        telemetry_svc = None
+        audit_repo = None
+        compliance_svc = None
+        connection_mgr = None
+
+        job_conn = None
+        lock_conn = None
+        event_conn = None
+        notif_conn = None
+        metrics_conn = None
+        audit_conn = None
+
+        try:
+            ObsServiceMod = importlib.import_module("content_creation.platform.observability.service")
+            HealthMod = importlib.import_module("content_creation.platform.observability.health")
+
+            try:
+                JobSqliteMod = importlib.import_module("content_creation.jobs.sqlite_repository")
+                JobSchemaMod = importlib.import_module("content_creation.jobs.schema")
+                LockSqliteMod = importlib.import_module("content_creation.jobs.sqlite_lock_repository")
+                LockMgrMod = importlib.import_module("content_creation.jobs.lock_manager")
+                QueueEngineMod = importlib.import_module("content_creation.jobs.queue_engine")
+
+                job_conn = _open_db("jobs.db")
+                JobSchemaMod.create_job_schema(job_conn)
+                job_repo = JobSqliteMod.SQLiteJobRepository(job_conn)
+
+                lock_conn = _open_db("locks.db")
+                JobSchemaMod.create_lock_schema(lock_conn)
+                lock_repo = LockSqliteMod.SQLiteLockRepository(lock_conn)
+                lock_manager = LockMgrMod.LockManager(repository=lock_repo)
+
+                queue_engine = QueueEngineMod.QueueEngine(repository=job_repo, lock_manager=lock_manager)
+            except Exception as e:
+                logger.warning("Failed to initialize Job Queue for operations snapshot: %s", e)
+
+            try:
+                EventSchemaMod = importlib.import_module("content_creation.events.store.schema")
+                EventSqliteMod = importlib.import_module("content_creation.events.store.sqlite_repository")
+                event_conn = _open_db("events.db")
+                EventSchemaMod.create_event_store_schema(event_conn)
+                event_repo = EventSqliteMod.SQLiteEventRepository(str(data_dir / "events.db"))
+            except Exception as e:
+                logger.warning("Failed to initialize Event Store for operations snapshot: %s", e)
+
+            try:
+                NotifSchemaMod = importlib.import_module("content_creation.notifications.schema")
+                NotifSqliteMod = importlib.import_module("content_creation.notifications.sqlite_repository")
+                NotifSvcMod = importlib.import_module("content_creation.notifications.service")
+                notif_conn = _open_db("notifications.db")
+                NotifSchemaMod.create_notification_schema(notif_conn)
+                notif_repo = NotifSqliteMod.SQLiteNotificationRepository(notif_conn)
+                notification_svc = NotifSvcMod.NotificationService(repository=notif_repo)
+            except Exception as e:
+                logger.warning("Failed to initialize Notification Service for operations snapshot: %s", e)
+
+            try:
+                MetricSchemaMod = importlib.import_module("content_creation.metrics.schema")
+                MetricSqliteMod = importlib.import_module("content_creation.metrics.sqlite_repository")
+                KpiMod = importlib.import_module("content_creation.metrics.kpi")
+                TelemetryMod = importlib.import_module("content_creation.metrics.telemetry")
+                metrics_conn = _open_db("metrics.db")
+                MetricSchemaMod.create_metrics_schema(metrics_conn)
+                metrics_repo = MetricSqliteMod.SQLiteMetricRepository(str(data_dir / "metrics.db"))
+                kpi_catalog = KpiMod.KPICatalog(repository=metrics_repo)
+                telemetry_svc = TelemetryMod.TelemetryService(metrics_repository=metrics_repo, event_repository=event_repo)
+            except Exception as e:
+                logger.warning("Failed to initialize Metrics Repository for operations snapshot: %s", e)
+
+            try:
+                AuditSchemaMod = importlib.import_module("content_creation.audit.schema")
+                AuditSqliteMod = importlib.import_module("content_creation.audit.sqlite_repository")
+                ComplianceMod = importlib.import_module("content_creation.audit.compliance")
+                audit_conn = _open_db("audit.db")
+                AuditSchemaMod.create_audit_schema(audit_conn)
+                audit_repo = AuditSqliteMod.SQLiteAuditRepository(str(data_dir / "audit.db"))
+                compliance_svc = ComplianceMod.ComplianceReportService(repository=audit_repo)
+            except Exception as e:
+                logger.warning("Failed to initialize Audit Repository for operations snapshot: %s", e)
+
+            try:
+                ConnMgrMod = importlib.import_module("content_creation.notifications.streaming.connection_manager")
+                connection_mgr = ConnMgrMod.ConnectionManager()
+            except Exception as e:
+                logger.warning("Failed to initialize Connection Manager for operations snapshot: %s", e)
+
+            service = ObsServiceMod.ObservabilityService(
+                queue_engine=queue_engine,
+                lock_manager=lock_manager,
+                lock_repository=lock_repo,
+                event_repository=event_repo,
+                notification_service=notification_svc,
+                connection_manager=connection_mgr,
+                metrics_repository=metrics_repo,
+                kpi_catalog=kpi_catalog,
+                telemetry_service=telemetry_svc,
+                audit_repository=audit_repo,
+                compliance_service=compliance_svc,
+            )
+            snapshot = service.snapshot()
+
+            w_metrics = snapshot.worker_metrics or {}
+            is_worker_running = w_metrics.get("is_running", False)
+
+            q_metrics = snapshot.queue_metrics or {}
+            queued_jobs = q_metrics.get("queued_count", 0)
+            running_jobs = q_metrics.get("running_count", 0)
+            has_jobs = queued_jobs > 0 or running_jobs > 0
+
+            if not is_worker_running:
+                new_alerts = []
+                for alert in snapshot.alerts:
+                    if alert.rule_id == "WORKER_OFFLINE":
+                        if not has_jobs:
+                            new_alerts.append(
+                                HealthMod.OperationalAlert(
+                                    rule_id=alert.rule_id,
+                                    severity=HealthMod.AlertSeverity.WARNING,
+                                    component=alert.component,
+                                    title="Worker Daemon: Not running (expected in manual operation mode)",
+                                    message="No active workers are running. This is normal when running manually (no jobs are queued).",
+                                    recommended_action="Start the worker daemon if you intend to run background tasks.",
+                                    metrics=alert.metrics,
+                                    timestamp=alert.timestamp,
+                                )
+                            )
+                        else:
+                            new_alerts.append(alert)
+                    else:
+                        new_alerts.append(alert)
+
+                new_components = []
+                for comp in snapshot.components:
+                    if comp.component == HealthMod.ComponentType.WORKER:
+                        if not has_jobs:
+                            new_components.append(
+                                HealthMod.SystemComponentHealth(
+                                    component=comp.component,
+                                    name=comp.name,
+                                    status=HealthMod.HealthStatus.HEALTHY,
+                                    message="Not running (expected in manual operation mode)",
+                                    metrics=comp.metrics,
+                                    last_checked=comp.last_checked,
+                                )
+                            )
+                        else:
+                            new_components.append(
+                                HealthMod.SystemComponentHealth(
+                                    component=comp.component,
+                                    name=comp.name,
+                                    status=HealthMod.HealthStatus.UNHEALTHY,
+                                    message="No active workers but jobs are queued — pipeline may be stalled",
+                                    metrics=comp.metrics,
+                                    last_checked=comp.last_checked,
+                                )
+                            )
+                    else:
+                        new_components.append(comp)
+
+                overall = ObsServiceMod.ObservabilityService._derive_overall_status(new_components)
+
+                snapshot = replace(
+                    snapshot,
+                    components=new_components,
+                    alerts=new_alerts,
+                    overall_status=overall,
+                )
+
+            return snapshot
+        except Exception as e:
+            logger.error("Failed to build operations snapshot: %s", e)
+            try:
+                HealthMod = importlib.import_module("content_creation.platform.observability.health")
+                return HealthMod.DashboardSnapshot(
+                    overall_status=HealthMod.HealthStatus.UNKNOWN,
+                    components=[
+                        HealthMod.SystemComponentHealth(
+                            component=HealthMod.ComponentType.QUEUE,
+                            name="System",
+                            status=HealthMod.HealthStatus.UNKNOWN,
+                            message=f"Failed to build snapshot: {e}",
+                        )
+                    ],
+                )
+            except Exception:
+                return None
+        finally:
+            for conn in [job_conn, lock_conn, event_conn, notif_conn, metrics_conn, audit_conn]:
+                if conn is not None:
+                    try:
+                        conn.close()
+                    except Exception as e:
+                        logger.warning("Failed to close db connection: %s", e)
+            for r in [event_repo, metrics_repo, audit_repo]:
+                if r is not None:
+                    try:
+                        r.close()
+                    except Exception as e:
+                        logger.warning("Failed to close repo: %s", e)
+
+    def get_event_timeline(
+        self,
+        entity_type: Optional[str] = None,
+        entity_id: Optional[str] = None,
+        category: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[Any]:
+        """Query and return event records formatted for UI consumption."""
+        data_dir = self.ctx.base_dir / "data"
+        event_db = data_dir / "events.db"
+        if not event_db.exists():
+            return []
+        try:
+            import importlib
+            EventSqliteMod = importlib.import_module("content_creation.events.store.sqlite_repository")
+            TimelineMod = importlib.import_module("content_creation.events.store.timeline")
+            event_repo = EventSqliteMod.SQLiteEventRepository(str(event_db))
+            try:
+                timeline_svc = TimelineMod.EventTimelineService(event_repo)
+                if entity_type and entity_id:
+                    return list(timeline_svc.entity_history(entity_type, entity_id, limit=limit))
+                elif category:
+                    return list(timeline_svc.recent_events(category=category, page_size=limit).events)
+                else:
+                    return list(timeline_svc.recent_events(page_size=limit).events)
+            finally:
+                event_repo.close()
+        except Exception as e:
+            logger.warning("Failed to query event timeline: %s", e)
+            return []
 
     # --- SSE Streaming Methods ---
 
     @property
     def sse_publisher(self) -> NotificationPublisher:
         """Returns the NotificationPublisher for SSE event publishing."""
-        return self._sse["publisher"]
+        return self._sse["publisher"]  # type: ignore[no-any-return]
 
     @property
     def sse_connection_manager(self) -> ConnectionManager:
         """Returns the ConnectionManager for SSE client tracking."""
-        return self._sse["manager"]
+        return self._sse["manager"]  # type: ignore[no-any-return]
 
     @property
     def sse_port(self) -> int:
         """Returns the SSE server port."""
-        return self._sse["server"].port
+        return int(self._sse["server"].port)
 
-    def publish_notification_event(self, notification) -> None:
+    def publish_notification_event(self, notification: Any) -> None:
         """Publish a notification event to SSE subscribers."""
         self.sse_publisher.on_notification_created(notification)
 
-    def publish_read_event(self, notification_id) -> None:
+    def publish_read_event(self, notification_id: Any) -> None:
         """Publish a notification read event to SSE subscribers."""
         self.sse_publisher.on_notification_read(notification_id)
 
-    def publish_archive_event(self, notification_id) -> None:
-        """Publish a notification archived event to SSE subscribers."""
+    def publish_archive_event(self, notification_id: Any) -> None:
+        """Publish a notification archive event to SSE subscribers."""
         self.sse_publisher.on_notification_archived(notification_id)
