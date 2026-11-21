@@ -21,10 +21,16 @@ src_dir = str(Path(__file__).resolve().parent.parent.parent.parent)
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-from typing import Any
+from typing import Any, Optional
 
 from content_creation.ui.services.client import ServiceClient
 from content_creation.ui.state.session import init_session_state
+
+
+def _build_snapshot(client: Optional[ServiceClient] = None) -> Any:
+    """Build a DashboardSnapshot delegating to the ServiceClient facade."""
+    c = client or ServiceClient()
+    return c.get_operations_snapshot()
 
 
 def _status_color(status: object) -> str:
@@ -248,7 +254,7 @@ def main() -> None:
     st.caption(f"Last refreshed: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
 
     client = ServiceClient()
-    snapshot = client.get_operations_snapshot()
+    snapshot = _build_snapshot(client)
 
     _render_system_health(snapshot)
     st.divider()

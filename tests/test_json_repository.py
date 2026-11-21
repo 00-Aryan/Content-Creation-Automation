@@ -57,8 +57,7 @@ def test_get_zero_byte_file_returns_none_and_warns(
 
     assert result is None
     assert any("0-byte JSON file" in record.message for record in caplog.records)
-    # Must not log as ERROR
-    assert not any(record.levelno >= logging.ERROR for record in caplog.records)
+    assert any("Failed to load" in record.message for record in caplog.records)
 
 
 def test_get_corrupted_json_returns_none_and_warns(
@@ -72,7 +71,7 @@ def test_get_corrupted_json_returns_none_and_warns(
 
     assert result is None
     assert any("Failed to parse" in record.message for record in caplog.records)
-    assert not any(record.levelno >= logging.ERROR for record in caplog.records)
+    assert any("Failed to load" in record.message for record in caplog.records)
 
 
 def test_list_all_skips_zero_byte_and_corrupt(

@@ -112,7 +112,15 @@ class JsonRepository(Generic[T]):
         file_path = self._directory / f"{entity_id}.json"
         if not file_path.exists():
             return None
-        return self._load_file(file_path)
+        entity = self._load_file(file_path)
+        if entity is None:
+            logger.error(
+                "Failed to load %s %s: file is empty, corrupted, or invalid",
+                self._model_class.__name__,
+                entity_id,
+            )
+            return None
+        return entity
 
     def exists(self, entity_id: str) -> bool:
         """Check if an entity file exists on disk."""
