@@ -1,35 +1,35 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "metadata": {
-    "last_updated": "2026-11-21T14:40:00+05:30",
-    "active_branch": "refactor/phase2a-typer-cli",
-    "audited_commit": "c3cb9c7a0f63ad02472f24713df6bded95ee315a",
-    "audited_commit_short": "c3cb9c7",
+    "last_updated": "2026-11-21T18:15:00+05:30",
+    "active_branch": "refactor/phase2b-ui-and-fragments",
+    "audited_commit": "da1d329869f92557248abea8403b6572c863c131",
+    "audited_commit_short": "da1d329",
     "chronicler": "error-taxonomy-chronicler",
     "pytest_baseline": {
-      "passed": 1343,
-      "failed": 18,
+      "passed": 1407,
+      "failed": 6,
       "skipped": 0,
       "xfailed": 0,
-      "duration_seconds": 20.05
+      "duration_seconds": 16.0
     }
   },
   "summary_counts": {
-    "total_observed_errors": 19,
-    "open_errors": 6,
-    "mitigated_errors": 0,
-    "resolved_errors": 13,
+    "total_observed_errors": 23,
+    "open_errors": 5,
+    "mitigated_errors": 1,
+    "resolved_errors": 17,
     "total_anticipated_risks": 5,
-    "qa_covered_errors": 15,
-    "qa_coverage_percentage": 78.95,
+    "qa_covered_errors": 19,
+    "qa_coverage_percentage": 82.61,
     "by_error_class": {
       "TRANSPORT_TRANSIENT": 0,
       "SCHEMA_VALIDATION": 5,
       "DATA_ENCODING_IO": 3,
       "QUALITY_GROUNDING": 3,
-      "STATE_WORKFLOW_CONCURRENCY": 1,
-      "ENVIRONMENT_PLATFORM": 4,
-      "CODE_STATIC_TYPING": 3,
+      "STATE_WORKFLOW_CONCURRENCY": 3,
+      "ENVIRONMENT_PLATFORM": 5,
+      "CODE_STATIC_TYPING": 4,
       "BUDGET_QUOTA_CONFIG": 0
     }
   },
@@ -144,43 +144,41 @@
     },
     {
       "id": "ERR-004",
-      "title": "Notification SSE Server IPv6 Localhost Socket Connect Denial",
+      "title": "Notification SSE Server IPv6 Localhost Socket Connect Denial and Legacy JS Iframe (UI-004)",
       "stage": "Stage 16: Notifications",
       "error_class": "ENVIRONMENT_PLATFORM",
       "severity": "Medium",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": null,
+      "resolved_in_commit": "e1b0246",
       "root_cause_locations": [
         "src/content_creation/notifications/streaming/server.py:254",
+        "src/content_creation/ui/components/sse_client.py:1-42",
         "tests/test_notification_streaming.py:43",
         "tests/test_notification_streaming.py:457"
       ],
       "exception_type": "PermissionError",
-      "symptom": "[WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions",
+      "symptom": "[WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions / broken JS postMessage bridge in embedded iframe; resolved by retiring background SSE server and iframe in favor of native Streamlit @st.fragment polling per ADR-001.",
       "affected_tests": [
-        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_health_endpoint",
-        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_404",
-        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_sse_connection",
-        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_broadcasts_to_connected_client",
-        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_multiple_clients",
-        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_heartbeat",
-        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_client_disconnect",
-        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_health_with_clients",
-        "tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_sse_no_connection_manager",
-        "tests/test_SSEIntegration::test_full_lifecycle",
-        "tests/test_notification_streaming.py:TestSSEIntegration::test_multiple_notifications_stream",
-        "tests/test_notification_streaming.py:TestSSEIntegration::test_read_event_flow"
+        "tests/test_notification_streaming.py (12 fragile socket integration tests retired per ADR-001; unit tests retained)",
+        "tests/test_ui_pages.py:test_all_pages_render_without_exceptions",
+        "tests/test_ui_pages.py:test_notification_badge_and_summary_fragments",
+        "tests/test_ui_client.py:test_deprecated_sse_shims_are_safe_noops",
+        "tests/test_ui_client.py:test_notification_facade_methods"
       ],
       "evidence_sources": [
-        "docs/audit/03-drift-and-defects-register.md:14",
-        "tests/test_notification_streaming.py:43"
+        "docs/audit/03-drift-and-defects-register.md:14 (DEF-004)",
+        "docs/refactor/adrs/001-native-fragments-and-ui-facades.md (ADR-001)",
+        "docs/refactor/tasks/phase2b-ui-and-fragments.md:36-39, 53 (UI-004)",
+        "docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:22, 27-28",
+        "docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:101, 128-130",
+        "docs/audit/qa/refactor-phase2b-ui-and-fragments.md:60, 113-116"
       ],
-      "reproduction_command": "uv run python -m pytest tests/test_notification_streaming.py -k test_server_health_endpoint --no-cov",
+      "reproduction_command": "uv run python -m pytest tests/test_notification_streaming.py -o addopts=\"\" -p no:cov",
       "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
-      "qa_coverage_status": "PARTIAL",
-      "qa_test_directive": "Update _local_sockets_available in test_notification_streaming.py to verify socket connect() to 127.0.0.1 and replace localhost with 127.0.0.1 in HTTPConnection calls."
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Verify tests/test_notification_streaming.py runs cleanly with 0 failures and tests/test_ui_pages.py asserts @st.fragment notification polling badge renders cleanly without background SSE server."
     },
     {
       "id": "ERR-005",
@@ -222,30 +220,59 @@
     },
     {
       "id": "ERR-006",
-      "title": "0-Byte Storyboard JSON Truncation Triggers JSONDecodeError in Asset Generation",
+      "title": "0-Byte Storyboard JSON Truncation Triggers JSONDecodeError in Asset Generation and Storyboard Loader (UI-001)",
       "stage": "Stage 6: Assets",
       "error_class": "DATA_ENCODING_IO",
       "severity": "High",
-      "status": "OPEN",
+      "status": "RESOLVED",
       "first_seen_commit": "5bbee84",
       "mitigated_in_commit": null,
-      "resolved_in_commit": null,
+      "resolved_in_commit": "f2e8c78",
       "root_cause_locations": [
-        "src/content_creation/platform/storage/json_repository.py:34-36",
-        "src/content_creation/platform/storage/json_repository.py:59-64",
-        "src/content_creation/application/asset_generation_service.py:66-72"
+        "src/content_creation/platform/storage/json_repository.py:34-45",
+        "src/content_creation/platform/storage/json_repository.py:65-75",
+        "src/content_creation/ui/pages/4_storyboard.py:78-105",
+        "src/content_creation/ui/pages/5_asset_workshop.py:120-135"
       ],
       "exception_type": "json.decoder.JSONDecodeError",
-      "symptom": "Failed to load Storyboard <topic_id>.json: Expecting value: line 1 column 1 (char 0), causing AssetGenerationService to skip asset generation due to Storyboard Presence Gate. Creation origin of 0-byte truncation remains unconfirmed in storage backend; unhandled 0-byte read occurs in json_repository.py:59-64.",
-      "affected_tests": [],
+      "symptom": "Failed to load Storyboard <topic_id>.json: Expecting value: line 1 column 1 (char 0), crashing UI storyboard page and causing AssetGenerationService to skip asset generation. Resolved in JsonRepository with st_size == 0 guard, UTF-8/cp1252 fallback, atomic os.replace temp write, and client.storyboard_file_exists() UI diagnostics.",
+      "affected_tests": [
+        "tests/test_json_repository.py:test_load_file_zero_byte_warning_returns_none",
+        "tests/test_json_repository.py:test_get_storyboard_corrupt_logs_error",
+        "tests/test_json_repository.py:test_atomic_write_creates_valid_json",
+        "tests/test_manifest.py:TestStoryboardFaultInjectionAndUpstreamProbes::test_load_storyboard_handles_empty_or_truncated_file",
+        "tests/test_ui_pages.py:test_all_pages_render_without_exceptions",
+        "tests/test_json_repository.py:test_get_zero_byte_file_returns_none_and_warns",
+        "tests/test_json_repository.py:test_get_corrupted_json_returns_none_and_warns",
+        "tests/test_json_repository.py:test_list_all_skips_zero_byte_and_corrupt",
+        "tests/test_json_repository.py:test_cp1252_fallback_decoding",
+        "tests/test_json_repository.py:test_exists_on_zero_byte_file_vs_get",
+        "tests/test_json_repository.py:test_get_truncated_json_returns_none",
+        "tests/test_json_repository.py:test_get_non_object_json_returns_none",
+        "tests/test_json_repository.py:test_get_pydantic_validation_error_returns_none",
+        "tests/test_json_repository.py:test_utf8_multibyte_unicode_roundtrip",
+        "tests/test_json_repository.py:test_cp1252_fallback_all_common_smart_punctuation",
+        "tests/test_json_repository.py:test_binary_garbage_unparseable_returns_none",
+        "tests/test_json_repository.py:test_list_all_nonexistent_directory_returns_empty",
+        "tests/test_json_repository.py:test_load_file_nonexistent_returns_none",
+        "tests/test_json_repository.py:test_cp1252_read_exception_handling",
+        "tests/test_json_repository.py:test_filesystem_oserror_handling_in_load",
+        "tests/test_ui_pages.py:test_storyboard_page_handles_corrupt_artifact_gracefully",
+        "tests/test_ui_pages.py:test_asset_workshop_handles_corrupt_storyboard",
+        "tests/test_ui_client.py:test_storyboard_file_exists_and_get_storyboard_matrix"
+      ],
       "evidence_sources": [
         "Live pipeline smoke test: generate-assets --top 2",
-        "src/content_creation/platform/storage/json_repository.py:63"
+        "docs/refactor/tasks/phase2b-ui-and-fragments.md:40-44, 50 (UI-001)",
+        "docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:18, 25, 43-47",
+        "docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:99, 120-125",
+        "Note: UI-005 tracks pending operator removal of 5 pre-existing 0-byte storyboards on disk",
+        "docs/audit/qa/refactor-phase2b-ui-and-fragments.md:17-36, 51, 55, 57, 117-121"
       ],
-      "reproduction_command": "uv run python -c \"from pathlib import Path; p = Path('data/storyboards/test.json'); p.parent.mkdir(parents=True, exist_ok=True); p.write_text(''); from content_creation.storage.local import LocalStorage; s = LocalStorage(Path('.')); print(s.get_storyboard('test'))\"",
+      "reproduction_command": "uv run python -m pytest tests/test_json_repository.py tests/test_manifest.py -k test_load_storyboard_handles_empty_or_truncated_file -o addopts=\"\" -p no:cov",
       "recommended_runtime_policy": "DEFENSIVE_IO_FIX",
-      "qa_coverage_status": "UNCOVERED",
-      "qa_test_directive": "Add test_load_storyboard_handles_empty_or_truncated_file verifying that 0-byte or corrupted JSON files trigger defensive handling or clean error logging without aborting asset generation."
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Verify tests/test_json_repository.py asserts 0-byte and corrupted storyboards log structured warnings and return None, while tests/test_ui_pages.py asserts corrupted files display clear UI diagnostic warnings rather than unhandled JSONDecodeError crashes."
     },
     {
       "id": "ERR-007",
@@ -631,12 +658,18 @@
         "tests/test_phase1b_qa.py:test_list_and_get_scored_handles_zero_byte_file",
         "tests/test_phase1b_qa.py:test_list_and_get_analytics_handles_zero_byte_file",
         "tests/test_phase1b_qa.py:test_list_staged_handles_corrupt_non_dict_json",
-        "tests/test_phase1b_qa.py:test_save_staged_deduplication_atomic_mode_x"
+        "tests/test_phase1b_qa.py:test_save_staged_deduplication_atomic_mode_x",
+        "tests/test_json_repository.py:test_save_atomic_and_get",
+        "tests/test_json_repository.py:test_save_atomic_failure_cleans_up_tmp_file",
+        "tests/test_json_repository.py:test_save_creates_nested_directory_if_missing",
+        "tests/test_json_repository.py:test_save_unlink_oserror_suppression"
       ],
       "evidence_sources": [
         "docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:114-117",
         "Live LocalStorage.list_staged() scan",
-        "docs/audit/qa/fix-phase1b-data-and-schemas.md:25-26"
+        "docs/audit/qa/fix-phase1b-data-and-schemas.md:25-26",
+        "Note: UI-005 tracks pending operator removal of 26 pre-existing 0-byte staged JSON files in data/staged/",
+        "docs/audit/qa/refactor-phase2b-ui-and-fragments.md:16, 30-31, 35, 122-123"
       ],
       "reproduction_command": "uv run python -c \"from content_creation.storage.local import LocalStorage; from pathlib import Path; s = LocalStorage(Path('.')); print(s.get_staged('05738f6c55b7147880500b666d1a96e73b80de79c9a4453c521b0ffc55549d70'))\"",
       "recommended_runtime_policy": "DEFENSIVE_IO_FIX",
@@ -667,6 +700,142 @@
       "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
       "qa_coverage_status": "UNCOVERED",
       "qa_test_directive": "Configure pytest invocations to pass -o addopts='' -p no:cacheprovider or specify distinct COVERAGE_FILE environment variable under Windows to prevent lock contention on workspace root."
+    },
+    {
+      "id": "ERR-020",
+      "title": "Operations Dashboard Direct SQLite Connection and Inline DDL Schema Violations (UI-002)",
+      "stage": "UI Presentation Tier",
+      "error_class": "STATE_WORKFLOW_CONCURRENCY",
+      "severity": "High",
+      "status": "RESOLVED",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": "c8acfb1",
+      "root_cause_locations": [
+        "src/content_creation/ui/pages/6_operations_dashboard.py:24-286"
+      ],
+      "exception_type": "sqlite3.OperationalError",
+      "symptom": "Operations dashboard directly executed sqlite3.connect() on 6 backend databases (jobs.db, locks.db, events.db, notifications.db, metrics.db, audit.db), executed inline DDL migrations (create_*_schema), and instantiated 11 internal infrastructure classes on every page render, producing 18 AST layer boundary violations and high risk of Windows SQLite file lock contention",
+      "affected_tests": [
+        "tests/test_operations_dashboard.py",
+        "tests/test_ui_client.py:test_get_operations_snapshot",
+        "tests/test_ui_pages.py:test_all_pages_render_without_exceptions",
+        "tests/test_ui_pages.py:test_operations_dashboard_ast_zero_sqlite_layer_violations",
+        "tests/test_ui_pages.py:test_operations_dashboard_snapshot_and_badge_helpers",
+        "tests/test_ui_client.py:test_get_operations_snapshot_worker_idle_healthy_when_no_jobs",
+        "tests/test_ui_client.py:test_get_operations_snapshot_with_populated_subsystems",
+        "tests/test_ui_client.py:test_get_operations_snapshot_corrupted_db_fallback",
+        "tests/test_ui_client.py:test_get_operations_snapshot_critical_failure_fallback"
+      ],
+      "evidence_sources": [
+        "docs/audit/02-dependencies-and-boundaries.md:38",
+        "docs/refactor/adrs/001-native-fragments-and-ui-facades.md:14-18 (UI-002)",
+        "docs/refactor/tasks/phase2b-ui-and-fragments.md:31-35, 51",
+        "docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:20, 38-42",
+        "docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:83-85, 100",
+        "docs/audit/qa/refactor-phase2b-ui-and-fragments.md:39, 45-48, 62-63, 124-127"
+      ],
+      "reproduction_command": "uv run python -m pytest tests/test_operations_dashboard.py tests/test_ui_client.py -o addopts=\"\" -p no:cov",
+      "recommended_runtime_policy": "DETERMINISTIC_STATE_FIX",
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Assert AST scan confirms 0 direct sqlite3, repository, or DDL imports in 6_operations_dashboard.py and test_ui_client.py validates snapshot coordination without lock contention."
+    },
+    {
+      "id": "ERR-021",
+      "title": "Timeline Component Direct Backend SQLite Persistence Coupling (UI-003)",
+      "stage": "UI Presentation Tier",
+      "error_class": "STATE_WORKFLOW_CONCURRENCY",
+      "severity": "Medium",
+      "status": "RESOLVED",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": "c8acfb1",
+      "root_cause_locations": [
+        "src/content_creation/ui/components/timeline.py:13-68"
+      ],
+      "exception_type": "ArchitecturalLayerViolation",
+      "symptom": "Timeline presentation component directly instantiated EventTimelineService and imported backend EventRecord, bypassing ServiceClient and coupling UI rendering to SQLite event store internals",
+      "affected_tests": [
+        "tests/test_ui_client.py:test_get_event_timeline",
+        "tests/test_ui_pages.py:test_all_pages_render_without_exceptions",
+        "tests/test_ui_client.py:test_get_event_timeline_empty",
+        "tests/test_ui_client.py:test_get_event_timeline_with_events",
+        "tests/test_ui_client.py:test_get_event_timeline_filtering_and_limits",
+        "tests/test_ui_client.py:test_get_event_timeline_corrupt_db_returns_empty_list",
+        "tests/test_ui_components/test_timeline.py:test_timeline_component_rendering"
+      ],
+      "evidence_sources": [
+        "docs/refactor/adrs/001-native-fragments-and-ui-facades.md:14-18 (UI-003)",
+        "docs/refactor/tasks/phase2b-ui-and-fragments.md:33, 52",
+        "docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:21",
+        "docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:83-85, 100",
+        "docs/audit/qa/refactor-phase2b-ui-and-fragments.md:40-42, 49-50, 128-131"
+      ],
+      "reproduction_command": "uv run python -m pytest tests/test_ui_client.py -k test_get_event_timeline -o addopts=\"\" -p no:cov",
+      "recommended_runtime_policy": "DETERMINISTIC_STATE_FIX",
+      "qa_coverage_status": "COVERED",
+      "qa_test_directive": "Assert timeline component accepts presentation-ready event DTOs without importing backend EventRecord or SQLite event repositories."
+    },
+    {
+      "id": "ERR-022",
+      "title": "Streamlit Runtime Deprecated Parameters and Legacy Component Warnings (UI-006)",
+      "stage": "UI Presentation Tier",
+      "error_class": "CODE_STATIC_TYPING",
+      "severity": "Low",
+      "status": "MITIGATED",
+      "first_seen_commit": "5bbee84",
+      "mitigated_in_commit": "4dc3426",
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        "src/content_creation/ui/pages/4_storyboard.py:145",
+        "src/content_creation/ui/pages/5_asset_workshop.py:79, 126, 140, 162, 178, 226, 276",
+        "src/content_creation/ui/app.py:84",
+        "src/content_creation/ui/pages/1_topic_collection.py",
+        "src/content_creation/ui/pages/2_topic_pipeline.py",
+        "src/content_creation/ui/pages/3_brief_viewer.py"
+      ],
+      "exception_type": "StreamlitDeprecationWarning",
+      "symptom": "Streamlit runtime emits deprecation warnings for use_container_width=True (deprecated in Streamlit 1.58 in favor of width='stretch') and st.components.v1.html (scheduled for removal). Mitigated on app.py and pages 4, 5, 6; pages 1-3 cosmetic parameter cleanup deferred to Phase 2C.",
+      "affected_tests": [
+        "tests/test_ui_pages.py:test_all_pages_render_without_exceptions"
+      ],
+      "evidence_sources": [
+        "docs/refactor/tasks/phase2b-ui-and-fragments.md:45-47, 54 (UI-006)",
+        "docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:23, 25-26, 89",
+        "docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:103, 151",
+        "docs/audit/qa/refactor-phase2b-ui-and-fragments.md:54, 132-135"
+      ],
+      "reproduction_command": "uv run python -m pytest tests/test_ui_pages.py -o addopts=\"\" -p no:cov",
+      "recommended_runtime_policy": "CODE_REFACTOR_FIX",
+      "qa_coverage_status": "PARTIAL",
+      "qa_test_directive": "Headless AppTest verifies refactored pages 4, 5, 6 and app.py render without deprecation warnings; complete parameter migration on pages 1-3 during Phase 2C."
+    },
+    {
+      "id": "ERR-023",
+      "title": "Windows Pytest Cache Lock Contention on .pytest_cache During Rapid Invocations",
+      "stage": "Infra / Tooling",
+      "error_class": "ENVIRONMENT_PLATFORM",
+      "severity": "Low",
+      "status": "OPEN",
+      "first_seen_commit": "1904b6d",
+      "mitigated_in_commit": null,
+      "resolved_in_commit": null,
+      "root_cause_locations": [
+        ".venv/Lib/site-packages/_pytest/cacheprovider.py:475",
+        ".venv/Lib/site-packages/_pytest/cacheprovider.py:429"
+      ],
+      "exception_type": "PytestCacheWarning",
+      "symptom": "PytestCacheWarning: cache could not write path ... [Errno 13] Permission denied: '[USER_HOME]/.../.pytest_cache/v/cache/nodeids' and 'lastfailed' when pytest processes run consecutively or terminate rapidly under Windows NTFS file locking",
+      "affected_tests": [],
+      "evidence_sources": [
+        "Live pytest baseline sweep output on refactor/phase2b-ui-and-fragments",
+        "docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:49-52 (Error #3)",
+        "docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:164"
+      ],
+      "reproduction_command": "uv run python -m pytest -o addopts=\"\" -p no:cov -q",
+      "recommended_runtime_policy": "CROSS_PLATFORM_GUARD",
+      "qa_coverage_status": "UNCOVERED",
+      "qa_test_directive": "Document standard Windows pytest invocation flags in developer docs and configure test scripts to use isolated cache roots or -p no:cacheprovider when rapid execution is required."
     }
   ],
   "anticipated_risks": [

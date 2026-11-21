@@ -17,10 +17,11 @@ if src_dir not in sys.path:
 from content_creation.ui.components.status import render_header, render_api_health, render_metric_cards
 from content_creation.ui.components.notification_panel import (
     render_notification_badge,
+    render_notification_badge_fragment,
     render_notification_center,
     render_notification_summary_panel,
+    render_notification_summary_fragment,
 )
-from content_creation.ui.components.sse_client import render_sse_client, render_notification_badge_live
 from content_creation.ui.services.client import ServiceClient
 from content_creation.ui.state.session import init_session_state
 
@@ -41,21 +42,11 @@ def main() -> None:
     # 3. Sidebar status checking
     render_api_health(client.is_generation_available())
 
-    # 4. SSE client connection (real-time updates)
-    try:
-        render_sse_client(sse_port=client.sse_port)
-    except Exception:
-        pass
-
-    # 5. Sidebar notification badge (live via SSE)
-    try:
-        unread_count = client.get_notification_unread_count()
-        st.session_state["notification_unread_count"] = unread_count
-        render_notification_badge_live(unread_count, sse_port=client.sse_port)
-    except Exception:
-        render_notification_badge(0)
+    # 4. Sidebar notification badge (live via native 5s fragment polling per ADR-001)
+    with st.sidebar:
+        render_notification_badge_fragment(client)
     
-    # 6. Render main layout
+    # 5. Render main layout
     render_header()
     try:
         render_metric_cards(client.get_metric_counts())
@@ -63,11 +54,8 @@ def main() -> None:
         st.error(f"Error querying pipeline metrics: {e}")
         render_metric_cards({})
 
-    # 6. Notification Summary Panel
-    try:
-        render_notification_summary_panel(client.notification_service)
-    except Exception as e:
-        st.warning(f"Notification summary unavailable: {e}")
+    # 6. Notification Summary Panel (live via native 5s fragment polling per ADR-001)
+    render_notification_summary_fragment(client)
     
     st.markdown("---")
     st.markdown("### 🎛️ E2E Pipeline Orchestration")
@@ -81,7 +69,7 @@ def main() -> None:
         )
         top_n = st.number_input("Top items", min_value=1, max_value=20, value=5, step=1)
         source_filter = st.text_input("Source ID Filter (Optional)", value="")
-        run_btn = st.button("▶ Run Full Pipeline", type="primary", use_container_width=True)
+        run_btn = st.button("▶ Run Full Pipeline", type="primary", width="stretch")
         
     with col2:
         if run_btn:
@@ -160,7 +148,7 @@ def main() -> None:
                     row[col_name] = status_emojis.get(art_state.status, "⚪ Pending")
             matrix_data.append(row)
             
-        st.dataframe(matrix_data, use_container_width=True)
+        st.dataframe(matrix_data, width="stretch")
     else:
         st.info("No workflow state records found.")
 

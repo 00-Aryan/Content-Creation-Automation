@@ -77,6 +77,7 @@ def main() -> None:
     # Resolve artifacts
     ci = client.get_content_intelligence(topic_id)
     storyboard = client.get_storyboard(topic_id)
+    sb_exists = client.storyboard_file_exists(topic_id)
     
     # ------------------ ACTIONS ------------------
     col_actions1, col_actions2 = st.columns(2)
@@ -84,7 +85,7 @@ def main() -> None:
     with col_actions1:
         if not ci:
             st.warning("⚠️ Content Intelligence is missing.")
-            gen_ci_btn = st.button("🎨 Generate Content Intelligence", type="primary", use_container_width=True)
+            gen_ci_btn = st.button("🎨 Generate Content Intelligence", type="primary", width="stretch")
             if gen_ci_btn:
                 if not client.is_generation_available():
                     st.error("Cannot generate content intelligence: Generation Service credentials are not configured on the backend.")
@@ -125,8 +126,11 @@ def main() -> None:
             
     with col_actions2:
         if not storyboard:
-            st.warning("⚠️ Storyboard is missing.")
-            gen_sb_btn = st.button("📋 Generate Storyboards", type="primary", use_container_width=True)
+            if sb_exists:
+                st.warning(f"⚠️ Storyboard file is corrupted or empty (0-byte) on disk (ID: {topic_id})")
+            else:
+                st.info("ℹ️ Storyboard not yet generated for this topic")
+            gen_sb_btn = st.button("📋 Generate Storyboards", type="primary", width="stretch")
             if gen_sb_btn:
                 if not client.is_generation_available():
                     st.error("Cannot generate storyboards: Generation Service credentials are not configured on the backend.")
@@ -266,7 +270,7 @@ def main() -> None:
                             "Rejected": ReviewStatus.REJECTED,
                         }
                         st.warning(f"⚠️ You are about to set this storyboard to **{sb_review_action}**.")
-                        if st.button("Apply Storyboard Review Decision", type="primary", use_container_width=True):
+                        if st.button("Apply Storyboard Review Decision", type="primary", width="stretch"):
                             sb_decision = StoryboardDecision(
                                 status=sb_status_map[sb_review_action],
                                 notes=sb_review_notes if sb_review_notes else None,
@@ -313,7 +317,10 @@ def main() -> None:
                     else:
                         st.info("No review history recorded yet.")
             else:
-                st.info("No Storyboard narrative data display available.")
+                if sb_exists:
+                    st.warning(f"⚠️ Storyboard file is corrupted or empty (0-byte) on disk (ID: {topic_id})")
+                else:
+                    st.info("ℹ️ Storyboard not yet generated for this topic")
     else:
         st.info("Select a topic and run the generators above to view the intelligence and storyboard dashboard.")
 

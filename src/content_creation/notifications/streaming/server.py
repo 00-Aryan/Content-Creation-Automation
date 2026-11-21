@@ -239,6 +239,7 @@ class NotificationSSEServer:
     """SSE server for real-time notification streaming.
 
     Runs as a background daemon thread. Serves SSE events on a configurable port.
+    Deprecated per ADR-001 in favor of native Streamlit @st.fragment polling.
 
     Usage:
         server = NotificationSSEServer(port=8502)
@@ -251,9 +252,15 @@ class NotificationSSEServer:
         self,
         connection_manager: Optional[ConnectionManager] = None,
         port: int = 8502,
-        host: str = "0.0.0.0",
+        host: str = "127.0.0.1",
         event_store: Optional[object] = None,
     ) -> None:
+        import warnings
+        warnings.warn(
+            "NotificationSSEServer is deprecated per ADR-001 in favor of native Streamlit fragment polling.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._connection_manager = connection_manager or ConnectionManager()
         self._port = port
         self._host = host

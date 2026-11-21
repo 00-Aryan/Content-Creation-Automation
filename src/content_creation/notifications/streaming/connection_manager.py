@@ -43,6 +43,12 @@ class ConnectionManager:
     CLIENT_TIMEOUT_SECONDS = 90
 
     def __init__(self) -> None:
+        import warnings
+        warnings.warn(
+            "ConnectionManager is deprecated per ADR-001 in favor of native Streamlit fragment polling.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self._lock = threading.RLock()
         self._clients: OrderedDict[str, ClientInfo] = OrderedDict()
         self._event_counter: int = 0
