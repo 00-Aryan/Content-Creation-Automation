@@ -1,13 +1,15 @@
 # Error Taxonomy & Failure Catalog: Content Creation Automation
 
 ## 1. Catalog Metadata & Health Overview
-- **Last Updated:** `2026-11-21T14:40:00+05:30`
-- **Active Branch:** `refactor/phase2a-typer-cli`
-- **Audited Commit (SHA):** `c3cb9c7` (`c3cb9c7a0f63ad02472f24713df6bded95ee315a`)
-- **Pytest Sweep Baseline:** `1343 passed, 18 failed, 0 skipped, 0 xfailed in 20.05s`
-- **Total Observed Errors (`ERR-xxx`):** `19` (`6 OPEN`, `0 MITIGATED`, `13 RESOLVED`)
+- **Last Updated:** `2026-11-21T17:45:00+05:30`
+- **Active Branch:** `refactor/phase2b-ui-and-fragments`
+- **Audited Commit (SHA):** `1904b6d` (`1904b6d9f4fffa186b9ec80af3c4b5e65c3f7f50`)
+- **Pytest Sweep Baseline:** `1366 passed, 6 failed, 0 skipped, 0 xfailed in 15.14s`
+- **Total Observed Errors (`ERR-xxx`):** `23` (`5 OPEN`, `1 MITIGATED`, `17 RESOLVED`)
 - **Total Anticipated Risks (`RISK-xxx`):** `5`
-- **QA Coverage Ratio:** `15/19 (78.95%) Covered` (`1 Partial`, `3 Uncovered`)
+- **QA Coverage Ratio:** `19/23 (82.61%) Covered` (`1 Partial`, `3 Uncovered`)
+- **Pending Operator Hygiene Action (`UI-005`):** 26 pre-existing 0-byte staged files (`data/staged/*.json`) and 5 pre-existing 0-byte storyboards (`data/storyboards/*.json`) safely guarded in code; pending operator execution of PowerShell cleanup: `Get-ChildItem -Path 'data/staged/*.json', 'data/storyboards/*.json' | Where-Object { $_.Length -eq 0 } | Remove-Item -Force`.
+- **Runtime Friction Note:** Windows pytest cache file locking (`.pytest_cache\v\cache\nodeids`) observed under rapid consecutive pytest runs; mitigated via `-p no:cov` / `-o addopts=""`.
 
 ---
 
@@ -31,22 +33,23 @@
 | Stage 14: Audit | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | Stage 15: Jobs | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | Stage 16: Notifications | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 1 |
+| UI Presentation Tier | 0 | 0 | 0 | 0 | 2 | 0 | 1 | 0 | 3 |
 | CLI Entrypoint | 0 | 0 | 0 | 0 | 0 | 0 | 3 | 0 | 3 |
-| Infra / Tooling | 0 | 0 | 0 | 0 | 0 | 3 | 0 | 0 | 3 |
-| **Total** | **0** | **5** | **3** | **3** | **1** | **4** | **3** | **0** | **19** |
+| Infra / Tooling | 0 | 0 | 0 | 0 | 0 | 4 | 0 | 0 | 4 |
+| **Total** | **0** | **5** | **3** | **3** | **3** | **5** | **4** | **0** | **23** |
 
 ---
 
 ## 3. Master Summary Ledger
 
 | ID | Title | Stage / Scope | Error Class | Severity | Status | QA Coverage | First Seen | Resolved In |
-|:---|:---|:---|:---|:---|:---|:---|:---|:---|
+|:---|:---|:---|:---|:---|:---|:---|:---|:---:|
 | `ERR-001` | CLI Main Scope Local sys and timedelta Variable Shadowing | CLI Entrypoint | `CODE_STATIC_TYPING` | High | `RESOLVED` | `COVERED` | `5bbee84` | `96ec8d7` |
 | `ERR-002` | Event Store Replay Non-Deterministic UUID String Tie-Breaker | Stage 12: Event Store | `STATE_WORKFLOW_CONCURRENCY` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `74a0031` |
 | `ERR-003` | Issue Runner Subprocess Spawns POSIX bash on Windows Hosts | Infra / Tooling | `ENVIRONMENT_PLATFORM` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `91cd668` |
-| `ERR-004` | Notification SSE Server IPv6 Localhost Socket Connect Denial | Stage 16: Notifications | `ENVIRONMENT_PLATFORM` | Medium | `OPEN` | `PARTIAL` | `5bbee84` | - |
+| `ERR-004` | Notification SSE Server IPv6 Localhost Socket Connect Denial and Legacy JS Iframe (UI-004) | Stage 16: Notifications | `ENVIRONMENT_PLATFORM` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `e1b0246` |
 | `ERR-005` | Brief Generator Fallback Leaks ReviewStatus String into Recommended Formats | Stage 3: Briefs | `QUALITY_GROUNDING` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `775cea2` |
-| `ERR-006` | 0-Byte Storyboard JSON Truncation Triggers JSONDecodeError in Asset Generation | Stage 6: Assets | `DATA_ENCODING_IO` | High | `OPEN` | `UNCOVERED` | `5bbee84` | - |
+| `ERR-006` | 0-Byte Storyboard JSON Truncation Triggers JSONDecodeError in Asset Generation and Storyboard Loader (UI-001) | Stage 6: Assets | `DATA_ENCODING_IO` | High | `RESOLVED` | `COVERED` | `5bbee84` | `f2e8c78` |
 | `ERR-007` | Scoring Component Float Rounding Drift Violates Score Consistency Invariant | Stage 2: Scoring | `QUALITY_GROUNDING` | Low | `RESOLVED` | `COVERED` | `5bbee84` | `b2ebad1` |
 | `ERR-008` | Teaser RSS Feed Items Discarded Prematurely by Insufficient Text Filter | Stage 2: Scoring | `QUALITY_GROUNDING` | Medium | `OPEN` | `UNCOVERED` | `5bbee84` | - |
 | `ERR-009` | CLI Subcommand Drift vs Documentation for Content Intelligence and Storyboards | CLI Entrypoint | `CODE_STATIC_TYPING` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `b69115d` |
@@ -60,6 +63,10 @@
 | `ERR-017` | AssetCheck Review Status Unvalidated String Leak in Dry Run | Stage 10: Dry Run | `SCHEMA_VALIDATION` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `3846d2d` |
 | `ERR-018` | 0-Byte Staged JSON Truncation Triggers JSONDecodeError in Ingestion Staged Store | Stage 1: Ingestion | `DATA_ENCODING_IO` | Medium | `OPEN` | `COVERED` | `f6c3f43` | - |
 | `ERR-019` | Windows File Lock Contention on .coverage Database During Pytest Invocations | Infra / Tooling | `ENVIRONMENT_PLATFORM` | Low | `OPEN` | `UNCOVERED` | `f6c3f43` | - |
+| `ERR-020` | Operations Dashboard Direct SQLite Connection and Inline DDL Schema Violations (UI-002) | UI Presentation Tier | `STATE_WORKFLOW_CONCURRENCY` | High | `RESOLVED` | `COVERED` | `5bbee84` | `c8acfb1` |
+| `ERR-021` | Timeline Component Direct Backend SQLite Persistence Coupling (UI-003) | UI Presentation Tier | `STATE_WORKFLOW_CONCURRENCY` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `c8acfb1` |
+| `ERR-022` | Streamlit Runtime Deprecated Parameters and Legacy Component Warnings (UI-006) | UI Presentation Tier | `CODE_STATIC_TYPING` | Low | `MITIGATED` | `PARTIAL` | `5bbee84` | - |
+| `ERR-023` | Windows Pytest Cache Lock Contention on .pytest_cache During Rapid Invocations | Infra / Tooling | `ENVIRONMENT_PLATFORM` | Low | `OPEN` | `UNCOVERED` | `1904b6d` | - |
 
 ---
 
@@ -136,31 +143,21 @@
 
 ---
 
-### `ERR-004`: Notification SSE Server IPv6 Localhost Socket Connect Denial
+### `ERR-004`: Notification SSE Server IPv6 Localhost Socket Connect Denial and Legacy JS Iframe (UI-004)
 - **Stage / Scope:** Stage 16: Notifications
 - **Error Class:** `ENVIRONMENT_PLATFORM`
 - **Severity:** Medium
-- **Status:** `OPEN`
-- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:14`, `tests/test_notification_streaming.py:43`
-- **Exception / Symptom:** [WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions
-- **Root Cause Location:** `src/content_creation/notifications/streaming/server.py:254`, `tests/test_notification_streaming.py:43`, `tests/test_notification_streaming.py:457`
+- **Status:** `RESOLVED` (`resolved_in_commit: e1b0246`)
+- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:14 (DEF-004)`, `docs/refactor/adrs/001-native-fragments-and-ui-facades.md (ADR-001)`, `docs/refactor/tasks/phase2b-ui-and-fragments.md:36-39, 53 (UI-004)`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:22, 27-28`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:101, 128-130`
+- **Exception / Symptom:** [WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions / broken JS postMessage bridge in embedded iframe; resolved by retiring background SSE server and iframe in favor of native Streamlit @st.fragment polling per ADR-001.
+- **Root Cause Location:** `src/content_creation/notifications/streaming/server.py:254`, `src/content_creation/ui/components/sse_client.py:1-42`, `tests/test_notification_streaming.py:43`, `tests/test_notification_streaming.py:457`
 - **Affected Tests / Callsites:**
-  - `tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_health_endpoint`
-  - `tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_404`
-  - `tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_sse_connection`
-  - `tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_broadcasts_to_connected_client`
-  - `tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_multiple_clients`
-  - `tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_heartbeat`
-  - `tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_client_disconnect`
-  - `tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_health_with_clients`
-  - `tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_sse_no_connection_manager`
-  - `tests/test_SSEIntegration::test_full_lifecycle`
-  - `tests/test_notification_streaming.py:TestSSEIntegration::test_multiple_notifications_stream`
-  - `tests/test_notification_streaming.py:TestSSEIntegration::test_read_event_flow`
-- **Reproduction Command:** `uv run python -m pytest tests/test_notification_streaming.py -k test_server_health_endpoint --no-cov`
+  - `tests/test_notification_streaming.py (12 fragile socket integration tests retired per ADR-001; unit tests retained)`
+  - `tests/test_ui_pages.py:test_all_pages_render_without_exceptions`
+- **Reproduction Command:** `uv run python -m pytest tests/test_notification_streaming.py -o addopts="" -p no:cov`
 - **Recommended Runtime Policy:** `CROSS_PLATFORM_GUARD`
-- **QA Coverage Status:** `PARTIAL`
-- **QA Test Directive:** Update _local_sockets_available in test_notification_streaming.py to verify socket connect() to 127.0.0.1 and replace localhost with 127.0.0.1 in HTTPConnection calls.
+- **QA Coverage Status:** `COVERED`
+- **QA Test Directive:** Verify tests/test_notification_streaming.py runs cleanly with 0 failures and tests/test_ui_pages.py asserts @st.fragment notification polling badge renders cleanly without background SSE server.
 
 ---
 
@@ -168,7 +165,7 @@
 - **Stage / Scope:** Stage 3: Briefs
 - **Error Class:** `QUALITY_GROUNDING`
 - **Severity:** Medium
-- **Status:** `RESOLVED` (`resolved_in_commit: 775cea2`, `mitigated_in_commit: aabeeeb`)
+- **Status:** `RESOLVED` (`resolved_in_commit: 775cea2`) (`mitigated_in_commit: aabeeeb`)
 - **Source Evidence:** `docs/audit/handoffs/fix-phase1a-core-defects.md:26-30, 97-100`, `docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:93-97, 127-130`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:18-19, 81-84`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:78-81`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:16-17`
 - **Exception / Symptom:** Brief fallback sets recommended_formats=['needs_review'], causing downstream manifest builder to warn on unknown format and fallback to short_video
 - **Root Cause Location:** `src/content_creation/generation/brief.py:71`, `src/content_creation/manifest.py:189-195`
@@ -188,20 +185,24 @@
 
 ---
 
-### `ERR-006`: 0-Byte Storyboard JSON Truncation Triggers JSONDecodeError in Asset Generation
+### `ERR-006`: 0-Byte Storyboard JSON Truncation Triggers JSONDecodeError in Asset Generation and Storyboard Loader (UI-001)
 - **Stage / Scope:** Stage 6: Assets
 - **Error Class:** `DATA_ENCODING_IO`
 - **Severity:** High
-- **Status:** `OPEN`
-- **Source Evidence:** `Live pipeline smoke test: generate-assets --top 2`, `src/content_creation/platform/storage/json_repository.py:63`
-- **Exception / Symptom:** Failed to load Storyboard <topic_id>.json: Expecting value: line 1 column 1 (char 0), causing AssetGenerationService to skip asset generation due to Storyboard Presence Gate. Creation origin of 0-byte truncation remains unconfirmed in storage backend; unhandled 0-byte read occurs in json_repository.py:59-64.
-- **Root Cause Location:** `src/content_creation/platform/storage/json_repository.py:34-36`, `src/content_creation/platform/storage/json_repository.py:59-64`, `src/content_creation/application/asset_generation_service.py:66-72`
+- **Status:** `RESOLVED` (`resolved_in_commit: f2e8c78`)
+- **Source Evidence:** `Live pipeline smoke test: generate-assets --top 2`, `docs/refactor/tasks/phase2b-ui-and-fragments.md:40-44, 50 (UI-001)`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:18, 25, 43-47`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:99, 120-125`, `Note: UI-005 tracks pending operator removal of 5 pre-existing 0-byte storyboards on disk`
+- **Exception / Symptom:** Failed to load Storyboard <topic_id>.json: Expecting value: line 1 column 1 (char 0), crashing UI storyboard page and causing AssetGenerationService to skip asset generation. Resolved in JsonRepository with st_size == 0 guard, UTF-8/cp1252 fallback, atomic os.replace temp write, and client.storyboard_file_exists() UI diagnostics.
+- **Root Cause Location:** `src/content_creation/platform/storage/json_repository.py:34-45`, `src/content_creation/platform/storage/json_repository.py:65-75`, `src/content_creation/ui/pages/4_storyboard.py:78-105`, `src/content_creation/ui/pages/5_asset_workshop.py:120-135`
 - **Affected Tests / Callsites:**
-  - None (discovered during test suite execution)
-- **Reproduction Command:** `uv run python -c "from pathlib import Path; p = Path('data/storyboards/test.json'); p.parent.mkdir(parents=True, exist_ok=True); p.write_text(''); from content_creation.storage.local import LocalStorage; s = LocalStorage(Path('.')); print(s.get_storyboard('test'))"`
+  - `tests/test_json_repository.py:test_load_file_zero_byte_warning_returns_none`
+  - `tests/test_json_repository.py:test_get_storyboard_corrupt_logs_error`
+  - `tests/test_json_repository.py:test_atomic_write_creates_valid_json`
+  - `tests/test_manifest.py:TestStoryboardFaultInjectionAndUpstreamProbes::test_load_storyboard_handles_empty_or_truncated_file`
+  - `tests/test_ui_pages.py:test_all_pages_render_without_exceptions`
+- **Reproduction Command:** `uv run python -m pytest tests/test_json_repository.py tests/test_manifest.py -k test_load_storyboard_handles_empty_or_truncated_file -o addopts="" -p no:cov`
 - **Recommended Runtime Policy:** `DEFENSIVE_IO_FIX`
-- **QA Coverage Status:** `UNCOVERED`
-- **QA Test Directive:** Add test_load_storyboard_handles_empty_or_truncated_file verifying that 0-byte or corrupted JSON files trigger defensive handling or clean error logging without aborting asset generation.
+- **QA Coverage Status:** `COVERED`
+- **QA Test Directive:** Verify tests/test_json_repository.py asserts 0-byte and corrupted storyboards log structured warnings and return None, while tests/test_ui_pages.py asserts corrupted files display clear UI diagnostic warnings rather than unhandled JSONDecodeError crashes.
 
 ---
 
@@ -233,7 +234,7 @@
 - **Exception / Symptom:** 290 out of 2048 topics rejected as insufficient_text when raw_text < 100 chars, discarding flagship posts (GPT-4o System Card, Introducing OpenAI o1)
 - **Root Cause Location:** `src/content_creation/scoring/engine.py:252`
 - **Affected Tests / Callsites:**
-  - None (discovered during test suite execution)
+  - `None` (Discovered via runtime smoke test or verification audit)
 - **Reproduction Command:** `uv run python -c "from content_creation.scoring.engine import ScoringEngine; from content_creation.scoring.config import ScoringConfig; from content_creation.models.topic import TopicItem; t = TopicItem(id='test', title='Introducing OpenAI o1', url='https://openai.com/index/o1', source='openai', category='release', raw_text='Short teaser'); e = ScoringEngine(ScoringConfig()); res = e.score_items([t]); print(res['rejected'][0].rejection_reason)"`
 - **Recommended Runtime Policy:** `ENRICHMENT_OR_CRITIC_LOOP`
 - **QA Coverage Status:** `UNCOVERED`
@@ -442,7 +443,7 @@
 - **Error Class:** `DATA_ENCODING_IO`
 - **Severity:** Medium
 - **Status:** `OPEN`
-- **Source Evidence:** `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:114-117`, `Live LocalStorage.list_staged() scan`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:25-26`
+- **Source Evidence:** `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:114-117`, `Live LocalStorage.list_staged() scan`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:25-26`, `Note: UI-005 tracks pending operator removal of 26 pre-existing 0-byte staged JSON files in data/staged/`
 - **Exception / Symptom:** Failed to load staged item data/staged/05738f6c55b7147880500b666d1a96e73b80de79c9a4453c521b0ffc55549d70.json: Expecting value: line 1 column 1 (char 0). Creation origin of 0-byte truncation in data/staged/ remains unconfirmed in storage backend; unhandled 0-byte read occurs in LocalStorage._read_json.
 - **Root Cause Location:** `src/content_creation/storage/local.py:77-90`, `data/staged/05738f6c55b7147880500b666d1a96e73b80de79c9a4453c521b0ffc55549d70.json`
 - **Affected Tests / Callsites:**
@@ -468,11 +469,82 @@
 - **Exception / Symptom:** PermissionError: [WinError 5] Access is denied: '[USER_HOME]/.../.coverage' when pytest-cov attempts to delete/recreate .coverage while a concurrent process or prior handle is locked on Windows hosts
 - **Root Cause Location:** `pyproject.toml:68`
 - **Affected Tests / Callsites:**
-  - None (discovered during test suite execution)
+  - `None` (Discovered via runtime smoke test or verification audit)
 - **Reproduction Command:** `uv run python -m pytest --tb=no -q`
 - **Recommended Runtime Policy:** `CROSS_PLATFORM_GUARD`
 - **QA Coverage Status:** `UNCOVERED`
 - **QA Test Directive:** Configure pytest invocations to pass -o addopts='' -p no:cacheprovider or specify distinct COVERAGE_FILE environment variable under Windows to prevent lock contention on workspace root.
+
+---
+
+### `ERR-020`: Operations Dashboard Direct SQLite Connection and Inline DDL Schema Violations (UI-002)
+- **Stage / Scope:** UI Presentation Tier
+- **Error Class:** `STATE_WORKFLOW_CONCURRENCY`
+- **Severity:** High
+- **Status:** `RESOLVED` (`resolved_in_commit: c8acfb1`)
+- **Source Evidence:** `docs/audit/02-dependencies-and-boundaries.md:38`, `docs/refactor/adrs/001-native-fragments-and-ui-facades.md:14-18 (UI-002)`, `docs/refactor/tasks/phase2b-ui-and-fragments.md:31-35, 51`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:20, 38-42`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:83-85, 100`
+- **Exception / Symptom:** Operations dashboard directly executed sqlite3.connect() on 6 backend databases (jobs.db, locks.db, events.db, notifications.db, metrics.db, audit.db), executed inline DDL migrations (create_*_schema), and instantiated 11 internal infrastructure classes on every page render, producing 18 AST layer boundary violations and high risk of Windows SQLite file lock contention
+- **Root Cause Location:** `src/content_creation/ui/pages/6_operations_dashboard.py:24-286`
+- **Affected Tests / Callsites:**
+  - `tests/test_operations_dashboard.py`
+  - `tests/test_ui_client.py:test_get_operations_snapshot`
+  - `tests/test_ui_pages.py:test_all_pages_render_without_exceptions`
+- **Reproduction Command:** `uv run python -m pytest tests/test_operations_dashboard.py tests/test_ui_client.py -o addopts="" -p no:cov`
+- **Recommended Runtime Policy:** `DETERMINISTIC_STATE_FIX`
+- **QA Coverage Status:** `COVERED`
+- **QA Test Directive:** Assert AST scan confirms 0 direct sqlite3, repository, or DDL imports in 6_operations_dashboard.py and test_ui_client.py validates snapshot coordination without lock contention.
+
+---
+
+### `ERR-021`: Timeline Component Direct Backend SQLite Persistence Coupling (UI-003)
+- **Stage / Scope:** UI Presentation Tier
+- **Error Class:** `STATE_WORKFLOW_CONCURRENCY`
+- **Severity:** Medium
+- **Status:** `RESOLVED` (`resolved_in_commit: c8acfb1`)
+- **Source Evidence:** `docs/refactor/adrs/001-native-fragments-and-ui-facades.md:14-18 (UI-003)`, `docs/refactor/tasks/phase2b-ui-and-fragments.md:33, 52`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:21`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:83-85, 100`
+- **Exception / Symptom:** Timeline presentation component directly instantiated EventTimelineService and imported backend EventRecord, bypassing ServiceClient and coupling UI rendering to SQLite event store internals
+- **Root Cause Location:** `src/content_creation/ui/components/timeline.py:13-68`
+- **Affected Tests / Callsites:**
+  - `tests/test_ui_client.py:test_get_event_timeline`
+  - `tests/test_ui_pages.py:test_all_pages_render_without_exceptions`
+- **Reproduction Command:** `uv run python -m pytest tests/test_ui_client.py -k test_get_event_timeline -o addopts="" -p no:cov`
+- **Recommended Runtime Policy:** `DETERMINISTIC_STATE_FIX`
+- **QA Coverage Status:** `COVERED`
+- **QA Test Directive:** Assert timeline component accepts presentation-ready event DTOs without importing backend EventRecord or SQLite event repositories.
+
+---
+
+### `ERR-022`: Streamlit Runtime Deprecated Parameters and Legacy Component Warnings (UI-006)
+- **Stage / Scope:** UI Presentation Tier
+- **Error Class:** `CODE_STATIC_TYPING`
+- **Severity:** Low
+- **Status:** `MITIGATED` (`mitigated_in_commit: 4dc3426`)
+- **Source Evidence:** `docs/refactor/tasks/phase2b-ui-and-fragments.md:45-47, 54 (UI-006)`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:23, 25-26, 89`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:103, 151`
+- **Exception / Symptom:** Streamlit runtime emits deprecation warnings for use_container_width=True (deprecated in Streamlit 1.58 in favor of width='stretch') and st.components.v1.html (scheduled for removal). Mitigated on app.py and pages 4, 5, 6; pages 1-3 cosmetic parameter cleanup deferred to Phase 2C.
+- **Root Cause Location:** `src/content_creation/ui/pages/4_storyboard.py:145`, `src/content_creation/ui/pages/5_asset_workshop.py:79, 126, 140, 162, 178, 226, 276`, `src/content_creation/ui/app.py:84`, `src/content_creation/ui/pages/1_topic_collection.py`, `src/content_creation/ui/pages/2_topic_pipeline.py`, `src/content_creation/ui/pages/3_brief_viewer.py`
+- **Affected Tests / Callsites:**
+  - `tests/test_ui_pages.py:test_all_pages_render_without_exceptions`
+- **Reproduction Command:** `uv run python -m pytest tests/test_ui_pages.py -o addopts="" -p no:cov`
+- **Recommended Runtime Policy:** `CODE_REFACTOR_FIX`
+- **QA Coverage Status:** `PARTIAL`
+- **QA Test Directive:** Headless AppTest verifies refactored pages 4, 5, 6 and app.py render without deprecation warnings; complete parameter migration on pages 1-3 during Phase 2C.
+
+---
+
+### `ERR-023`: Windows Pytest Cache Lock Contention on .pytest_cache During Rapid Invocations
+- **Stage / Scope:** Infra / Tooling
+- **Error Class:** `ENVIRONMENT_PLATFORM`
+- **Severity:** Low
+- **Status:** `OPEN`
+- **Source Evidence:** `Live pytest baseline sweep output on refactor/phase2b-ui-and-fragments`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:49-52 (Error #3)`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:164`
+- **Exception / Symptom:** PytestCacheWarning: cache could not write path ... [Errno 13] Permission denied: '[USER_HOME]/.../.pytest_cache/v/cache/nodeids' and 'lastfailed' when pytest processes run consecutively or terminate rapidly under Windows NTFS file locking
+- **Root Cause Location:** `.venv/Lib/site-packages/_pytest/cacheprovider.py:475`, `.venv/Lib/site-packages/_pytest/cacheprovider.py:429`
+- **Affected Tests / Callsites:**
+  - `None` (Discovered via runtime smoke test or verification audit)
+- **Reproduction Command:** `uv run python -m pytest -o addopts="" -p no:cov -q`
+- **Recommended Runtime Policy:** `CROSS_PLATFORM_GUARD`
+- **QA Coverage Status:** `UNCOVERED`
+- **QA Test Directive:** Document standard Windows pytest invocation flags in developer docs and configure test scripts to use isolated cache roots or -p no:cacheprovider when rapid execution is required.
 
 ---
 
@@ -481,7 +553,7 @@
 ### `RISK-001`: Live LLM Provider Quota Exhaustion & Rate Limits
 - **Stage / Scope:** Stage 3: Briefs
 - **Error Class:** `TRANSPORT_TRANSIENT`
-- **Severity:** High
+- **Likelihood / Severity:** High
 - **Anchored Code Path:** `src/content_creation/inference/manager.py:70`, `src/content_creation/inference/providers/gemini.py:71`
 - **Risk Description:** High-concurrency generation bursts without rate-limiting delays trigger HTTP 429 quota exhaustion on Gemini API endpoints.
 - **Recommended Policy:** `RETRY_BACKOFF_FALLBACK`
@@ -492,7 +564,7 @@
 ### `RISK-002`: Malformed Markdown Code Fences in LLM Synthesis Outputs
 - **Stage / Scope:** Stage 4: Content Intelligence
 - **Error Class:** `SCHEMA_VALIDATION`
-- **Severity:** Medium
+- **Likelihood / Severity:** Medium
 - **Anchored Code Path:** `src/content_creation/generation/brief.py:46`, `src/content_creation/domains/content_intelligence/generator.py:48`, `src/content_creation/domains/storyboard/generator.py:53`
 - **Risk Description:** LLM outputting JSON wrapped in markdown fences (```json ... ```) or conversational commentary triggers json.JSONDecodeError in generator parsing.
 - **Recommended Policy:** `GUIDED_SCHEMA_REPAIR`
@@ -503,7 +575,7 @@
 ### `RISK-003`: Unchecked API Token Budget Consumption During High-Volume Batches
 - **Stage / Scope:** Stage 6: Asset Generation
 - **Error Class:** `BUDGET_QUOTA_CONFIG`
-- **Severity:** High
+- **Likelihood / Severity:** High
 - **Anchored Code Path:** `src/content_creation/inference/manager.py:25`, `src/content_creation/application/asset_generation_service.py:86`
 - **Risk Description:** Uncapped multi-format asset generation across large topic batches exhausts account token budgets mid-run, aborting downstream stages.
 - **Recommended Policy:** `FAIL_FAST_NO_RETRY`
@@ -514,7 +586,7 @@
 ### `RISK-004`: In-Memory Event Bus Isolation Across Worker Daemon Subprocesses
 - **Stage / Scope:** Stage 12: Event Store
 - **Error Class:** `STATE_WORKFLOW_CONCURRENCY`
-- **Severity:** Medium
+- **Likelihood / Severity:** Medium
 - **Anchored Code Path:** `src/content_creation/events/bus.py:11`, `src/content_creation/jobs/worker_daemon.py:35`
 - **Risk Description:** Process-bound singleton _EVENT_BUS in background worker processes drops event delivery to UI subscriber threads and SSE streaming server.
 - **Recommended Policy:** `DETERMINISTIC_STATE_FIX`
@@ -525,7 +597,7 @@
 ### `RISK-005`: POSIX Signal Handling Incompatibility in Windows Background Worker Daemon
 - **Stage / Scope:** Stage 15: Jobs & Locks
 - **Error Class:** `ENVIRONMENT_PLATFORM`
-- **Severity:** Medium
+- **Likelihood / Severity:** Medium
 - **Anchored Code Path:** `src/content_creation/jobs/worker_daemon.py:35`
 - **Risk Description:** Signal handlers using SIGTERM or SIGQUIT fail on Windows OS process termination, leaving stale resource locks in data/jobs.db.
 - **Recommended Policy:** `CROSS_PLATFORM_GUARD`
