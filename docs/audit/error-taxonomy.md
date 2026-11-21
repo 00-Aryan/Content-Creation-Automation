@@ -1,10 +1,10 @@
 # Error Taxonomy & Failure Catalog: Content Creation Automation
 
 ## 1. Catalog Metadata & Health Overview
-- **Last Updated:** `2026-11-21T17:45:00+05:30`
+- **Last Updated:** `2026-11-21T18:15:00+05:30`
 - **Active Branch:** `refactor/phase2b-ui-and-fragments`
-- **Audited Commit (SHA):** `1904b6d` (`1904b6d9f4fffa186b9ec80af3c4b5e65c3f7f50`)
-- **Pytest Sweep Baseline:** `1366 passed, 6 failed, 0 skipped, 0 xfailed in 15.14s`
+- **Audited Commit (SHA):** `da1d329` (`da1d329869f92557248abea8403b6572c863c131`)
+- **Pytest Sweep Baseline:** `1407 passed, 6 failed, 0 skipped, 0 xfailed in 16.00s`
 - **Total Observed Errors (`ERR-xxx`):** `23` (`5 OPEN`, `1 MITIGATED`, `17 RESOLVED`)
 - **Total Anticipated Risks (`RISK-xxx`):** `5`
 - **QA Coverage Ratio:** `19/23 (82.61%) Covered` (`1 Partial`, `3 Uncovered`)
@@ -148,12 +148,15 @@
 - **Error Class:** `ENVIRONMENT_PLATFORM`
 - **Severity:** Medium
 - **Status:** `RESOLVED` (`resolved_in_commit: e1b0246`)
-- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:14 (DEF-004)`, `docs/refactor/adrs/001-native-fragments-and-ui-facades.md (ADR-001)`, `docs/refactor/tasks/phase2b-ui-and-fragments.md:36-39, 53 (UI-004)`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:22, 27-28`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:101, 128-130`
+- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:14 (DEF-004)`, `docs/refactor/adrs/001-native-fragments-and-ui-facades.md (ADR-001)`, `docs/refactor/tasks/phase2b-ui-and-fragments.md:36-39, 53 (UI-004)`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:22, 27-28`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:101, 128-130`, `docs/audit/qa/refactor-phase2b-ui-and-fragments.md:60, 113-116`
 - **Exception / Symptom:** [WinError 10013] An attempt was made to access a socket in a way forbidden by its access permissions / broken JS postMessage bridge in embedded iframe; resolved by retiring background SSE server and iframe in favor of native Streamlit @st.fragment polling per ADR-001.
 - **Root Cause Location:** `src/content_creation/notifications/streaming/server.py:254`, `src/content_creation/ui/components/sse_client.py:1-42`, `tests/test_notification_streaming.py:43`, `tests/test_notification_streaming.py:457`
 - **Affected Tests / Callsites:**
   - `tests/test_notification_streaming.py (12 fragile socket integration tests retired per ADR-001; unit tests retained)`
   - `tests/test_ui_pages.py:test_all_pages_render_without_exceptions`
+  - `tests/test_ui_pages.py:test_notification_badge_and_summary_fragments`
+  - `tests/test_ui_client.py:test_deprecated_sse_shims_are_safe_noops`
+  - `tests/test_ui_client.py:test_notification_facade_methods`
 - **Reproduction Command:** `uv run python -m pytest tests/test_notification_streaming.py -o addopts="" -p no:cov`
 - **Recommended Runtime Policy:** `CROSS_PLATFORM_GUARD`
 - **QA Coverage Status:** `COVERED`
@@ -190,7 +193,7 @@
 - **Error Class:** `DATA_ENCODING_IO`
 - **Severity:** High
 - **Status:** `RESOLVED` (`resolved_in_commit: f2e8c78`)
-- **Source Evidence:** `Live pipeline smoke test: generate-assets --top 2`, `docs/refactor/tasks/phase2b-ui-and-fragments.md:40-44, 50 (UI-001)`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:18, 25, 43-47`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:99, 120-125`, `Note: UI-005 tracks pending operator removal of 5 pre-existing 0-byte storyboards on disk`
+- **Source Evidence:** `Live pipeline smoke test: generate-assets --top 2`, `docs/refactor/tasks/phase2b-ui-and-fragments.md:40-44, 50 (UI-001)`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:18, 25, 43-47`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:99, 120-125`, `Note: UI-005 tracks pending operator removal of 5 pre-existing 0-byte storyboards on disk`, `docs/audit/qa/refactor-phase2b-ui-and-fragments.md:17-36, 51, 55, 57, 117-121`
 - **Exception / Symptom:** Failed to load Storyboard <topic_id>.json: Expecting value: line 1 column 1 (char 0), crashing UI storyboard page and causing AssetGenerationService to skip asset generation. Resolved in JsonRepository with st_size == 0 guard, UTF-8/cp1252 fallback, atomic os.replace temp write, and client.storyboard_file_exists() UI diagnostics.
 - **Root Cause Location:** `src/content_creation/platform/storage/json_repository.py:34-45`, `src/content_creation/platform/storage/json_repository.py:65-75`, `src/content_creation/ui/pages/4_storyboard.py:78-105`, `src/content_creation/ui/pages/5_asset_workshop.py:120-135`
 - **Affected Tests / Callsites:**
@@ -199,6 +202,24 @@
   - `tests/test_json_repository.py:test_atomic_write_creates_valid_json`
   - `tests/test_manifest.py:TestStoryboardFaultInjectionAndUpstreamProbes::test_load_storyboard_handles_empty_or_truncated_file`
   - `tests/test_ui_pages.py:test_all_pages_render_without_exceptions`
+  - `tests/test_json_repository.py:test_get_zero_byte_file_returns_none_and_warns`
+  - `tests/test_json_repository.py:test_get_corrupted_json_returns_none_and_warns`
+  - `tests/test_json_repository.py:test_list_all_skips_zero_byte_and_corrupt`
+  - `tests/test_json_repository.py:test_cp1252_fallback_decoding`
+  - `tests/test_json_repository.py:test_exists_on_zero_byte_file_vs_get`
+  - `tests/test_json_repository.py:test_get_truncated_json_returns_none`
+  - `tests/test_json_repository.py:test_get_non_object_json_returns_none`
+  - `tests/test_json_repository.py:test_get_pydantic_validation_error_returns_none`
+  - `tests/test_json_repository.py:test_utf8_multibyte_unicode_roundtrip`
+  - `tests/test_json_repository.py:test_cp1252_fallback_all_common_smart_punctuation`
+  - `tests/test_json_repository.py:test_binary_garbage_unparseable_returns_none`
+  - `tests/test_json_repository.py:test_list_all_nonexistent_directory_returns_empty`
+  - `tests/test_json_repository.py:test_load_file_nonexistent_returns_none`
+  - `tests/test_json_repository.py:test_cp1252_read_exception_handling`
+  - `tests/test_json_repository.py:test_filesystem_oserror_handling_in_load`
+  - `tests/test_ui_pages.py:test_storyboard_page_handles_corrupt_artifact_gracefully`
+  - `tests/test_ui_pages.py:test_asset_workshop_handles_corrupt_storyboard`
+  - `tests/test_ui_client.py:test_storyboard_file_exists_and_get_storyboard_matrix`
 - **Reproduction Command:** `uv run python -m pytest tests/test_json_repository.py tests/test_manifest.py -k test_load_storyboard_handles_empty_or_truncated_file -o addopts="" -p no:cov`
 - **Recommended Runtime Policy:** `DEFENSIVE_IO_FIX`
 - **QA Coverage Status:** `COVERED`
@@ -443,7 +464,7 @@
 - **Error Class:** `DATA_ENCODING_IO`
 - **Severity:** Medium
 - **Status:** `OPEN`
-- **Source Evidence:** `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:114-117`, `Live LocalStorage.list_staged() scan`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:25-26`, `Note: UI-005 tracks pending operator removal of 26 pre-existing 0-byte staged JSON files in data/staged/`
+- **Source Evidence:** `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:114-117`, `Live LocalStorage.list_staged() scan`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:25-26`, `Note: UI-005 tracks pending operator removal of 26 pre-existing 0-byte staged JSON files in data/staged/`, `docs/audit/qa/refactor-phase2b-ui-and-fragments.md:16, 30-31, 35, 122-123`
 - **Exception / Symptom:** Failed to load staged item data/staged/05738f6c55b7147880500b666d1a96e73b80de79c9a4453c521b0ffc55549d70.json: Expecting value: line 1 column 1 (char 0). Creation origin of 0-byte truncation in data/staged/ remains unconfirmed in storage backend; unhandled 0-byte read occurs in LocalStorage._read_json.
 - **Root Cause Location:** `src/content_creation/storage/local.py:77-90`, `data/staged/05738f6c55b7147880500b666d1a96e73b80de79c9a4453c521b0ffc55549d70.json`
 - **Affected Tests / Callsites:**
@@ -453,6 +474,10 @@
   - `tests/test_phase1b_qa.py:test_list_and_get_analytics_handles_zero_byte_file`
   - `tests/test_phase1b_qa.py:test_list_staged_handles_corrupt_non_dict_json`
   - `tests/test_phase1b_qa.py:test_save_staged_deduplication_atomic_mode_x`
+  - `tests/test_json_repository.py:test_save_atomic_and_get`
+  - `tests/test_json_repository.py:test_save_atomic_failure_cleans_up_tmp_file`
+  - `tests/test_json_repository.py:test_save_creates_nested_directory_if_missing`
+  - `tests/test_json_repository.py:test_save_unlink_oserror_suppression`
 - **Reproduction Command:** `uv run python -c "from content_creation.storage.local import LocalStorage; from pathlib import Path; s = LocalStorage(Path('.')); print(s.get_staged('05738f6c55b7147880500b666d1a96e73b80de79c9a4453c521b0ffc55549d70'))"`
 - **Recommended Runtime Policy:** `DEFENSIVE_IO_FIX`
 - **QA Coverage Status:** `COVERED`
@@ -482,13 +507,19 @@
 - **Error Class:** `STATE_WORKFLOW_CONCURRENCY`
 - **Severity:** High
 - **Status:** `RESOLVED` (`resolved_in_commit: c8acfb1`)
-- **Source Evidence:** `docs/audit/02-dependencies-and-boundaries.md:38`, `docs/refactor/adrs/001-native-fragments-and-ui-facades.md:14-18 (UI-002)`, `docs/refactor/tasks/phase2b-ui-and-fragments.md:31-35, 51`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:20, 38-42`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:83-85, 100`
+- **Source Evidence:** `docs/audit/02-dependencies-and-boundaries.md:38`, `docs/refactor/adrs/001-native-fragments-and-ui-facades.md:14-18 (UI-002)`, `docs/refactor/tasks/phase2b-ui-and-fragments.md:31-35, 51`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:20, 38-42`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:83-85, 100`, `docs/audit/qa/refactor-phase2b-ui-and-fragments.md:39, 45-48, 62-63, 124-127`
 - **Exception / Symptom:** Operations dashboard directly executed sqlite3.connect() on 6 backend databases (jobs.db, locks.db, events.db, notifications.db, metrics.db, audit.db), executed inline DDL migrations (create_*_schema), and instantiated 11 internal infrastructure classes on every page render, producing 18 AST layer boundary violations and high risk of Windows SQLite file lock contention
 - **Root Cause Location:** `src/content_creation/ui/pages/6_operations_dashboard.py:24-286`
 - **Affected Tests / Callsites:**
   - `tests/test_operations_dashboard.py`
   - `tests/test_ui_client.py:test_get_operations_snapshot`
   - `tests/test_ui_pages.py:test_all_pages_render_without_exceptions`
+  - `tests/test_ui_pages.py:test_operations_dashboard_ast_zero_sqlite_layer_violations`
+  - `tests/test_ui_pages.py:test_operations_dashboard_snapshot_and_badge_helpers`
+  - `tests/test_ui_client.py:test_get_operations_snapshot_worker_idle_healthy_when_no_jobs`
+  - `tests/test_ui_client.py:test_get_operations_snapshot_with_populated_subsystems`
+  - `tests/test_ui_client.py:test_get_operations_snapshot_corrupted_db_fallback`
+  - `tests/test_ui_client.py:test_get_operations_snapshot_critical_failure_fallback`
 - **Reproduction Command:** `uv run python -m pytest tests/test_operations_dashboard.py tests/test_ui_client.py -o addopts="" -p no:cov`
 - **Recommended Runtime Policy:** `DETERMINISTIC_STATE_FIX`
 - **QA Coverage Status:** `COVERED`
@@ -501,12 +532,17 @@
 - **Error Class:** `STATE_WORKFLOW_CONCURRENCY`
 - **Severity:** Medium
 - **Status:** `RESOLVED` (`resolved_in_commit: c8acfb1`)
-- **Source Evidence:** `docs/refactor/adrs/001-native-fragments-and-ui-facades.md:14-18 (UI-003)`, `docs/refactor/tasks/phase2b-ui-and-fragments.md:33, 52`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:21`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:83-85, 100`
+- **Source Evidence:** `docs/refactor/adrs/001-native-fragments-and-ui-facades.md:14-18 (UI-003)`, `docs/refactor/tasks/phase2b-ui-and-fragments.md:33, 52`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:21`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:83-85, 100`, `docs/audit/qa/refactor-phase2b-ui-and-fragments.md:40-42, 49-50, 128-131`
 - **Exception / Symptom:** Timeline presentation component directly instantiated EventTimelineService and imported backend EventRecord, bypassing ServiceClient and coupling UI rendering to SQLite event store internals
 - **Root Cause Location:** `src/content_creation/ui/components/timeline.py:13-68`
 - **Affected Tests / Callsites:**
   - `tests/test_ui_client.py:test_get_event_timeline`
   - `tests/test_ui_pages.py:test_all_pages_render_without_exceptions`
+  - `tests/test_ui_client.py:test_get_event_timeline_empty`
+  - `tests/test_ui_client.py:test_get_event_timeline_with_events`
+  - `tests/test_ui_client.py:test_get_event_timeline_filtering_and_limits`
+  - `tests/test_ui_client.py:test_get_event_timeline_corrupt_db_returns_empty_list`
+  - `tests/test_ui_components/test_timeline.py:test_timeline_component_rendering`
 - **Reproduction Command:** `uv run python -m pytest tests/test_ui_client.py -k test_get_event_timeline -o addopts="" -p no:cov`
 - **Recommended Runtime Policy:** `DETERMINISTIC_STATE_FIX`
 - **QA Coverage Status:** `COVERED`
@@ -519,7 +555,7 @@
 - **Error Class:** `CODE_STATIC_TYPING`
 - **Severity:** Low
 - **Status:** `MITIGATED` (`mitigated_in_commit: 4dc3426`)
-- **Source Evidence:** `docs/refactor/tasks/phase2b-ui-and-fragments.md:45-47, 54 (UI-006)`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:23, 25-26, 89`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:103, 151`
+- **Source Evidence:** `docs/refactor/tasks/phase2b-ui-and-fragments.md:45-47, 54 (UI-006)`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:23, 25-26, 89`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:103, 151`, `docs/audit/qa/refactor-phase2b-ui-and-fragments.md:54, 132-135`
 - **Exception / Symptom:** Streamlit runtime emits deprecation warnings for use_container_width=True (deprecated in Streamlit 1.58 in favor of width='stretch') and st.components.v1.html (scheduled for removal). Mitigated on app.py and pages 4, 5, 6; pages 1-3 cosmetic parameter cleanup deferred to Phase 2C.
 - **Root Cause Location:** `src/content_creation/ui/pages/4_storyboard.py:145`, `src/content_creation/ui/pages/5_asset_workshop.py:79, 126, 140, 162, 178, 226, 276`, `src/content_creation/ui/app.py:84`, `src/content_creation/ui/pages/1_topic_collection.py`, `src/content_creation/ui/pages/2_topic_pipeline.py`, `src/content_creation/ui/pages/3_brief_viewer.py`
 - **Affected Tests / Callsites:**
