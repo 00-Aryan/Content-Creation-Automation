@@ -1256,3 +1256,206 @@ def test_safe_abort_archives_then_clears(runner_workspace, monkeypatch):
 
     assert not Path(runner.ACTIVE_RUN_PATH).exists()
     assert (run_dir / "abort_state.json").exists()
+
+
+# ===========================================================================
+# ERR-003: Cross-Platform Shell Execution & Bash Discovery QA Test Suite
+# ===========================================================================
+
+
+def test_get_bash_executable_non_windows(monkeypatch):
+    """Covers ERR-003: on non-Windows platforms, get_bash_executable returns bare 'bash'."""
+    monkeypatch.setattr(runner.sys, "platform", "linux")
+    assert runner.get_bash_executable() == "bash"
+
+    monkeypatch.setattr(runner.sys, "platform", "darwin")
+    assert runner.get_bash_executable() == "bash"
+
+
+def test_get_bash_executable_windows_valid_candidate_in_path(monkeypatch):
+    """Covers ERR-003: on Windows, returns valid bash executable discovered in PATH if not WindowsApps."""
+    monkeypatch.setattr(runner.sys, "platform", "win32")
+    candidate_path = r"C:\Tools\msys64\usr\bin\bash.exe"
+    monkeypatch.setattr(
+        runner.shutil,
+        "which",
+        lambda cmd: candidate_path if cmd == "bash" else None,
+    )
+
+    assert runner.get_bash_executable() == candidate_path
+
+
+def test_get_bash_executable_windows_skips_windowsapps_stub_and_finds_git_bash(monkeypatch, tmp_path):
+    """Covers ERR-003: skips 0-byte WindowsApps UWP bash stub and locates Git Bash via git.exe."""
+    monkeypatch.setattr(runner.sys, "platform", "win32")
+    windowsapps_stub = r"C:\Users\Aryan\AppData\Local\Microsoft\WindowsApps\bash.exe"
+
+    git_dir = tmp_path / "Git"
+    git_bin = git_dir / "bin"
+    git_bin.mkdir(parents=True)
+    git_exe = git_bin / "git.exe"
+    git_exe.write_text("", encoding="utf-8")
+
+    bash_exe = git_bin / "bash.exe"
+    bash_exe.write_text("", encoding="utf-8")
+
+    def fake_which(cmd):
+        if cmd == "bash":
+            return windowsapps_stub
+        if cmd == "git":
+            return str(git_exe)
+        return None
+
+    monkeypatch.setattr(runner.shutil, "which", fake_which)
+
+    result = runner.get_bash_executable()
+    assert result == str(bash_exe.resolve())
+    assert "WindowsApps" not in result
+
+
+@pytest.mark.parametrize(
+    "sub_path",
+    [
+        "bin/bash.exe",
+        "usr/bin/bash.exe",
+        "../bin/bash.exe",
+        "../usr/bin/bash.exe",
+    ],
+)
+def test_get_bash_executable_windows_git_relative_paths(monkeypatch, tmp_path, sub_path):
+    """Covers ERR-003: resolves Git Bash relative to git executable across standard layouts."""
+    monkeypatch.setattr(runner.sys, "platform", "win32")
+
+    git_cmd_dir = tmp_path / "Git" / "cmd"
+    git_cmd_dir.mkdir(parents=True)
+    git_exe = git_cmd_dir / "git.exe"
+    git_exe.write_text("", encoding="utf-8")
+
+    target_bash = (git_exe.parent / sub_path).resolve()
+    target_bash.parent.mkdir(parents=True, exist_ok=True)
+    target_bash.write_text("", encoding="utf-8")
+
+    def fake_which(cmd):
+        if cmd == "bash":
+            return None
+        if cmd == "git":
+            return str(git_exe)
+        return None
+
+    monkeypatch.setattr(runner.shutil, "which", fake_which)
+
+    result = runner.get_bash_executable()
+    assert result == str(target_bash)
+
+
+def test_get_bash_executable_windows_program_files_fallback(monkeypatch, tmp_path):
+    """Covers ERR-003: discovers Git Bash via ProgramFiles standard directories when not in PATH."""
+    monkeypatch.setattr(runner.sys, "platform", "win32")
+    monkeypatch.setattr(runner.shutil, "which", lambda cmd: None)
+
+    pf_dir = tmp_path / "Program Files"
+    git_bash = pf_dir / "Git" / "bin" / "bash.exe"
+    git_bash.parent.mkdir(parents=True)
+    git_bash.write_text("", encoding="utf-8")
+
+    monkeypatch.setenv("ProgramFiles", str(pf_dir))
+    monkeypatch.delenv("ProgramFiles(x86)", raising=False)
+
+    result = runner.get_bash_executable()
+    assert result == str(git_bash)
+
+
+def test_get_bash_executable_windows_program_files_x86_fallback(monkeypatch, tmp_path):
+    """Covers ERR-003: discovers Git Bash via ProgramFiles(x86) usr/bin/bash.exe directory."""
+    monkeypatch.setattr(runner.sys, "platform", "win32")
+    monkeypatch.setattr(runner.shutil, "which", lambda cmd: None)
+
+    monkeypatch.setenv("ProgramFiles", str(tmp_path / "EmptyPF"))
+    pf_x86 = tmp_path / "Program Files (x86)"
+    git_bash = pf_x86 / "Git" / "usr" / "bin" / "bash.exe"
+    git_bash.parent.mkdir(parents=True)
+    git_bash.write_text("", encoding="utf-8")
+
+    monkeypatch.setenv("ProgramFiles(x86)", str(pf_x86))
+
+    result = runner.get_bash_executable()
+    assert result == str(git_bash)
+
+
+def test_get_bash_executable_windows_fallback_to_bare_bash_when_not_found(monkeypatch, tmp_path):
+    """Covers ERR-003: falls back gracefully to 'bash' when no Windows Git Bash can be discovered."""
+    monkeypatch.setattr(runner.sys, "platform", "win32")
+    monkeypatch.setattr(runner.shutil, "which", lambda cmd: None)
+    monkeypatch.setenv("ProgramFiles", str(tmp_path / "empty1"))
+    monkeypatch.setenv("ProgramFiles(x86)", str(tmp_path / "empty2"))
+
+    assert runner.get_bash_executable() == "bash"
+
+
+def test_run_validation_blocks_invokes_resolved_bash_with_pipefail(monkeypatch):
+    """Covers ERR-003: run_validation_blocks uses get_bash_executable and invokes bash with -e -u -o pipefail."""
+    calls = []
+
+    def fake_run(cmd, capture_output=True, text=True, check=False):
+        calls.append(cmd)
+        return cp(stdout="all passed\n", stderr="", returncode=0)
+
+    monkeypatch.setattr(runner, "get_bash_executable", lambda: r"C:\Program Files\Git\bin\bash.exe")
+    monkeypatch.setattr(runner.subprocess, "run", fake_run)
+
+    blocks = ["pytest tests/ -q", "echo done"]
+    results = runner.run_validation_blocks(blocks)
+
+    assert len(calls) == 2
+    assert calls[0] == [
+        r"C:\Program Files\Git\bin\bash.exe",
+        "-e",
+        "-u",
+        "-o",
+        "pipefail",
+        "-c",
+        "pytest tests/ -q",
+    ]
+    assert calls[1] == [
+        r"C:\Program Files\Git\bin\bash.exe",
+        "-e",
+        "-u",
+        "-o",
+        "pipefail",
+        "-c",
+        "echo done",
+    ]
+    assert len(results) == 2
+    assert results[0]["exit_code"] == 0
+    assert results[0]["stdout"] == "all passed\n"
+    assert results[1]["exit_code"] == 0
+
+
+def test_run_validation_blocks_short_circuit_and_error_propagation(monkeypatch):
+    """Covers ERR-003: verifies sequential command short-circuiting on failure and error propagation."""
+    calls = []
+
+    def fake_run(cmd, capture_output=True, text=True, check=False):
+        calls.append(cmd)
+        if "failing_cmd" in cmd[-1]:
+            return cp(stdout="", stderr="Command failed: exit code 17\n", returncode=17)
+        return cp(stdout="success\n", stderr="", returncode=0)
+
+    monkeypatch.setattr(runner.subprocess, "run", fake_run)
+
+    blocks = ["failing_cmd", "second_cmd_never_runs", "third_cmd_never_runs"]
+    results = runner.run_validation_blocks(blocks)
+
+    assert len(calls) == 1
+    assert len(results) == 1
+    assert results[0]["block_index"] == 1
+    assert results[0]["command"] == "failing_cmd"
+    assert results[0]["exit_code"] == 17
+    assert "Command failed: exit code 17" in results[0]["stderr"]
+
+
+def test_run_validation_blocks_empty_list():
+    """Covers ERR-003: run_validation_blocks returns empty list when given no blocks."""
+    results = runner.run_validation_blocks([])
+    assert results == []
+
