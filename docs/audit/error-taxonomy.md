@@ -1,13 +1,13 @@
 # Error Taxonomy & Failure Catalog: Content Creation Automation
 
 ## 1. Catalog Metadata & Health Overview
-- **Last Updated:** `2026-11-21T13:10:00+05:30`
-- **Active Branch:** `fix/phase1b-data-and-schemas`
-- **Audited Commit (SHA):** `6a852f8` (`6a852f8e2d6a3cb52e3258cdd971d588a62a3947`)
-- **Pytest Sweep Baseline:** `1264 passed, 19 failed, 0 skipped, 0 xfailed in 20.34s`
-- **Total Observed Errors (`ERR-xxx`):** `19` (`9 OPEN`, `0 MITIGATED`, `10 RESOLVED`)
+- **Last Updated:** `2026-11-21T14:40:00+05:30`
+- **Active Branch:** `refactor/phase2a-typer-cli`
+- **Audited Commit (SHA):** `c3cb9c7` (`c3cb9c7a0f63ad02472f24713df6bded95ee315a`)
+- **Pytest Sweep Baseline:** `1343 passed, 18 failed, 0 skipped, 0 xfailed in 20.05s`
+- **Total Observed Errors (`ERR-xxx`):** `19` (`6 OPEN`, `0 MITIGATED`, `13 RESOLVED`)
 - **Total Anticipated Risks (`RISK-xxx`):** `5`
-- **QA Coverage Ratio:** `12/19 (63.16%) Covered` (`2 Partial`, `5 Uncovered`)
+- **QA Coverage Ratio:** `15/19 (78.95%) Covered` (`1 Partial`, `3 Uncovered`)
 
 ---
 
@@ -43,16 +43,16 @@
 |:---|:---|:---|:---|:---|:---|:---|:---|:---|
 | `ERR-001` | CLI Main Scope Local sys and timedelta Variable Shadowing | CLI Entrypoint | `CODE_STATIC_TYPING` | High | `RESOLVED` | `COVERED` | `5bbee84` | `96ec8d7` |
 | `ERR-002` | Event Store Replay Non-Deterministic UUID String Tie-Breaker | Stage 12: Event Store | `STATE_WORKFLOW_CONCURRENCY` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `74a0031` |
-| `ERR-003` | Issue Runner Subprocess Spawns POSIX bash on Windows Hosts | Infra / Tooling | `ENVIRONMENT_PLATFORM` | Medium | `OPEN` | `UNCOVERED` | `5bbee84` | - |
+| `ERR-003` | Issue Runner Subprocess Spawns POSIX bash on Windows Hosts | Infra / Tooling | `ENVIRONMENT_PLATFORM` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `91cd668` |
 | `ERR-004` | Notification SSE Server IPv6 Localhost Socket Connect Denial | Stage 16: Notifications | `ENVIRONMENT_PLATFORM` | Medium | `OPEN` | `PARTIAL` | `5bbee84` | - |
 | `ERR-005` | Brief Generator Fallback Leaks ReviewStatus String into Recommended Formats | Stage 3: Briefs | `QUALITY_GROUNDING` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `775cea2` |
 | `ERR-006` | 0-Byte Storyboard JSON Truncation Triggers JSONDecodeError in Asset Generation | Stage 6: Assets | `DATA_ENCODING_IO` | High | `OPEN` | `UNCOVERED` | `5bbee84` | - |
 | `ERR-007` | Scoring Component Float Rounding Drift Violates Score Consistency Invariant | Stage 2: Scoring | `QUALITY_GROUNDING` | Low | `RESOLVED` | `COVERED` | `5bbee84` | `b2ebad1` |
 | `ERR-008` | Teaser RSS Feed Items Discarded Prematurely by Insufficient Text Filter | Stage 2: Scoring | `QUALITY_GROUNDING` | Medium | `OPEN` | `UNCOVERED` | `5bbee84` | - |
-| `ERR-009` | CLI Subcommand Drift vs Documentation for Content Intelligence and Storyboards | CLI Entrypoint | `CODE_STATIC_TYPING` | Medium | `OPEN` | `UNCOVERED` | `5bbee84` | - |
+| `ERR-009` | CLI Subcommand Drift vs Documentation for Content Intelligence and Storyboards | CLI Entrypoint | `CODE_STATIC_TYPING` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `b69115d` |
 | `ERR-010` | AppContainer Sandbox Permission Denial on Storage Directory Writeability Probe | Infra / Tooling | `ENVIRONMENT_PLATFORM` | Medium | `OPEN` | `COVERED` | `5bbee84` | - |
 | `ERR-011` | Non-UTF-8 CP1252 Smart Quotes in Staged Feed JSON Files Trigger Decoding Warnings | Stage 1: Ingestion | `DATA_ENCODING_IO` | Low | `RESOLVED` | `COVERED` | `5bbee84` | `16c90f3` |
-| `ERR-012` | CLI Monolithic Main Function Variable Scope Collisions Under Strict Typing | CLI Entrypoint | `CODE_STATIC_TYPING` | Medium | `OPEN` | `PARTIAL` | `5bbee84` | - |
+| `ERR-012` | CLI Monolithic Main Function Variable Scope Collisions Under Strict Typing | CLI Entrypoint | `CODE_STATIC_TYPING` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `b69115d` |
 | `ERR-013` | TopicItem Domain Model Typing.Any Metadata Leak | Stage 1: Ingestion | `SCHEMA_VALIDATION` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `3846d2d` |
 | `ERR-014` | ScoredTopicItem Inherited Typing.Any Metadata Persistence Leak | Stage 2: Scoring | `SCHEMA_VALIDATION` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `3846d2d` |
 | `ERR-015` | WeeklyCalendar Config Snapshot Raw Untyped Dict Leak | Stage 9: Planning | `SCHEMA_VALIDATION` | Low | `RESOLVED` | `COVERED` | `5bbee84` | `3846d2d` |
@@ -109,18 +109,30 @@
 - **Stage / Scope:** Infra / Tooling
 - **Error Class:** `ENVIRONMENT_PLATFORM`
 - **Severity:** Medium
-- **Status:** `OPEN`
-- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:13`, `tests/test_issue_runner.py:323`
-- **Exception / Symptom:** [WinError 1920] The file cannot be accessed by the system when invoking subprocess with bash on Windows
-- **Root Cause Location:** `scripts/issue_runner.py:629`
+- **Status:** `RESOLVED` (`resolved_in_commit: 91cd668`)
+- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:13`, `tests/test_issue_runner.py:323`, `docs/audit/handoffs/refactor-phase2a-typer-cli.md:41-45`, `docs/audit/verification/refactor-phase2a-typer-cli-b09f85b.md:91`, `docs/audit/qa/refactor-phase2a-typer-cli.md:15-24, 92`
+- **Exception / Symptom:** [WinError 1920] The file cannot be accessed by the system when invoking subprocess with bash on Windows (due to 0-byte WindowsApps UWP stub at AppData\Local\Microsoft\WindowsApps\bash.exe)
+- **Root Cause Location:** `scripts/issue_runner.py:622-647`
 - **Affected Tests / Callsites:**
+  - `tests/test_issue_runner.py (83 tests in suite now pass on Windows)`
   - `tests/test_issue_runner.py:test_validation_sequential_failure_stops_block`
   - `tests/test_issue_runner.py:test_validation_successful_sequential_commands_pass`
   - `tests/test_issue_runner.py:test_validation_multiple_blocks_stop_at_first_failure`
+  - `tests/test_issue_runner.py:test_validation_uses_bash_pipefail`
+  - `tests/test_issue_runner.py:test_get_bash_executable_non_windows`
+  - `tests/test_issue_runner.py:test_get_bash_executable_windows_valid_candidate_in_path`
+  - `tests/test_issue_runner.py:test_get_bash_executable_windows_skips_windowsapps_stub_and_finds_git_bash`
+  - `tests/test_issue_runner.py:test_get_bash_executable_windows_git_relative_paths`
+  - `tests/test_issue_runner.py:test_get_bash_executable_windows_program_files_fallback`
+  - `tests/test_issue_runner.py:test_get_bash_executable_windows_program_files_x86_fallback`
+  - `tests/test_issue_runner.py:test_get_bash_executable_windows_fallback_to_bare_bash_when_not_found`
+  - `tests/test_issue_runner.py:test_run_validation_blocks_invokes_resolved_bash_with_pipefail`
+  - `tests/test_issue_runner.py:test_run_validation_blocks_short_circuit_and_error_propagation`
+  - `tests/test_issue_runner.py:test_run_validation_blocks_empty_list`
 - **Reproduction Command:** `uv run python -m pytest tests/test_issue_runner.py --no-cov`
 - **Recommended Runtime Policy:** `CROSS_PLATFORM_GUARD`
-- **QA Coverage Status:** `UNCOVERED`
-- **QA Test Directive:** Parametrize test_issue_runner.py to inspect sys.platform and use powershell.exe or mock bash execution when bash executable is absent on PATH.
+- **QA Coverage Status:** `COVERED`
+- **QA Test Directive:** Parametrize test_issue_runner.py to inspect sys.platform and verify get_bash_executable() discovers Git Bash or falls back gracefully without WinError 1920.
 
 ---
 
@@ -233,16 +245,26 @@
 - **Stage / Scope:** CLI Entrypoint
 - **Error Class:** `CODE_STATIC_TYPING`
 - **Severity:** Medium
-- **Status:** `OPEN`
-- **Source Evidence:** `README.md:445, 448`, `src/content_creation/cli.py:56-215`
-- **Exception / Symptom:** cli.py: error: argument command: invalid choice: 'generate-ci' / 'generate-storyboards' when following README.md operational instructions
-- **Root Cause Location:** `src/content_creation/cli.py:56-215`, `README.md:445`, `README.md:448`
+- **Status:** `RESOLVED` (`resolved_in_commit: b69115d`)
+- **Source Evidence:** `README.md:445, 448`, `docs/audit/handoffs/refactor-phase2a-typer-cli.md:23`, `docs/audit/verification/refactor-phase2a-typer-cli-b09f85b.md:89`, `docs/audit/qa/refactor-phase2a-typer-cli.md:25-34, 93`
+- **Exception / Symptom:** cli.py: error: argument command: invalid choice: 'generate-ci' / 'generate-storyboards' when following README.md operational instructions; now implemented as Typer subcommands generate-ci and generate-storyboards with --top and --topic-id options
+- **Root Cause Location:** `src/content_creation/cli/pipeline.py:84-148`
 - **Affected Tests / Callsites:**
-  - None (discovered during test suite execution)
+  - `tests/test_cli.py:TestCLI::test_generate_ci_and_storyboards_commands`
+  - `tests/test_cli.py:test_generate_ci_custom_top_and_topic_id`
+  - `tests/test_cli.py:test_generate_ci_default_targets_all_with_default_top`
+  - `tests/test_cli.py:test_generate_ci_unrecognized_all_option_returns_usage_error`
+  - `tests/test_cli.py:test_generate_ci_executor_failure_returns_exit_code_1`
+  - `tests/test_cli.py:test_generate_ci_missing_gemini_api_key_passes_none`
+  - `tests/test_cli.py:test_generate_storyboards_custom_top_and_topic_id`
+  - `tests/test_cli.py:test_generate_storyboards_default_targets_all_with_default_top`
+  - `tests/test_cli.py:test_generate_storyboards_unrecognized_all_option_returns_usage_error`
+  - `tests/test_cli.py:test_generate_storyboards_executor_failure_returns_exit_code_1`
+  - `tests/test_cli.py:test_generate_storyboards_missing_gemini_api_key_passes_none`
 - **Reproduction Command:** `uv run python -m content_creation.cli generate-ci --top 5`
 - **Recommended Runtime Policy:** `CODE_REFACTOR_FIX`
-- **QA Coverage Status:** `UNCOVERED`
-- **QA Test Directive:** Add test_cli_subcommands_match_readme verifying every documented CLI command in README.md is a registered parser in cli.py returning exit code 0 or 2 (valid argument parsing).
+- **QA Coverage Status:** `COVERED`
+- **QA Test Directive:** Add comprehensive tests verifying generate-ci and generate-storyboards handle missing API keys, invalid topic IDs, and failure responses from WorkflowActionExecutor.
 
 ---
 
@@ -291,16 +313,27 @@
 - **Stage / Scope:** CLI Entrypoint
 - **Error Class:** `CODE_STATIC_TYPING`
 - **Severity:** Medium
-- **Status:** `OPEN`
-- **Source Evidence:** `docs/audit/handoffs/fix-phase1a-core-defects.md:68-71`, `docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:29, 136-139`
-- **Exception / Symptom:** 127 errors in 1 file (checked 1 source file) in cli.py due to repeated re-assignment of local variable names across 32 subcommand branches
-- **Root Cause Location:** `src/content_creation/cli.py:224-1760`
+- **Status:** `RESOLVED` (`resolved_in_commit: b69115d`)
+- **Source Evidence:** `docs/audit/handoffs/fix-phase1a-core-defects.md:68-71`, `docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:29, 136-139`, `docs/audit/handoffs/refactor-phase2a-typer-cli.md:18-25, 64-73`, `docs/audit/verification/refactor-phase2a-typer-cli-b09f85b.md:19, 64-73, 90`, `docs/audit/qa/refactor-phase2a-typer-cli.md:35-45, 94`
+- **Exception / Symptom:** 127 errors in 1 file in monolithic cli.py due to repeated local variable scope collisions and unencoded CP1252 export; decomposed into 7 modular Typer submodules passing mypy --strict with 0 errors and explicit UTF-8 encoding
+- **Root Cause Location:** `src/content_creation/cli/`
 - **Affected Tests / Callsites:**
-  - None (discovered during test suite execution)
-- **Reproduction Command:** `uv run mypy src/content_creation/cli.py --strict`
+  - `tests/test_cli.py`
+  - `tests/test_cli.py:test_main_programmatic_sequence_argument`
+  - `tests/test_cli.py:test_main_programmatic_invalid_command_returns_code_2`
+  - `tests/test_cli.py:test_main_programmatic_invalid_option_returns_code_2`
+  - `tests/test_cli.py:test_main_unhandled_exception_returns_code_1`
+  - `tests/test_cli.py:test_main_click_exception_with_exit_code_and_show_method`
+  - `tests/test_cli.py:test_main_click_exception_without_callable_show`
+  - `tests/test_cli.py:test_write_text_utf8_unicode_content`
+  - `tests/test_cli.py:test_plan_week_markdown_export_utf8_with_unicode_characters`
+  - `tests/test_cli.py:test_get_next_monday_bva_and_date_boundaries`
+  - `tests/test_cli.py:test_get_next_monday_default_today`
+  - `tests/test_cli.py:test_subcommand_dispatch_and_help_text_rendering`
+- **Reproduction Command:** `uv run mypy src/content_creation/cli --strict`
 - **Recommended Runtime Policy:** `CODE_REFACTOR_FIX`
-- **QA Coverage Status:** `PARTIAL`
-- **QA Test Directive:** Add CI ratchet test enforcing mypy error count on cli.py does not exceed 127 and decreases as subcommand blocks are decomposed into separate modules.
+- **QA Coverage Status:** `COVERED`
+- **QA Test Directive:** Add CI strict type checking on src/content_creation/cli and verify write_text_utf8 handles Unicode characters (em-dashes, smart quotes) during calendar export on Windows hosts.
 
 ---
 

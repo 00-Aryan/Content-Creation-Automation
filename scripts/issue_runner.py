@@ -622,12 +622,38 @@ def write_targeted_validation_log(path, results):
         fail(f"Targeted validation log could not be written: {path}")
 
 
+def get_bash_executable():
+    if sys.platform != "win32":
+        return "bash"
+    candidate = shutil.which("bash")
+    if candidate and "WindowsApps" not in candidate:
+        return candidate
+    git_exe = shutil.which("git")
+    if git_exe:
+        git_path = Path(git_exe).resolve()
+        for sub in ["bin/bash.exe", "usr/bin/bash.exe", "../bin/bash.exe", "../usr/bin/bash.exe"]:
+            p = (git_path.parent / sub).resolve()
+            if p.is_file():
+                return str(p)
+    for prefix in [
+        os.environ.get("ProgramFiles", r"C:\Program Files"),
+        os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"),
+    ]:
+        if prefix:
+            for sub in [r"Git\bin\bash.exe", r"Git\usr\bin\bash.exe"]:
+                p = Path(prefix) / sub
+                if p.is_file():
+                    return str(p)
+    return "bash"
+
+
 def run_validation_blocks(blocks):
     results = []
+    bash_bin = get_bash_executable()
     for index, block in enumerate(blocks, start=1):
         print(f"  - Executing validation bash block {index}")
         res = subprocess.run(
-            ["bash", "-e", "-u", "-o", "pipefail", "-c", block],
+            [bash_bin, "-e", "-u", "-o", "pipefail", "-c", block],
             capture_output=True,
             text=True,
             check=False,
@@ -1672,11 +1698,12 @@ def mode_verify():
     for _, path in changed_files:
         if path.endswith(".sh"):
             print(f"  - Shell check: {path}")
-            res_sh = run_cmd(["bash", "-n", path], check=False)
+            bash_bin = get_bash_executable()
+            res_sh = run_cmd([bash_bin, "-n", path], check=False)
             syntax_results.append(
                 {
                     "path": path,
-                    "command": ["bash", "-n", path],
+                    "command": [bash_bin, "-n", path],
                     "exit_code": res_sh.returncode,
                     "stdout": res_sh.stdout,
                     "stderr": res_sh.stderr,
