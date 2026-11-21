@@ -8,6 +8,7 @@ import os
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -249,3 +250,254 @@ class TestTransparentFallback:
 
         resolved = _resolve_subsystem_db(ctx, "events.db")
         assert resolved == cf_db
+
+
+class TestIdempotentInitializationPreservesExistingData:
+    """Verify init_content_factory_db called repeatedly does not corrupt or wipe existing data."""
+
+    def test_reinit_preserves_rows_across_all_six_tables(self, tmp_path: Path) -> None:
+        """Covers ARCH-001 & RISK-001: Repeated re-initialization does not alter existing rows."""
+        db_file = tmp_path / "data" / "content_factory.db"
+        init_content_factory_db(db_file)
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        conn = create_connection(db_file)
+        try:
+            # Insert 1 row in each of the 6 tables
+            conn.execute(
+                "INSERT INTO jobs (job_id, job_type, status, action_id, operator_id, target_type, target_id, payload_json, created_at, correlation_id) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+                ("job-1", "test_job", "QUEUED", "act-1", "op-1", "topic", "top-1", "{}", now_iso, "corr-reinit"),
+            )
+            conn.execute(
+                "INSERT INTO locks (lock_id, lock_type, resource_id, owner_job_id, status, acquired_at, last_heartbeat) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?);",
+                ("lock-1", "res_lock", "top-1", "job-1", "ACQUIRED", now_iso, now_iso),
+            )
+            conn.execute(
+                "INSERT INTO events (id, event_name, category, source, correlation_id, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?);",
+                ("event-1", "topic_queued", "test", "worker", "corr-reinit", now_iso),
+            )
+            conn.execute(
+                "INSERT INTO notifications (notification_id, title, message, severity, category, status, timestamp, correlation_id) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+                ("notif-1", "Job Queued", "Job has been queued", "INFO", "pipeline", "UNREAD", now_iso, "corr-reinit"),
+            )
+            conn.execute(
+                "INSERT INTO metrics (id, metric_name, metric_type, value, created_at) "
+                "VALUES (?, ?, ?, ?, ?);",
+                ("metric-1", "queue_latency_ms", "counter", 15.5, now_iso),
+            )
+            conn.execute(
+                "INSERT INTO audit (id, timestamp, actor_type, actor_id, action_type, correlation_id) "
+                "VALUES (?, ?, ?, ?, ?, ?);",
+                ("audit-1", now_iso, "user", "admin", "create_job", "corr-reinit"),
+            )
+            conn.commit()
+
+            # Multiple invocations on active connection
+            for _ in range(3):
+                init_content_factory_db(conn)
+
+            # Close connection and run multiple invocations on path
+            conn.close()
+            for _ in range(3):
+                init_content_factory_db(db_file)
+
+            # Re-open and verify every table still has exactly 1 row with exact data
+            verify_conn = create_connection(db_file)
+            try:
+                for table in ("jobs", "locks", "events", "notifications", "metrics", "audit"):
+                    count = verify_conn.execute(f"SELECT COUNT(*) FROM {table};").fetchone()[0]
+                    assert count == 1, f"Table {table} expected 1 row after re-init, found {count}"
+
+                job = verify_conn.execute("SELECT * FROM jobs WHERE job_id = 'job-1';").fetchone()
+                assert job["status"] == "QUEUED"
+                assert job["action_id"] == "act-1"
+
+                lock = verify_conn.execute("SELECT * FROM locks WHERE lock_id = 'lock-1';").fetchone()
+                assert lock["owner_job_id"] == "job-1"
+
+                event = verify_conn.execute("SELECT * FROM events WHERE id = 'event-1';").fetchone()
+                assert event["event_name"] == "topic_queued"
+
+                notif = verify_conn.execute("SELECT * FROM notifications WHERE notification_id = 'notif-1';").fetchone()
+                assert notif["title"] == "Job Queued"
+
+                metric = verify_conn.execute("SELECT * FROM metrics WHERE id = 'metric-1';").fetchone()
+                assert metric["value"] == 15.5
+
+                audit = verify_conn.execute("SELECT * FROM audit WHERE id = 'audit-1';").fetchone()
+                assert audit["actor_id"] == "admin"
+            finally:
+                verify_conn.close()
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+
+
+class TestZeroDDLInHotPaths:
+    """Verify ServiceClient and notification connections execute zero DDL in hot paths."""
+
+    def test_get_operations_snapshot_zero_ddl(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Covers UI-002 & PERF-001: get_operations_snapshot executes zero DDL statements."""
+        import content_creation.platform.storage.database as db_mod
+        from content_creation.ui.services.client import ServiceClient, get_context, get_notification_db
+
+        get_context.clear()
+        get_notification_db.clear()
+        monkeypatch.setenv("CONTENT_FACTORY_ROOT", str(tmp_path))
+        (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+
+        cf_db = tmp_path / "data" / "content_factory.db"
+        init_content_factory_db(cf_db)
+
+        executed_statements: list[str] = []
+
+        def trace_sql(statement: str) -> None:
+            clean = statement.strip()
+            if clean:
+                executed_statements.append(clean)
+
+        orig_create_conn = db_mod.create_connection
+
+        def traced_create_connection(*args: Any, **kwargs: Any) -> sqlite3.Connection:
+            conn = orig_create_conn(*args, **kwargs)
+            conn.set_trace_callback(trace_sql)
+            return conn
+
+        monkeypatch.setattr(db_mod, "create_connection", traced_create_connection)
+
+        client = ServiceClient()
+        snapshot = client.get_operations_snapshot()
+        assert snapshot is not None
+
+        ddl_statements = [
+            stmt for stmt in executed_statements
+            if any(stmt.upper().startswith(kw) for kw in ("CREATE", "DROP", "ALTER"))
+        ]
+        assert not ddl_statements, f"Found unexpected DDL statements in get_operations_snapshot: {ddl_statements}"
+        assert len(executed_statements) > 0, "Expected non-DDL queries to be traced during snapshot"
+
+    def test_get_notification_db_zero_ddl_when_db_exists(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Covers UI-002 & PERF-001: get_notification_db executes zero DDL when content_factory.db exists."""
+        import content_creation.platform.storage.database as db_mod
+        from content_creation.ui.services.client import get_notification_db
+
+        get_notification_db.clear()
+        monkeypatch.setenv("CONTENT_FACTORY_ROOT", str(tmp_path))
+        (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+
+        cf_db = tmp_path / "data" / "content_factory.db"
+        init_content_factory_db(cf_db)
+
+        executed_statements: list[str] = []
+
+        def trace_sql(statement: str) -> None:
+            clean = statement.strip()
+            if clean:
+                executed_statements.append(clean)
+
+        orig_create_conn = db_mod.create_connection
+
+        def traced_create_connection(*args: Any, **kwargs: Any) -> sqlite3.Connection:
+            conn = orig_create_conn(*args, **kwargs)
+            conn.set_trace_callback(trace_sql)
+            return conn
+
+        monkeypatch.setattr(db_mod, "create_connection", traced_create_connection)
+
+        notif_conn = get_notification_db()
+        try:
+            ddl_statements = [
+                stmt for stmt in executed_statements
+                if any(stmt.upper().startswith(kw) for kw in ("CREATE", "DROP", "ALTER"))
+            ]
+            assert not ddl_statements, f"Found unexpected DDL in get_notification_db: {ddl_statements}"
+        finally:
+            notif_conn.close()
+            get_notification_db.clear()
+
+
+class TestMultiSubsystemIntegrityConstraints:
+    """Verify relational integrity, primary keys, and mandatory fields in unified database."""
+
+    def test_primary_key_uniqueness_enforced_across_tables(self, tmp_path: Path) -> None:
+        """Covers ARCH-001: Primary key duplicates raise IntegrityError across all tables."""
+        db_file = tmp_path / "data" / "content_factory.db"
+        init_content_factory_db(db_file)
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        conn = create_connection(db_file)
+        try:
+            # 1. jobs duplicate PK
+            conn.execute(
+                "INSERT INTO jobs (job_id, job_type, status, action_id, operator_id, target_type, target_id, payload_json, created_at, correlation_id) "
+                "VALUES ('dup-job', 't', 'QUEUED', 'a', 'op', 'top', '1', '{}', ?, 'c');",
+                (now_iso,),
+            )
+            with pytest.raises(sqlite3.IntegrityError):
+                conn.execute(
+                    "INSERT INTO jobs (job_id, job_type, status, action_id, operator_id, target_type, target_id, payload_json, created_at, correlation_id) "
+                    "VALUES ('dup-job', 't', 'QUEUED', 'a', 'op', 'top', '1', '{}', ?, 'c');",
+                    (now_iso,),
+                )
+
+            # 2. events duplicate PK
+            conn.execute(
+                "INSERT INTO events (id, event_name, category, source, correlation_id, created_at) "
+                "VALUES ('dup-evt', 'e', 'cat', 'src', 'c', ?);",
+                (now_iso,),
+            )
+            with pytest.raises(sqlite3.IntegrityError):
+                conn.execute(
+                    "INSERT INTO events (id, event_name, category, source, correlation_id, created_at) "
+                    "VALUES ('dup-evt', 'e', 'cat', 'src', 'c', ?);",
+                    (now_iso,),
+                )
+
+            # 3. notifications duplicate PK
+            conn.execute(
+                "INSERT INTO notifications (notification_id, title, message, severity, category, status, timestamp, correlation_id) "
+                "VALUES ('dup-notif', 't', 'm', 'INFO', 'c', 'UNREAD', ?, 'c');",
+                (now_iso,),
+            )
+            with pytest.raises(sqlite3.IntegrityError):
+                conn.execute(
+                    "INSERT INTO notifications (notification_id, title, message, severity, category, status, timestamp, correlation_id) "
+                    "VALUES ('dup-notif', 't', 'm', 'INFO', 'c', 'UNREAD', ?, 'c');",
+                    (now_iso,),
+                )
+        finally:
+            conn.close()
+
+    def test_not_null_constraints_enforced(self, tmp_path: Path) -> None:
+        """Covers ARCH-001: Mandatory NOT NULL fields are strictly enforced."""
+        db_file = tmp_path / "data" / "content_factory.db"
+        init_content_factory_db(db_file)
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        conn = create_connection(db_file)
+        try:
+            # locks: last_heartbeat is NOT NULL
+            with pytest.raises(sqlite3.IntegrityError):
+                conn.execute(
+                    "INSERT INTO locks (lock_id, lock_type, resource_id, owner_job_id, status, acquired_at, last_heartbeat) "
+                    "VALUES ('l-bad', 'res', 'r-1', 'j-1', 'ACQUIRED', ?, NULL);",
+                    (now_iso,),
+                )
+
+            # notifications: correlation_id is NOT NULL
+            with pytest.raises(sqlite3.IntegrityError):
+                conn.execute(
+                    "INSERT INTO notifications (notification_id, title, message, severity, category, status, timestamp, correlation_id) "
+                    "VALUES ('n-bad', 't', 'm', 'INFO', 'cat', 'UNREAD', ?, NULL);",
+                    (now_iso,),
+                )
+        finally:
+            conn.close()
+

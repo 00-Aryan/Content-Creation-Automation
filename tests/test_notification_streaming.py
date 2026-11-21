@@ -7,6 +7,7 @@ while domain models (StreamEventType, NotificationStreamEvent) remain available.
 
 import json
 import warnings
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -92,3 +93,44 @@ class TestSSEStreamingRetiral:
             snapshot = service.snapshot()
             assert snapshot is not None
             assert len(recorded) == 0
+
+    @pytest.mark.parametrize("symbol", ["ConnectionManager", "NotificationPublisher", "NotificationSSEServer"])
+    def test_direct_symbol_import_raises_importerror(self, symbol: str) -> None:
+        """Covers ERR-004 & DEAD-004: Direct named import of retired SSE classes raises ImportError."""
+        with pytest.raises(ImportError):
+            exec(f"from content_creation.notifications.streaming import {symbol}")
+
+    @pytest.mark.parametrize("symbol", ["ConnectionManager", "NotificationPublisher", "NotificationSSEServer"])
+    def test_getattr_access_raises_attribute_error(self, symbol: str) -> None:
+        """Covers ERR-004 & DEAD-004: Attribute access on streaming package raises AttributeError."""
+        with pytest.raises(AttributeError):
+            getattr(streaming_pkg, symbol)
+
+    def test_service_client_snapshot_zero_deprecation_warnings(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Covers ERR-004: ServiceClient.get_operations_snapshot runs with 0 deprecation warnings."""
+        from content_creation.platform.storage.database import init_content_factory_db
+        from content_creation.ui.services.client import (
+            ServiceClient,
+            get_context,
+            get_notification_db,
+        )
+
+        get_context.clear()
+        get_notification_db.clear()
+        monkeypatch.setenv("CONTENT_FACTORY_ROOT", str(tmp_path))
+        (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+        init_content_factory_db(tmp_path / "data" / "content_factory.db")
+
+        client = ServiceClient()
+        with warnings.catch_warnings(record=True) as recorded:
+            warnings.simplefilter("always")
+            snapshot = client.get_operations_snapshot()
+            assert snapshot is not None
+            deprecation_warnings = [
+                w for w in recorded
+                if issubclass(w.category, (DeprecationWarning, PendingDeprecationWarning))
+            ]
+            assert len(deprecation_warnings) == 0, f"Found unexpected deprecation warnings: {deprecation_warnings}"
+
