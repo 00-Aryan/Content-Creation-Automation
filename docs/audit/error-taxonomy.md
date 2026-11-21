@@ -1,13 +1,13 @@
 # Error Taxonomy & Failure Catalog: Content Creation Automation
 
 ## 1. Catalog Metadata & Health Overview
-- **Last Updated:** `2026-11-21T12:30:00+05:30`
+- **Last Updated:** `2026-11-21T13:10:00+05:30`
 - **Active Branch:** `fix/phase1b-data-and-schemas`
-- **Audited Commit (SHA):** `f6c3f43` (`f6c3f43de1abcdf2954b10fc8b629c9e4cc5dbb3`)
-- **Pytest Sweep Baseline:** `1174 passed, 19 failed, 0 skipped, 0 xfailed in 19.54s`
+- **Audited Commit (SHA):** `6a852f8` (`6a852f8e2d6a3cb52e3258cdd971d588a62a3947`)
+- **Pytest Sweep Baseline:** `1264 passed, 19 failed, 0 skipped, 0 xfailed in 20.34s`
 - **Total Observed Errors (`ERR-xxx`):** `19` (`9 OPEN`, `0 MITIGATED`, `10 RESOLVED`)
 - **Total Anticipated Risks (`RISK-xxx`):** `5`
-- **QA Coverage Ratio:** `11/19 (57.89%) Covered` (`2 Partial`, `6 Uncovered`)
+- **QA Coverage Ratio:** `12/19 (63.16%) Covered` (`2 Partial`, `5 Uncovered`)
 
 ---
 
@@ -58,7 +58,7 @@
 | `ERR-015` | WeeklyCalendar Config Snapshot Raw Untyped Dict Leak | Stage 9: Planning | `SCHEMA_VALIDATION` | Low | `RESOLVED` | `COVERED` | `5bbee84` | `3846d2d` |
 | `ERR-016` | ContentIntelligence Quality Status Unvalidated String Leak | Stage 4: Intelligence | `SCHEMA_VALIDATION` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `3846d2d` |
 | `ERR-017` | AssetCheck Review Status Unvalidated String Leak in Dry Run | Stage 10: Dry Run | `SCHEMA_VALIDATION` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `3846d2d` |
-| `ERR-018` | 0-Byte Staged JSON Truncation Triggers JSONDecodeError in Ingestion Staged Store | Stage 1: Ingestion | `DATA_ENCODING_IO` | Medium | `OPEN` | `UNCOVERED` | `f6c3f43` | - |
+| `ERR-018` | 0-Byte Staged JSON Truncation Triggers JSONDecodeError in Ingestion Staged Store | Stage 1: Ingestion | `DATA_ENCODING_IO` | Medium | `OPEN` | `COVERED` | `f6c3f43` | - |
 | `ERR-019` | Windows File Lock Contention on .coverage Database During Pytest Invocations | Infra / Tooling | `ENVIRONMENT_PLATFORM` | Low | `OPEN` | `UNCOVERED` | `f6c3f43` | - |
 
 ---
@@ -142,7 +142,7 @@
   - `tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_client_disconnect`
   - `tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_health_with_clients`
   - `tests/test_notification_streaming.py:TestNotificationSSEServer::test_server_sse_no_connection_manager`
-  - `tests/test_notification_streaming.py:TestSSEIntegration::test_full_lifecycle`
+  - `tests/test_SSEIntegration::test_full_lifecycle`
   - `tests/test_notification_streaming.py:TestSSEIntegration::test_multiple_notifications_stream`
   - `tests/test_notification_streaming.py:TestSSEIntegration::test_read_event_flow`
 - **Reproduction Command:** `uv run python -m pytest tests/test_notification_streaming.py -k test_server_health_endpoint --no-cov`
@@ -157,7 +157,7 @@
 - **Error Class:** `QUALITY_GROUNDING`
 - **Severity:** Medium
 - **Status:** `RESOLVED` (`resolved_in_commit: 775cea2`, `mitigated_in_commit: aabeeeb`)
-- **Source Evidence:** `docs/audit/handoffs/fix-phase1a-core-defects.md:26-30, 97-100`, `docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:93-97, 127-130`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:18-19, 81-84`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:78-81`
+- **Source Evidence:** `docs/audit/handoffs/fix-phase1a-core-defects.md:26-30, 97-100`, `docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:93-97, 127-130`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:18-19, 81-84`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:78-81`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:16-17`
 - **Exception / Symptom:** Brief fallback sets recommended_formats=['needs_review'], causing downstream manifest builder to warn on unknown format and fallback to short_video
 - **Root Cause Location:** `src/content_creation/generation/brief.py:71`, `src/content_creation/manifest.py:189-195`
 - **Affected Tests / Callsites:**
@@ -165,6 +165,10 @@
   - `tests/test_manifest.py:test_recommended_formats_filters_review_status_leak`
   - `tests/test_manifest.py:test_recommended_formats_with_only_review_status_defaults_cleanly`
   - `tests/test_manifest.py:test_recommended_formats_genuine_unknown_format_logs_warning`
+  - `tests/test_phase1b_qa.py:test_fallback_brief_generates_valid_short_video_without_leak`
+  - `tests/test_phase1b_qa.py:test_fallback_brief_triggered_by_malformed_json_response`
+  - `tests/test_phase1b_qa.py:test_manifest_builder_filters_all_review_status_leak_variants`
+  - `tests/test_phase1b_qa.py:test_manifest_builder_preserves_valid_formats_in_mixed_list`
 - **Reproduction Command:** `uv run python -m pytest tests/test_manifest.py -k test_upstream_brief_generator_fallback_does_not_leak_review_status --no-cov`
 - **Recommended Runtime Policy:** `ENRICHMENT_OR_CRITIC_LOOP`
 - **QA Coverage Status:** `COVERED`
@@ -180,7 +184,8 @@
 - **Source Evidence:** `Live pipeline smoke test: generate-assets --top 2`, `src/content_creation/platform/storage/json_repository.py:63`
 - **Exception / Symptom:** Failed to load Storyboard <topic_id>.json: Expecting value: line 1 column 1 (char 0), causing AssetGenerationService to skip asset generation due to Storyboard Presence Gate. Creation origin of 0-byte truncation remains unconfirmed in storage backend; unhandled 0-byte read occurs in json_repository.py:59-64.
 - **Root Cause Location:** `src/content_creation/platform/storage/json_repository.py:34-36`, `src/content_creation/platform/storage/json_repository.py:59-64`, `src/content_creation/application/asset_generation_service.py:66-72`
-- **Affected Tests / Callsites:** None (discovered during static schema/dynamic review)
+- **Affected Tests / Callsites:**
+  - None (discovered during test suite execution)
 - **Reproduction Command:** `uv run python -c "from pathlib import Path; p = Path('data/storyboards/test.json'); p.parent.mkdir(parents=True, exist_ok=True); p.write_text(''); from content_creation.storage.local import LocalStorage; s = LocalStorage(Path('.')); print(s.get_storyboard('test'))"`
 - **Recommended Runtime Policy:** `DEFENSIVE_IO_FIX`
 - **QA Coverage Status:** `UNCOVERED`
@@ -193,11 +198,13 @@
 - **Error Class:** `QUALITY_GROUNDING`
 - **Severity:** Low
 - **Status:** `RESOLVED` (`resolved_in_commit: b2ebad1`)
-- **Source Evidence:** `Live pipeline smoke test: score-topics validation log`, `src/content_creation/scoring/validation.py:49`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:24, 29`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:82`
+- **Source Evidence:** `Live pipeline smoke test: score-topics validation log`, `src/content_creation/scoring/validation.py:49`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:24, 29`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:82`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:23`
 - **Exception / Symptom:** Score inconsistency: priority_score (65.75) != sum of components (65.76) flagged across multiple scored topics due to floating-point representation drift
 - **Root Cause Location:** `src/content_creation/scoring/base.py:108-115`, `src/content_creation/scoring/validation.py:48-50`
 - **Affected Tests / Callsites:**
   - `tests/test_scoring.py:test_score_consistency_rule_tolerates_float_rounding_drift`
+  - `tests/test_phase1b_qa.py:test_score_consistency_rule_drift_bva`
+  - `tests/test_phase1b_qa.py:test_score_consistency_rule_disabled_when_config_false`
 - **Reproduction Command:** `uv run python -m pytest tests/test_scoring.py:test_score_consistency_rule_tolerates_float_rounding_drift --no-cov`
 - **Recommended Runtime Policy:** `ENRICHMENT_OR_CRITIC_LOOP`
 - **QA Coverage Status:** `COVERED`
@@ -213,7 +220,8 @@
 - **Source Evidence:** `Live pipeline smoke test: score-topics execution summary`, `src/content_creation/scoring/engine.py:252-254`
 - **Exception / Symptom:** 290 out of 2048 topics rejected as insufficient_text when raw_text < 100 chars, discarding flagship posts (GPT-4o System Card, Introducing OpenAI o1)
 - **Root Cause Location:** `src/content_creation/scoring/engine.py:252`
-- **Affected Tests / Callsites:** None (discovered during static schema/dynamic review)
+- **Affected Tests / Callsites:**
+  - None (discovered during test suite execution)
 - **Reproduction Command:** `uv run python -c "from content_creation.scoring.engine import ScoringEngine; from content_creation.scoring.config import ScoringConfig; from content_creation.models.topic import TopicItem; t = TopicItem(id='test', title='Introducing OpenAI o1', url='https://openai.com/index/o1', source='openai', category='release', raw_text='Short teaser'); e = ScoringEngine(ScoringConfig()); res = e.score_items([t]); print(res['rejected'][0].rejection_reason)"`
 - **Recommended Runtime Policy:** `ENRICHMENT_OR_CRITIC_LOOP`
 - **QA Coverage Status:** `UNCOVERED`
@@ -229,7 +237,8 @@
 - **Source Evidence:** `README.md:445, 448`, `src/content_creation/cli.py:56-215`
 - **Exception / Symptom:** cli.py: error: argument command: invalid choice: 'generate-ci' / 'generate-storyboards' when following README.md operational instructions
 - **Root Cause Location:** `src/content_creation/cli.py:56-215`, `README.md:445`, `README.md:448`
-- **Affected Tests / Callsites:** None (discovered during static schema/dynamic review)
+- **Affected Tests / Callsites:**
+  - None (discovered during test suite execution)
 - **Reproduction Command:** `uv run python -m content_creation.cli generate-ci --top 5`
 - **Recommended Runtime Policy:** `CODE_REFACTOR_FIX`
 - **QA Coverage Status:** `UNCOVERED`
@@ -262,12 +271,15 @@
 - **Error Class:** `DATA_ENCODING_IO`
 - **Severity:** Low
 - **Status:** `RESOLVED` (`resolved_in_commit: 16c90f3`)
-- **Source Evidence:** `docs/audit/handoffs/fix-phase1a-core-defects.md:101-103`, `docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:131-135`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:25, 30`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:81`
+- **Source Evidence:** `docs/audit/handoffs/fix-phase1a-core-defects.md:101-103`, `docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:131-135`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:25, 30`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:81`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:24`
 - **Exception / Symptom:** 'utf-8' codec can't decode byte 0x97 in position 360: invalid start byte logged when inspecting staged JSON files
 - **Root Cause Location:** `src/content_creation/storage/local.py:77-90`
 - **Affected Tests / Callsites:**
   - `tests/test_storage.py:test_local_storage_cp1252_smart_quotes_decoding_fallback`
   - `tests/test_local_storage.py`
+  - `tests/test_phase1b_qa.py:test_read_json_clean_utf8_does_not_log_fallback_warning`
+  - `tests/test_phase1b_qa.py:test_read_json_cp1252_smart_punctuation_suite`
+  - `tests/test_phase1b_qa.py:test_storage_write_methods_enforce_utf8`
 - **Reproduction Command:** `uv run python -m pytest tests/test_storage.py:test_local_storage_cp1252_smart_quotes_decoding_fallback --no-cov`
 - **Recommended Runtime Policy:** `DEFENSIVE_IO_FIX`
 - **QA Coverage Status:** `COVERED`
@@ -283,7 +295,8 @@
 - **Source Evidence:** `docs/audit/handoffs/fix-phase1a-core-defects.md:68-71`, `docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:29, 136-139`
 - **Exception / Symptom:** 127 errors in 1 file (checked 1 source file) in cli.py due to repeated re-assignment of local variable names across 32 subcommand branches
 - **Root Cause Location:** `src/content_creation/cli.py:224-1760`
-- **Affected Tests / Callsites:** None (discovered during static schema/dynamic review)
+- **Affected Tests / Callsites:**
+  - None (discovered during test suite execution)
 - **Reproduction Command:** `uv run mypy src/content_creation/cli.py --strict`
 - **Recommended Runtime Policy:** `CODE_REFACTOR_FIX`
 - **QA Coverage Status:** `PARTIAL`
@@ -296,11 +309,15 @@
 - **Error Class:** `SCHEMA_VALIDATION`
 - **Severity:** Medium
 - **Status:** `RESOLVED` (`resolved_in_commit: 3846d2d`)
-- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:47`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:20, 33`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:69`
+- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:47`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:20, 33`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:69`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:18`
 - **Exception / Symptom:** TopicItem.metadata was declared as Dict[str, Any] = Field(default_factory=dict), allowing arbitrary unvalidated dictionary structures to bypass Pydantic type validation during ingestion normalization
 - **Root Cause Location:** `src/content_creation/models/topic.py:34-60`
 - **Affected Tests / Callsites:**
   - `tests/test_models.py:test_topic_metadata_schema_tightening`
+  - `tests/test_phase1b_qa.py:test_topic_metadata_typed_and_dynamic_attributes`
+  - `tests/test_phase1b_qa.py:test_topic_metadata_mutation_and_keyerror`
+  - `tests/test_phase1b_qa.py:test_topic_item_roundtrip_preserves_extra_metadata_fields`
+  - `tests/test_phase1b_qa.py:test_topic_storage_roundtrip_with_extra_metadata`
 - **Reproduction Command:** `uv run python -m pytest tests/test_models.py:test_topic_metadata_schema_tightening --no-cov`
 - **Recommended Runtime Policy:** `GUIDED_SCHEMA_REPAIR`
 - **QA Coverage Status:** `COVERED`
@@ -313,11 +330,13 @@
 - **Error Class:** `SCHEMA_VALIDATION`
 - **Severity:** Medium
 - **Status:** `RESOLVED` (`resolved_in_commit: 3846d2d`)
-- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:48`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:20, 33`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:69`
+- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:48`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:20, 33`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:69`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:18-19`
 - **Exception / Symptom:** ScoredTopicItem inherited metadata: Dict[str, Any] from TopicItem, permitting arbitrary untyped payloads to propagate across the scoring stage and persist into data/scored/*.json
 - **Root Cause Location:** `src/content_creation/models/topic.py:75`
 - **Affected Tests / Callsites:**
   - `tests/test_models.py:test_topic_metadata_schema_tightening`
+  - `tests/test_phase1b_qa.py:test_scored_topic_item_inherits_topic_metadata_cleanly`
+  - `tests/test_phase1b_qa.py:test_scored_topic_item_priority_score_bva`
 - **Reproduction Command:** `uv run python -m pytest tests/test_models.py:test_topic_metadata_schema_tightening --no-cov`
 - **Recommended Runtime Policy:** `GUIDED_SCHEMA_REPAIR`
 - **QA Coverage Status:** `COVERED`
@@ -330,11 +349,14 @@
 - **Error Class:** `SCHEMA_VALIDATION`
 - **Severity:** Low
 - **Status:** `RESOLVED` (`resolved_in_commit: 3846d2d`)
-- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:49`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:21, 34`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:70`
+- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:49`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:21, 34`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:70`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:20`
 - **Exception / Symptom:** config_snapshot: Dict in WeeklyCalendar used raw unparameterized Dict with no key or value type constraints, allowing arbitrary unconstrained configuration objects to persist in calendar records
 - **Root Cause Location:** `src/content_creation/models/calendar.py:23-68`
 - **Affected Tests / Callsites:**
   - `tests/test_models.py:test_weekly_calendar_publishing_config_snapshot`
+  - `tests/test_phase1b_qa.py:test_publishing_config_snapshot_typed_access_and_dict_compatibility`
+  - `tests/test_phase1b_qa.py:test_publishing_config_snapshot_mutation_and_keyerror`
+  - `tests/test_phase1b_qa.py:test_weekly_calendar_storage_roundtrip_with_config_snapshot_mutations`
 - **Reproduction Command:** `uv run python -m pytest tests/test_models.py:test_weekly_calendar_publishing_config_snapshot --no-cov`
 - **Recommended Runtime Policy:** `GUIDED_SCHEMA_REPAIR`
 - **QA Coverage Status:** `COVERED`
@@ -347,11 +369,14 @@
 - **Error Class:** `SCHEMA_VALIDATION`
 - **Severity:** Medium
 - **Status:** `RESOLVED` (`resolved_in_commit: 3846d2d`)
-- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:50`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:23, 35`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:72`
+- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:50`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:23, 35`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:72`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:21`
 - **Exception / Symptom:** quality_status: Optional[str] = None used unconstrained str rather than QualityStatus enum, allowing invalid quality states to bypass Pydantic model validation
 - **Root Cause Location:** `src/content_creation/domains/content_intelligence/model.py:53`
 - **Affected Tests / Callsites:**
   - `tests/test_models.py:test_content_intelligence_quality_status_schema`
+  - `tests/test_phase1b_qa.py:test_content_intelligence_quality_status_valid_variants`
+  - `tests/test_phase1b_qa.py:test_content_intelligence_quality_status_invalid_variants_reject`
+  - `tests/test_phase1b_qa.py:test_content_intelligence_storage_roundtrip`
 - **Reproduction Command:** `uv run python -m pytest tests/test_models.py:test_content_intelligence_quality_status_schema --no-cov`
 - **Recommended Runtime Policy:** `GUIDED_SCHEMA_REPAIR`
 - **QA Coverage Status:** `COVERED`
@@ -364,11 +389,14 @@
 - **Error Class:** `SCHEMA_VALIDATION`
 - **Severity:** Medium
 - **Status:** `RESOLVED` (`resolved_in_commit: 3846d2d`)
-- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:51`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:22, 36`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:71`
+- **Source Evidence:** `docs/audit/03-drift-and-defects-register.md:51`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:22, 36`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:71`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:22`
 - **Exception / Symptom:** AssetCheck.review_status was typed as unconstrained str instead of ReviewStatus enum or DryRunReviewStatus union, allowing invalid review states to pass dry run verification checks without schema error
 - **Root Cause Location:** `src/content_creation/models/dryrun.py:7-17`
 - **Affected Tests / Callsites:**
   - `tests/test_dryrun.py:test_asset_check_review_status_schema_constraint`
+  - `tests/test_phase1b_qa.py:test_asset_check_review_status_valid_variants`
+  - `tests/test_phase1b_qa.py:test_asset_check_review_status_invalid_variants_reject`
+  - `tests/test_phase1b_qa.py:test_dryrun_report_storage_roundtrip`
 - **Reproduction Command:** `uv run python -m pytest tests/test_dryrun.py:test_asset_check_review_status_schema_constraint --no-cov`
 - **Recommended Runtime Policy:** `GUIDED_SCHEMA_REPAIR`
 - **QA Coverage Status:** `COVERED`
@@ -381,13 +409,19 @@
 - **Error Class:** `DATA_ENCODING_IO`
 - **Severity:** Medium
 - **Status:** `OPEN`
-- **Source Evidence:** `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:114-117`, `Live LocalStorage.list_staged() scan`
+- **Source Evidence:** `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:114-117`, `Live LocalStorage.list_staged() scan`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:25-26`
 - **Exception / Symptom:** Failed to load staged item data/staged/05738f6c55b7147880500b666d1a96e73b80de79c9a4453c521b0ffc55549d70.json: Expecting value: line 1 column 1 (char 0). Creation origin of 0-byte truncation in data/staged/ remains unconfirmed in storage backend; unhandled 0-byte read occurs in LocalStorage._read_json.
 - **Root Cause Location:** `src/content_creation/storage/local.py:77-90`, `data/staged/05738f6c55b7147880500b666d1a96e73b80de79c9a4453c521b0ffc55549d70.json`
-- **Affected Tests / Callsites:** None (discovered during static schema/dynamic review)
+- **Affected Tests / Callsites:**
+  - `tests/test_phase1b_qa.py:test_list_staged_handles_zero_byte_file_gracefully`
+  - `tests/test_phase1b_qa.py:test_get_staged_handles_zero_byte_file`
+  - `tests/test_phase1b_qa.py:test_list_and_get_scored_handles_zero_byte_file`
+  - `tests/test_phase1b_qa.py:test_list_and_get_analytics_handles_zero_byte_file`
+  - `tests/test_phase1b_qa.py:test_list_staged_handles_corrupt_non_dict_json`
+  - `tests/test_phase1b_qa.py:test_save_staged_deduplication_atomic_mode_x`
 - **Reproduction Command:** `uv run python -c "from content_creation.storage.local import LocalStorage; from pathlib import Path; s = LocalStorage(Path('.')); print(s.get_staged('05738f6c55b7147880500b666d1a96e73b80de79c9a4453c521b0ffc55549d70'))"`
 - **Recommended Runtime Policy:** `DEFENSIVE_IO_FIX`
-- **QA Coverage Status:** `UNCOVERED`
+- **QA Coverage Status:** `COVERED`
 - **QA Test Directive:** Add test_read_json_handles_zero_byte_staged_file asserting LocalStorage._read_json or get_staged/list_staged detects 0-byte file and handles gracefully without raising unhandled JSONDecodeError.
 
 ---
@@ -400,7 +434,8 @@
 - **Source Evidence:** `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:39-43`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:128`
 - **Exception / Symptom:** PermissionError: [WinError 5] Access is denied: '[USER_HOME]/.../.coverage' when pytest-cov attempts to delete/recreate .coverage while a concurrent process or prior handle is locked on Windows hosts
 - **Root Cause Location:** `pyproject.toml:68`
-- **Affected Tests / Callsites:** None (discovered during test suite execution)
+- **Affected Tests / Callsites:**
+  - None (discovered during test suite execution)
 - **Reproduction Command:** `uv run python -m pytest --tb=no -q`
 - **Recommended Runtime Policy:** `CROSS_PLATFORM_GUARD`
 - **QA Coverage Status:** `UNCOVERED`
