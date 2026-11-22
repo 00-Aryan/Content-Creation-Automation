@@ -616,3 +616,371 @@ def test_get_operations_snapshot_excludes_retired_sse_and_downgrades_worker_aler
         assert "manual mode" in worker_alert.title
 
 
+# ---------------------------------------------------------------------------
+# High-Signal BVA, Fault Injection, and Idempotency Suites (Phase 2D QA)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "empty_title",
+    ["", "   ", "\t", "\n", " \t \r\n "],
+)
+def test_create_manual_topic_bva_empty_and_whitespace_titles(
+    test_workspace: Path,
+    empty_title: str,
+) -> None:
+    """ERR-013: Boundary Value Analysis on manual topic creation rejecting empty/whitespace titles."""
+    client = ServiceClient()
+    with pytest.raises(ValueError, match="title cannot be empty"):
+        client.create_manual_topic(title=empty_title, notes="Some contextual notes")
+
+
+def test_create_manual_topic_whitespace_normalization_and_defaults(
+    test_workspace: Path,
+) -> None:
+    """Stage 1 Contract: Verify whitespace normalization and fallback defaults in create_manual_topic."""
+    client = ServiceClient()
+    topic = client.create_manual_topic(
+        title="   Attention Is All You Need   \n",
+        notes="   Classic transformer architecture paper.   \t",
+        url="   ",
+        source_id="   ",
+    )
+    assert topic.title == "Attention Is All You Need"
+    assert topic.raw_text == "Classic transformer architecture paper."
+    assert topic.source == "manual"
+    assert topic.url.startswith("urn:manual:")
+    assert topic.author == "creator"
+    assert "manual" in topic.topic_tags
+    assert topic.metadata.source_type == "manual"
+
+
+def test_create_manual_topic_unicode_and_smart_punctuation_persistence(
+    test_workspace: Path,
+) -> None:
+    """ERR-011: Verify create_manual_topic correctly encodes and persists Unicode, smart quotes, and emojis."""
+    import json
+    client = ServiceClient()
+    unicode_title = "FlashAttention-3: 🚀 極速 ‘Smart Quotes’ & — En-dash"
+    unicode_notes = "Key breakthrough: reduced latency by 50% under H100 GPU architecture. “Innovative tiling”."
+    
+    topic = client.create_manual_topic(
+        title=unicode_title,
+        notes=unicode_notes,
+        url="https://arxiv.org/abs/2407.08608",
+        source_id="arxiv",
+    )
+    assert topic.title == unicode_title
+    assert topic.raw_text == unicode_notes
+
+    # Read directly from disk with UTF-8
+    disk_file = test_workspace / "data" / "staged" / f"{topic.id}.json"
+    assert disk_file.exists()
+    disk_data = json.loads(disk_file.read_text(encoding="utf-8"))
+    assert disk_data["title"] == unicode_title
+    assert disk_data["raw_text"] == unicode_notes
+
+
+def test_create_manual_topic_extreme_length_boundary(
+    test_workspace: Path,
+) -> None:
+    """BVA: Verify manual topic handles extreme character lengths cleanly with excerpt truncation."""
+    import json
+    client = ServiceClient()
+    long_title = "Title Boundary Test " + ("A" * 2000)
+    long_notes = "Detailed research notes " + ("B" * 5000)
+
+    topic = client.create_manual_topic(
+        title=long_title,
+        notes=long_notes,
+        url="https://example.com/long-topic",
+    )
+    assert topic.title == long_title
+    assert topic.raw_text == long_notes
+    assert len(topic.excerpt) == 200  # Excerpt constrained to first 200 characters
+
+    # Disk persistence verification
+    disk_file = test_workspace / "data" / "staged" / f"{topic.id}.json"
+    assert disk_file.exists()
+    disk_data = json.loads(disk_file.read_text(encoding="utf-8"))
+    assert disk_data["title"] == long_title
+    assert len(disk_data["excerpt"]) == 200
+
+
+def test_create_manual_topic_deterministic_id_generation(
+    test_workspace: Path,
+) -> None:
+    """Stage 1 Contract: Verify deterministic SHA-256 topic ID hashing across invocations."""
+    client = ServiceClient()
+    # Identical URL yields identical topic ID
+    t1 = client.create_manual_topic(
+        title="Title Variation A",
+        notes="Notes A",
+        url="https://arxiv.org/abs/2407.08608",
+    )
+    t2 = client.create_manual_topic(
+        title="Title Variation B",
+        notes="Notes B",
+        url="https://arxiv.org/abs/2407.08608",
+    )
+    assert t1.id == t2.id
+
+    # Same title and source without URL yields identical topic ID
+    t3 = client.create_manual_topic(title="Unique Idea", notes="Idea 1", source_id="brainstorm")
+    t4 = client.create_manual_topic(title="Unique Idea", notes="Idea 2", source_id="brainstorm")
+    assert t3.id == t4.id
+
+    # Different URL yields different topic ID
+    t5 = client.create_manual_topic(title="Unique Idea", notes="Idea 1", url="https://example.com/other")
+    assert t5.id != t3.id
+
+
+def test_format_voiceover_script_edge_cases(
+    test_workspace: Path,
+) -> None:
+    """Phase 2D Feature: Edge cases for format_voiceover_script including empty segments and standard fallback."""
+    import json
+    client = ServiceClient()
+    topic_id = "test-vo-edges"
+
+    # Case 1: Topic with empty shorts_segments list falls back to hook + script_sections + cta
+    scripts_dir = test_workspace / "data" / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    payload_fallback = {
+        "topic_id": topic_id,
+        "format": "short_video",
+        "hook": "Fallback Hook",
+        "script_sections": ["Section 1", "Section 2"],
+        "cta": "Fallback CTA",
+        "claims_used": [],
+        "source_links": [],
+        "review_status": "draft",
+        "generated_at": "2026-11-22T00:00:00Z",
+        "shorts_segments": [],
+    }
+    (scripts_dir / f"{topic_id}.json").write_text(json.dumps(payload_fallback), encoding="utf-8")
+
+    vo_fallback = client.format_voiceover_script(topic_id)
+    assert "Fallback Hook" in vo_fallback
+    assert "Section 1" in vo_fallback
+    assert "Section 2" in vo_fallback
+    assert "Fallback CTA" in vo_fallback
+
+    # Case 2: Populated shorts_segments with valid sections and spoken dialog
+    payload_valid_segs = {
+        "topic_id": topic_id,
+        "format": "short_video",
+        "hook": "Unused Hook",
+        "script_sections": [],
+        "cta": "Unused CTA",
+        "claims_used": [],
+        "source_links": [],
+        "review_status": "draft",
+        "generated_at": "2026-11-22T00:00:00Z",
+        "shorts_segments": [
+            {"section": "hook", "time_range": "0:00-0:05", "visual": "V1", "audio": "A1", "spoken": "Valid Spoken Text 1"},
+            {"section": "payoff", "time_range": "0:05-0:10", "visual": "V2", "audio": "A2", "spoken": "Valid Spoken Text 2"},
+        ],
+    }
+    (scripts_dir / f"{topic_id}.json").write_text(json.dumps(payload_valid_segs), encoding="utf-8")
+    vo_segs = client.format_voiceover_script(topic_id)
+    assert "Valid Spoken Text 1" in vo_segs
+    assert "Valid Spoken Text 2" in vo_segs
+    assert len(vo_segs.split("\n\n")) == 2
+
+    # Case 3: Script with no spoken lines anywhere (empty hook, empty sections, empty cta)
+    payload_all_empty = {
+        "topic_id": topic_id,
+        "format": "short_video",
+        "hook": "",
+        "script_sections": [],
+        "cta": "",
+        "claims_used": [],
+        "source_links": [],
+        "review_status": "draft",
+        "generated_at": "2026-11-22T00:00:00Z",
+        "shorts_segments": [],
+    }
+    (scripts_dir / f"{topic_id}.json").write_text(json.dumps(payload_all_empty), encoding="utf-8")
+    vo_none = client.format_voiceover_script(topic_id)
+    assert f"No voiceover text found for topic {topic_id}." == vo_none
+
+
+def test_format_production_cue_sheet_storyboard_only(
+    test_workspace: Path,
+) -> None:
+    """Phase 2D Feature: Production cue sheet formats storyboard directions when video script is not yet generated."""
+    import json
+    client = ServiceClient()
+    topic_id = "test-sb-only-cue"
+
+    storyboards_dir = test_workspace / "data" / "storyboards"
+    storyboards_dir.mkdir(parents=True, exist_ok=True)
+    sb_payload = {
+        "topic_id": topic_id,
+        "generated_at": "2026-11-22T00:00:00Z",
+        "formats_planned": ["short_video"],
+        "script_hook": "Hook from Storyboard",
+        "script_cta": "CTA from Storyboard",
+        "script_claims": ["Claim 1"],
+        "carousel_hook": "Hook",
+        "carousel_cta": "CTA",
+        "carousel_claims": ["Claim 1"],
+        "newsletter_hook": "Hook",
+        "newsletter_cta": "CTA",
+        "newsletter_claims": ["Claim 1"],
+        "thumbnail_hook": "Thumbnail",
+        "visual_metaphor": "Gears turning inside silicon chips",
+        "visual_style": "metaphor_illustration",
+    }
+    (storyboards_dir / f"{topic_id}.json").write_text(json.dumps(sb_payload), encoding="utf-8")
+
+    cue = client.format_production_cue_sheet(topic_id)
+    assert "PRODUCTION CUE SHEET" in cue
+    assert "Visual Style: metaphor_illustration" in cue
+    assert "Visual Metaphor: Gears turning inside silicon chips" in cue
+    assert "SCENE 1: HOOK" in cue
+    assert "👁️ VISUAL:  Gears turning inside silicon chips" in cue
+    assert "🎙️ HOOK:    \"Hook from Storyboard\"" in cue
+    assert "SCENE 2: CTA" in cue
+    assert "🎙️ CTA:     \"CTA from Storyboard\"" in cue
+
+
+def test_format_production_cue_sheet_script_only_fallback(
+    test_workspace: Path,
+) -> None:
+    """Phase 2D Feature: Production cue sheet formats script sections when shorts_segments is absent."""
+    import json
+    client = ServiceClient()
+    topic_id = "test-script-sections-cue"
+
+    scripts_dir = test_workspace / "data" / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    script_payload = {
+        "topic_id": topic_id,
+        "format": "short_video",
+        "hook": "Attention ML students!",
+        "script_sections": [
+            "Section 1: Attention mechanisms compute similarity.",
+            "Section 2: Multi-head attention allows diverse representations.",
+        ],
+        "cta": "Like and subscribe for more AI lessons.",
+        "claims_used": ["Self-attention scales quadratically"],
+        "source_links": [],
+        "review_status": "draft",
+        "generated_at": "2026-11-22T00:00:00Z",
+    }
+    (scripts_dir / f"{topic_id}.json").write_text(json.dumps(script_payload), encoding="utf-8")
+
+    cue = client.format_production_cue_sheet(topic_id)
+    assert "PRODUCTION CUE SHEET" in cue
+    assert "SCENE 1: HOOK" in cue
+    assert "🎙️ SPOKEN:  \"Attention ML students!\"" in cue
+    assert "SCENE 2: BODY" in cue
+    assert "🎙️ SPOKEN:  \"Section 1: Attention mechanisms compute similarity.\"" in cue
+    assert "SCENE 3: BODY" in cue
+    assert "🎙️ SPOKEN:  \"Section 2: Multi-head attention allows diverse representations.\"" in cue
+    assert "SCENE 4: CTA" in cue
+    assert "🎙️ SPOKEN:  \"Like and subscribe for more AI lessons.\"" in cue
+
+
+def test_ensure_database_initialized_zero_ddl_when_populated(
+    test_workspace: Path,
+) -> None:
+    """ERR-027 / REL-002: Verify zero DDL statements executed when database tables already exist."""
+    import sqlite3
+    from content_creation.ui.services.client import ensure_database_initialized
+    from content_creation.platform.storage.database import get_db_path, init_content_factory_db
+
+    target_db = get_db_path(test_workspace)
+    # Fully initialize database tables first
+    init_content_factory_db(target_db)
+
+    ensure_database_initialized.clear()
+
+    # Track executed SQL statements
+    executed_statements: list[str] = []
+    original_connect = sqlite3.connect
+
+    class QueryTrackingConnection(sqlite3.Connection):
+        def execute(self, sql: str, *args: Any, **kwargs: Any) -> sqlite3.Cursor:
+            executed_statements.append(sql.strip())
+            return super().execute(sql, *args, **kwargs)
+
+    def tracked_connect(*args: Any, **kwargs: Any) -> sqlite3.Connection:
+        kwargs["factory"] = QueryTrackingConnection
+        return original_connect(*args, **kwargs)
+
+    from unittest.mock import patch
+    with patch("sqlite3.connect", side_effect=tracked_connect):
+        result = ensure_database_initialized()
+
+    assert result is True
+    # Verify ONLY SELECT on sqlite_master was executed, zero DDL statements
+    ddl_keywords = ["CREATE TABLE", "CREATE INDEX", "ALTER TABLE", "DROP TABLE"]
+    for stmt in executed_statements:
+        for ddl in ddl_keywords:
+            assert ddl not in stmt.upper(), f"Prohibited DDL '{ddl}' executed on hot path: {stmt}"
+
+    assert any("SELECT name FROM sqlite_master" in stmt for stmt in executed_statements)
+
+
+def test_ensure_database_initialized_partial_db_heals_all_tables(
+    test_workspace: Path,
+) -> None:
+    """ERR-027 / REL-002: Verify ensure_database_initialized detects partial tables and self-heals."""
+    import sqlite3
+    from content_creation.ui.services.client import ensure_database_initialized
+    from content_creation.platform.storage.database import get_db_path, create_connection
+    from content_creation.jobs.schema import create_job_schema
+
+    target_db = get_db_path(test_workspace)
+    target_db.parent.mkdir(parents=True, exist_ok=True)
+    # Seed only 'jobs' schema, leaving 'events', 'locks', 'notifications', etc. missing
+    conn = sqlite3.connect(str(target_db))
+    create_job_schema(conn)
+    conn.commit()
+    conn.close()
+
+    ensure_database_initialized.clear()
+    res = ensure_database_initialized()
+    assert res is True
+
+    # Confirm all 6 required subsystem tables now exist
+    verify_conn = create_connection(target_db)
+    try:
+        table_names = {
+            row["name"]
+            for row in verify_conn.execute("SELECT name FROM sqlite_master WHERE type='table';").fetchall()
+        }
+        for expected in ["jobs", "locks", "events", "notifications", "metrics", "audit"]:
+            assert expected in table_names, f"Expected table '{expected}' missing after self-heal"
+    finally:
+        verify_conn.close()
+
+
+def test_ensure_database_initialized_corrupted_header_fallback(
+    test_workspace: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """ERR-027: Corrupted database file logs warning and attempts graceful initialization."""
+    import logging
+    from content_creation.ui.services.client import ensure_database_initialized
+    from content_creation.platform.storage.database import get_db_path
+
+    target_db = get_db_path(test_workspace)
+    target_db.parent.mkdir(parents=True, exist_ok=True)
+    target_db.write_text("CORRUPTED HEADER BYTES NOT SQLITE", encoding="utf-8")
+
+    ensure_database_initialized.clear()
+    with caplog.at_level(logging.WARNING):
+        # sqlite3.connect or execute will raise OperationalError/DatabaseError
+        # client.py catches sqlite3.Error and logs warning
+        try:
+            ensure_database_initialized()
+        except Exception:
+            pass  # Fallback to init_content_factory_db may fail if file is locked/corrupt, but warning must be logged
+
+    assert any("Failed to inspect sqlite_master" in r.message for r in caplog.records)
+
+
+

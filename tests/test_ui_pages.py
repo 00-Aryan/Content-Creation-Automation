@@ -626,3 +626,272 @@ def test_all_ui_files_ast_zero_direct_layer_violations() -> None:
                     )
 
 
+# ---------------------------------------------------------------------------
+# Interactive Headless Streamlit AppTest Suite (Phase 2D QA)
+# ---------------------------------------------------------------------------
+
+def test_topic_collection_form_submission_success(tmp_path: Path) -> None:
+    """Stage 1 UI: Test submitting custom topic form creates and persists staged item."""
+    at = AppTest.from_file("src/content_creation/ui/pages/1_topic_collection.py", default_timeout=15)
+    at.run()
+    assert len(at.exception) == 0
+
+    # Fill form fields
+    at.text_input[0].input("DeepSeek-R1 Architecture")
+    at.text_area[0].input("Incentivizing reasoning capability through reinforcement learning without supervised fine-tuning.")
+    at.text_input[1].input("https://arxiv.org/abs/2501.12948")
+    at.text_input[2].input("arxiv")
+
+    # Submit form
+    at.button[0].click().run()
+    assert len(at.exception) == 0
+
+    # Verify file written to data/staged
+    staged_files = list((tmp_path / "data" / "staged").glob("*.json"))
+    assert len(staged_files) >= 1
+    staged_data = json.loads(staged_files[0].read_text(encoding="utf-8"))
+    assert staged_data["title"] == "DeepSeek-R1 Architecture"
+    assert staged_data["source"] == "arxiv"
+    assert staged_data["status"] == "staged"
+
+
+def test_topic_collection_form_submission_empty_title_validation(tmp_path: Path) -> None:
+    """Stage 1 UI: Test submitting custom topic form with empty title triggers validation error."""
+    at = AppTest.from_file("src/content_creation/ui/pages/1_topic_collection.py", default_timeout=15)
+    at.run()
+    assert len(at.exception) == 0
+
+    at.text_input[0].input("   ")
+    at.text_area[0].input("Some notes")
+    at.button[0].click().run()
+
+    assert len(at.exception) == 0
+    errors = [e.value for e in at.error]
+    assert any("Topic title is required" in err for err in errors)
+
+
+def test_topic_collection_form_submission_empty_notes_validation(tmp_path: Path) -> None:
+    """Stage 1 UI: Test submitting custom topic form with empty notes triggers validation error."""
+    at = AppTest.from_file("src/content_creation/ui/pages/1_topic_collection.py", default_timeout=15)
+    at.run()
+    assert len(at.exception) == 0
+
+    at.text_input[0].input("Valid Title")
+    at.text_area[0].input("   ")
+    at.button[0].click().run()
+
+    assert len(at.exception) == 0
+    errors = [e.value for e in at.error]
+    assert any("Notes or research excerpt is required" in err for err in errors)
+
+
+def test_topic_pipeline_interactive_filters_and_tier_badges(tmp_path: Path) -> None:
+    """ERR-029: Verify Page 2 displays all three priority tier badges and read-only weights expander."""
+    scored_dir = tmp_path / "data" / "scored"
+    scored_dir.mkdir(parents=True, exist_ok=True)
+
+    # Seed 3 scored topics across High (>=80), Medium (50-79), Low (<50)
+    for idx, (score, label) in enumerate([(85.0, "High"), (65.0, "Med"), (35.0, "Low")], start=1):
+        item_dict = {
+            "id": f"topic-tier-{idx}",
+            "title": f"Paper {label} {idx}",
+            "url": f"https://example.com/p{idx}",
+            "source": "arxiv",
+            "published_at": "2026-11-22T00:00:00Z",
+            "raw_text": "Sample text " * 10,
+            "category": "paper",
+            "status": "scored",
+            "priority_score": score,
+            "validation_flags": [],
+        }
+        (scored_dir / f"topic-tier-{idx}.json").write_text(json.dumps(item_dict), encoding="utf-8")
+
+    at = AppTest.from_file("src/content_creation/ui/pages/2_topic_pipeline.py", default_timeout=15)
+    at.run()
+    assert len(at.exception) == 0
+
+    # Verify all 3 priority tier badges render in the triage dataframe
+    assert len(at.dataframe) >= 1
+    df_val = at.dataframe[0].value
+    if hasattr(df_val, "to_dict"):
+        tiers = list(df_val["Priority Tier"])
+    else:
+        tiers = [row["Priority Tier"] for row in df_val]  # type: ignore[union-attr]
+
+    assert "🟢 High" in tiers
+    assert "🟡 Medium" in tiers
+    assert "⚪ Low" in tiers
+
+    # Sliders must be zero
+    assert len(at.slider) == 0
+
+    # Read-only scoring weights expander
+    expanders = [e.label for e in at.expander]
+    assert any("Current Scoring Weights (config/scoring.yaml)" in exp for exp in expanders)
+
+
+def test_brief_viewer_interactive_status_badges(tmp_path: Path) -> None:
+    """ERR-030: Verify 3_brief_viewer.py renders Pending review ⏳ and eliminates duplicate summary."""
+    topic_id = "topic-brief-interactive"
+    scored_dir = tmp_path / "data" / "scored"
+    scored_dir.mkdir(parents=True, exist_ok=True)
+    item_dict = {
+        "id": topic_id,
+        "title": "Interactive Brief Test Paper",
+        "url": "https://example.com/p_interactive",
+        "source": "arxiv",
+        "published_at": "2026-11-22T00:00:00Z",
+        "raw_text": "Sample text " * 10,
+        "category": "paper",
+        "status": "scored",
+        "priority_score": 75.0,
+        "validation_flags": [],
+    }
+    (scored_dir / f"{topic_id}.json").write_text(json.dumps(item_dict), encoding="utf-8")
+
+    brief_dict = _make_brief_dict(topic_id)
+    brief_dict["review_status"] = "needs_review"
+    (tmp_path / "data" / "briefs" / f"{topic_id}.json").write_text(
+        json.dumps(brief_dict), encoding="utf-8"
+    )
+
+    at = AppTest.from_file("src/content_creation/ui/pages/3_brief_viewer.py", default_timeout=15)
+    at.run()
+    assert len(at.exception) == 0
+
+    all_markdown = " ".join(m.value for m in at.markdown)
+    assert "Pending review ⏳" in all_markdown
+    assert "### 📄 Brief Summary" not in all_markdown
+
+
+def test_storyboard_page_interactive_selector_and_navigation(tmp_path: Path) -> None:
+    """Stage 5 UI: Verify 4_storyboard.py options show readiness emojis and forward stage navigation."""
+    topic_ready = "topic-ready-sb"
+    topic_pending = "topic-pending-sb"
+
+    (tmp_path / "data" / "briefs" / f"{topic_ready}.json").write_text(
+        json.dumps(_make_brief_dict(topic_ready)), encoding="utf-8"
+    )
+    (tmp_path / "data" / "briefs" / f"{topic_pending}.json").write_text(
+        json.dumps(_make_brief_dict(topic_pending)), encoding="utf-8"
+    )
+
+    # Storyboard exists only for topic_ready
+    (tmp_path / "data" / "storyboards" / f"{topic_ready}.json").write_text(
+        json.dumps(_make_storyboard_dict(topic_ready)), encoding="utf-8"
+    )
+
+    at = AppTest.from_file("src/content_creation/ui/pages/4_storyboard.py", default_timeout=15)
+    at.run()
+    assert len(at.exception) == 0
+
+    # Brief selector contains ✅ for ready topic and ⏳ for pending topic
+    brief_selector = next((sb for sb in at.selectbox if "Brief Selector" in sb.label), None)
+    assert brief_selector is not None
+    assert any("✅" in opt for opt in brief_selector.options)
+    assert any("⏳" in opt for opt in brief_selector.options)
+
+
+def test_asset_workshop_interactive_blocking_badges_and_cue_blocks(tmp_path: Path) -> None:
+    """ERR-031: Verify 5_asset_workshop.py formats blocking reasons as badges and renders cue sheets."""
+    topic_id = "topic-blocking-badges"
+    (tmp_path / "data" / "briefs" / f"{topic_id}.json").write_text(
+        json.dumps(_make_brief_dict(topic_id)), encoding="utf-8"
+    )
+    (tmp_path / "data" / "storyboards" / f"{topic_id}.json").write_text(
+        json.dumps(_make_storyboard_dict(topic_id)), encoding="utf-8"
+    )
+
+    # Seed script
+    scripts_dir = tmp_path / "data" / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    script_dict = {
+        "topic_id": topic_id,
+        "format": "short_video",
+        "hook": "Ever wondered how flash attention works?",
+        "script_sections": ["Section 1", "Section 2"],
+        "cta": "Check the repo link below.",
+        "claims_used": ["Fast GPU compute"],
+        "source_links": ["https://arxiv.org/abs/2407.08608"],
+        "review_status": "draft",
+        "generated_at": "2026-11-22T00:00:00Z",
+    }
+    (scripts_dir / f"{topic_id}.json").write_text(json.dumps(script_dict), encoding="utf-8")
+
+    # Manifest with multiple blocking reasons
+    manifest_dict = _make_manifest_dict(topic_id)
+    manifest_dict["blocking_reasons"] = ["script: missing", "carousel: review_rejected", "newsletter: missing"]
+    (tmp_path / "data" / "manifests" / f"{topic_id}.json").write_text(
+        json.dumps(manifest_dict), encoding="utf-8"
+    )
+
+    at = AppTest.from_file("src/content_creation/ui/pages/5_asset_workshop.py", default_timeout=15)
+    at.run()
+    assert len(at.exception) == 0
+
+    all_markdown = " ".join(m.value for m in at.markdown)
+    # Raw Python list bracket representation must NOT appear
+    assert "['script: missing'" not in all_markdown
+    # Each blocking reason rendered as individual badge
+    assert "🚫 `script: missing`" in all_markdown
+    assert "🚫 `carousel: review_rejected`" in all_markdown
+    assert "🚫 `newsletter: missing`" in all_markdown
+
+    # Verify Production Cue Sheet and Voiceover code blocks appear
+    all_codes = [c.value for c in at.code]
+    assert any("PRODUCTION CUE SHEET" in code for code in all_codes)
+
+
+def test_operations_dashboard_retired_sse_and_worker_offline_downgrade(tmp_path: Path) -> None:
+    """ERR-032 & ERR-033: Verify Page 6 excludes SSE and downgrades worker offline alert to info."""
+    at = AppTest.from_file("src/content_creation/ui/pages/6_operations_dashboard.py", default_timeout=15)
+    at.run()
+    assert len(at.exception) == 0
+
+    all_markdown = " ".join(m.value for m in at.markdown)
+    # ERR-032: Legacy SSE component must not be rendered
+    assert "SSE Streaming: UNKNOWN" not in all_markdown
+    assert "SSE" not in all_markdown
+
+    # ERR-033: Worker offline alert in manual mode without jobs is not a yellow warning
+    warnings = [w.value for w in at.warning]
+    assert not any("Worker Daemon" in w for w in warnings)
+
+
+def test_all_pages_ast_zero_deprecated_parameters_and_html_components() -> None:
+    """ERR-022: Enforce zero use_container_width, zero st.components.v1.html, and clean unicode arrows."""
+    import ast
+
+    ui_files = [
+        Path("src/content_creation/ui/app.py"),
+        Path("src/content_creation/ui/pages/1_topic_collection.py"),
+        Path("src/content_creation/ui/pages/2_topic_pipeline.py"),
+        Path("src/content_creation/ui/pages/3_brief_viewer.py"),
+        Path("src/content_creation/ui/pages/4_storyboard.py"),
+        Path("src/content_creation/ui/pages/5_asset_workshop.py"),
+        Path("src/content_creation/ui/pages/6_operations_dashboard.py"),
+    ]
+
+    for file_path in ui_files:
+        assert file_path.exists(), f"File {file_path} missing"
+        content = file_path.read_text(encoding="utf-8")
+
+        # Zero LaTeX arrow escapes
+        assert r"$\rightarrow$" not in content, f"LaTeX escape found in {file_path}"
+        assert r"\rightarrow" not in content, f"LaTeX escape found in {file_path}"
+
+        tree = ast.parse(content)
+        for node in ast.walk(tree):
+            # Zero use_container_width keyword arguments
+            if isinstance(node, ast.Call):
+                for kw in node.keywords:
+                    assert kw.arg != "use_container_width", (
+                        f"Deprecated keyword 'use_container_width' found at line {kw.lineno} in {file_path}"
+                    )
+            # Zero st.components.v1.html calls
+            elif isinstance(node, ast.Attribute):
+                if node.attr == "html" and isinstance(node.value, ast.Attribute) and node.value.attr == "v1":
+                    assert False, f"Deprecated st.components.v1.html found at line {node.lineno} in {file_path}"
+
+
+
