@@ -57,6 +57,27 @@ def ensure_database_initialized() -> bool:
 
     target_db = get_db_path(data_dir)
     target_db.parent.mkdir(parents=True, exist_ok=True)
+
+    required_tables = {"jobs", "locks", "events", "notifications", "metrics", "audit"}
+    if target_db.exists():
+        try:
+            conn = sqlite3.connect(str(target_db))
+            try:
+                existing_tables: set[str] = {
+                    str(row[0])
+                    for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                }
+            finally:
+                conn.close()
+            if required_tables.issubset(existing_tables):
+                return True
+        except sqlite3.Error as exc:
+            logger.warning(
+                "Failed to inspect sqlite_master on %s, falling back to full init: %s",
+                target_db,
+                exc,
+            )
+
     init_content_factory_db(target_db)
     return True
 
