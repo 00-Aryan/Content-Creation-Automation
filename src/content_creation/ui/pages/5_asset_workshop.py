@@ -126,7 +126,12 @@ def main() -> None:
         with col_m2:
             st.metric("Ready for Planner?", "YES" if manifest.ready_for_planner else "NO")
         with col_m3:
-            st.write(f"**Blocking Reasons:** {manifest.blocking_reasons or 'None'}")
+            st.markdown("**Blocking Reasons:**")
+            if manifest.blocking_reasons:
+                for reason in manifest.blocking_reasons:
+                    st.markdown(f"🚫 `{reason}`")
+            else:
+                st.markdown("✅ `None`")
 
         st.markdown("#### 📁 Manifest Artifact References")
         ref_data = []
@@ -180,6 +185,14 @@ def main() -> None:
                 st.markdown("**📋 Copy — Full Script**")
                 full_script = f"{script.hook}\n\n" + "\n\n".join(script.script_sections) + f"\n\n{script.cta}"
                 st.code(full_script, language=None)
+
+                st.markdown("**🎙️ Voiceover Only (TTS Audio)**")
+                tts_text = client.format_voiceover_script(topic_id)
+                st.code(tts_text, language=None)
+
+                st.markdown("**🎬 Full Production Cue Sheet (Video Editing)**")
+                cue_text = client.format_production_cue_sheet(topic_id)
+                st.code(cue_text, language="markdown")
 
                 if storyboard:
                     st.markdown("#### ⚖️ Storyboard vs. Output Script Comparison")

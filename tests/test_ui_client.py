@@ -477,3 +477,90 @@ def test_create_manual_topic_validation(test_workspace: Path) -> None:
     with pytest.raises(ValueError, match="title cannot be empty"):
         client.create_manual_topic(title="   ", notes="Some notes")
 
+
+def test_format_voiceover_script_and_production_cue_sheet(test_workspace: Path) -> None:
+    """Verify ServiceClient formatting utilities for TTS voiceover and production cue sheet."""
+    import json
+    client = ServiceClient()
+    topic_id = "test-cue-topic"
+
+    # Empty case
+    vo_empty = client.format_voiceover_script(topic_id)
+    assert "No video script found" in vo_empty
+    cue_empty = client.format_production_cue_sheet(topic_id)
+    assert "No script or storyboard assets found" in cue_empty
+
+    # Seed script and storyboard
+    scripts_dir = test_workspace / "data" / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    script_payload = {
+        "topic_id": topic_id,
+        "format": "short_video",
+        "hook": "Ever wondered how flash attention works?",
+        "script_sections": ["First, it breaks matrices into tiles.", "Second, it computes softmax online."],
+        "cta": "Check the repo link below.",
+        "claims_used": ["Fast GPU compute"],
+        "source_links": ["https://arxiv.org/abs/2407.08608"],
+        "review_status": "draft",
+        "generated_at": "2026-11-22T00:00:00Z",
+        "shorts_segments": [
+            {
+                "section": "hook",
+                "time_range": "0:00-0:05",
+                "visual": "Zoom into glowing GPU die",
+                "audio": "Synth drop",
+                "spoken": "Ever wondered how flash attention works?",
+            },
+            {
+                "section": "explanation",
+                "time_range": "0:05-0:30",
+                "visual": "Tiled memory animation",
+                "audio": "Upbeat ambient",
+                "spoken": "It computes softmax online without writing intermediate values.",
+            },
+            {
+                "section": "cta",
+                "time_range": "0:30-0:35",
+                "visual": "Paper title screen",
+                "audio": "Fade out",
+                "spoken": "Follow for more ML deep dives.",
+            },
+        ],
+    }
+    (scripts_dir / f"{topic_id}.json").write_text(json.dumps(script_payload), encoding="utf-8")
+
+    storyboards_dir = test_workspace / "data" / "storyboards"
+    storyboards_dir.mkdir(parents=True, exist_ok=True)
+    sb_payload = {
+        "topic_id": topic_id,
+        "generated_at": "2026-11-22T00:00:00Z",
+        "formats_planned": ["short_video"],
+        "script_hook": "Hook",
+        "script_cta": "CTA",
+        "script_claims": ["claim 1"],
+        "carousel_hook": "Hook",
+        "carousel_cta": "CTA",
+        "carousel_claims": ["claim 1"],
+        "newsletter_hook": "Hook",
+        "newsletter_cta": "CTA",
+        "newsletter_claims": ["claim 1"],
+        "thumbnail_hook": "Thumb",
+        "visual_metaphor": "Memory conveyor belt",
+        "visual_style": "clean_minimal",
+    }
+    (storyboards_dir / f"{topic_id}.json").write_text(json.dumps(sb_payload), encoding="utf-8")
+
+    # Verify voiceover extraction
+    vo = client.format_voiceover_script(topic_id)
+    assert "Ever wondered how flash attention works?" in vo
+    assert "It computes softmax online" in vo
+    assert "Follow for more ML deep dives." in vo
+
+    # Verify cue sheet formatting
+    cue = client.format_production_cue_sheet(topic_id)
+    assert "PRODUCTION CUE SHEET" in cue
+    assert "Visual Metaphor: Memory conveyor belt" in cue
+    assert "SCENE 1: [0:00-0:05] - HOOK" in cue
+    assert "👁️ VISUAL:  Zoom into glowing GPU die" in cue
+    assert "🎙️ SPOKEN:  \"Ever wondered how flash attention works?\"" in cue
+

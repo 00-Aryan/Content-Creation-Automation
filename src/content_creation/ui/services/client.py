@@ -497,6 +497,87 @@ class ServiceClient:
             "thumbnail": next((t for t in self.ctx.storage.list_thumbnails() if t.topic_id == topic_id), None),
         }
 
+    def format_voiceover_script(self, topic_id: str) -> str:
+        """Extracts clean sequential spoken text formatted for TTS audio generation."""
+        assets = self.get_topic_assets(topic_id)
+        script = assets.get("script")
+        if not script:
+            return f"No video script found for topic {topic_id}."
+
+        lines: List[str] = []
+        shorts_segments = getattr(script, "shorts_segments", None)
+        if shorts_segments:
+            for seg in shorts_segments:
+                spoken = getattr(seg, "spoken", "").strip()
+                if spoken:
+                    lines.append(spoken)
+        else:
+            hook = getattr(script, "hook", "")
+            if hook and hook.strip():
+                lines.append(hook.strip())
+            for sec in getattr(script, "script_sections", []):
+                sec_clean = (sec or "").strip()
+                if sec_clean:
+                    lines.append(sec_clean)
+            cta = getattr(script, "cta", "")
+            if cta and cta.strip():
+                lines.append(cta.strip())
+
+        return "\n\n".join(lines) if lines else f"No voiceover text found for topic {topic_id}."
+
+    def format_production_cue_sheet(self, topic_id: str) -> str:
+        """Outputs a comprehensive production cue sheet merging storyboard and script directions."""
+        storyboard = self.get_storyboard(topic_id)
+        assets = self.get_topic_assets(topic_id)
+        script = assets.get("script")
+
+        if not script and not storyboard:
+            return f"No script or storyboard assets found for topic {topic_id}."
+
+        scored_topic = self.get_scored_topic(topic_id)
+        title = scored_topic.title if scored_topic else f"Topic {topic_id[:8]}"
+
+        output: List[str] = []
+        output.append(f"# 🎬 PRODUCTION CUE SHEET: {title}")
+        output.append(f"Topic ID: {topic_id}")
+        if storyboard:
+            output.append(f"Visual Style: {getattr(storyboard, 'visual_style', 'N/A')}")
+            output.append(f"Visual Metaphor: {getattr(storyboard, 'visual_metaphor', 'N/A')}")
+        output.append("=" * 60)
+
+        shorts_segments = getattr(script, "shorts_segments", None) if script else None
+        if shorts_segments:
+            for idx, seg in enumerate(shorts_segments, start=1):
+                section_name = getattr(seg, "section", "segment").upper()
+                time_range = getattr(seg, "time_range", "")
+                time_header = f" [{time_range}]" if time_range else ""
+                output.append(f"SCENE {idx}:{time_header} - {section_name}")
+                output.append(f"  👁️ VISUAL:  {getattr(seg, 'visual', '')}")
+                output.append(f"  🎙️ SPOKEN:  \"{getattr(seg, 'spoken', '')}\"")
+                output.append(f"  🎵 AUDIO:   {getattr(seg, 'audio', '')}")
+                output.append("-" * 40)
+        elif script:
+            output.append("SCENE 1: HOOK")
+            output.append(f"  🎙️ SPOKEN:  \"{getattr(script, 'hook', '')}\"")
+            output.append("-" * 40)
+            for idx, sec in enumerate(getattr(script, "script_sections", []), start=2):
+                output.append(f"SCENE {idx}: BODY")
+                output.append(f"  🎙️ SPOKEN:  \"{sec}\"")
+                output.append("-" * 40)
+            output.append(f"SCENE {len(getattr(script, 'script_sections', [])) + 2}: CTA")
+            output.append(f"  🎙️ SPOKEN:  \"{getattr(script, 'cta', '')}\"")
+            output.append("-" * 40)
+        elif storyboard:
+            output.append("SCENE 1: HOOK")
+            output.append(f"  👁️ VISUAL:  {getattr(storyboard, 'visual_metaphor', '')}")
+            output.append(f"  🎙️ HOOK:    \"{getattr(storyboard, 'script_hook', '')}\"")
+            output.append("-" * 40)
+            output.append("SCENE 2: CTA")
+            output.append(f"  🎙️ CTA:     \"{getattr(storyboard, 'script_cta', '')}\"")
+            output.append("-" * 40)
+
+        return "\n".join(output)
+
     def list_workflow_states(self) -> List[Any]:
         workflow_files = list(self.ctx.workflow._dir.glob("*.json"))
         return [self.ctx.workflow.load_state(path.stem) for path in workflow_files]

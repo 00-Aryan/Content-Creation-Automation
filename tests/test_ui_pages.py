@@ -427,3 +427,26 @@ def test_topic_collection_manual_topic_and_staged_prompt(tmp_path: Path) -> None
     infos = [i.value for i in at.info]
     assert any("Run feed collection to download papers" in i for i in infos)
 
+
+def test_asset_workshop_blocking_reasons_and_cue_blocks(tmp_path: Path) -> None:
+    """UI-006 & Phase 2D: Verify blocking reasons are rendered as badges and not raw python list."""
+    topic_id = "topic-test-cue-ui"
+    (tmp_path / "data" / "briefs" / f"{topic_id}.json").write_text(
+        json.dumps(_make_brief_dict(topic_id)), encoding="utf-8"
+    )
+    manifest_dict = _make_manifest_dict(topic_id)
+    manifest_dict["blocking_reasons"] = ["script: missing", "carousel: review_rejected"]
+    (tmp_path / "data" / "manifests" / f"{topic_id}.json").write_text(
+        json.dumps(manifest_dict), encoding="utf-8"
+    )
+
+    at = AppTest.from_file("src/content_creation/ui/pages/5_asset_workshop.py", default_timeout=15)
+    at.run()
+    assert len(at.exception) == 0, f"Page crashed with: {at.exception}"
+
+    all_markdown = " ".join(m.value for m in at.markdown)
+    # Verify blocking reasons rendered as badges, NOT raw list repr "['script: missing'..."
+    assert "['script: missing'" not in all_markdown
+    assert "🚫 `script: missing`" in all_markdown
+    assert "🚫 `carousel: review_rejected`" in all_markdown
+

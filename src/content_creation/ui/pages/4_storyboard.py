@@ -238,6 +238,9 @@ def main() -> None:
                     for claim in storyboard.newsletter_claims:
                         st.markdown(f"- {claim}")
                 st.markdown("---")
+                with st.expander("🎬 Production Scene Cue Copy", expanded=False):
+                    cue_text = client.format_production_cue_sheet(topic_id)
+                    st.code(cue_text, language="markdown")
                 with st.expander("📄 View Raw Storyboard JSON"):
                     st.json(storyboard.model_dump())
 
@@ -323,6 +326,13 @@ def main() -> None:
                     st.info("ℹ️ Storyboard not yet generated for this topic")
     else:
         st.info("Select a topic and run the generators above to view the intelligence and storyboard dashboard.")
+
+
+    st.markdown("---")
+    try:
+        st.page_link("pages/5_asset_workshop.py", label="Next: Generate Final Assets in Workshop ➡️", icon="🛠️")
+    except Exception:
+        st.caption("Next: Generate Final Assets in Workshop ➡️ (pages/5_asset_workshop.py)")
 
 
 if __name__ == "__main__":
