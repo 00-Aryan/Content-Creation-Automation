@@ -22,7 +22,7 @@ from content_creation.ui.components.notification_panel import (
     render_notification_summary_panel,
     render_notification_summary_fragment,
 )
-from content_creation.ui.services.client import ServiceClient
+from content_creation.ui.services.client import ServiceClient, ensure_database_initialized
 from content_creation.ui.state.session import init_session_state
 
 
@@ -35,8 +35,9 @@ def main() -> None:
         initial_sidebar_state="expanded"
     )
 
-    # 2. Init UI State and resolve client context
+    # 2. Init UI State, DB, and resolve client context
     init_session_state()
+    ensure_database_initialized()
     client = ServiceClient()
     
     # 3. Sidebar status checking

@@ -31,6 +31,14 @@ def _classify_client_error(e: errors.ClientError) -> ProviderError:
             raw_error=str(e),
         )
     if code == 400:
+        if "API_KEY_INVALID" in str(e).upper():
+            return ProviderError(
+                message="Invalid Gemini API key (API_KEY_INVALID)",
+                retryable=False,
+                status_code=400,
+                category=ErrorCategory.AUTH,
+                raw_error=str(e),
+            )
         return ProviderError(
             message="Invalid request",
             retryable=False,
@@ -95,7 +103,7 @@ class GeminiProvider(BaseProvider):
                 model=self._model,
                 contents=prompt,
             )
-            raw = response.text.strip().removeprefix("```json").removesuffix("```").strip()
+            raw = (response.text or "").strip().removeprefix("```json").removesuffix("```").strip()
             return InferenceResult(
                 text=raw,
                 provider=self.provider_name,

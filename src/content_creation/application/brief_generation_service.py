@@ -8,6 +8,7 @@ from typing import List, Optional
 
 from content_creation.application.context import ApplicationContext
 from content_creation.generation.brief import generate_brief
+from content_creation.inference.models import ErrorCategory, ProviderError
 from content_creation.models.brief import Brief
 from content_creation.models.topic import TopicStatus
 
@@ -103,6 +104,22 @@ class BriefGenerationService:
             except Exception as e:
                 logger.error(f"Error generating brief for {item.id}: {e}")
                 failures.append(BriefFailure(topic_id=item.id, error=str(e)))
+                prov_err = getattr(e, "provider_error", None)
+                nested_err = getattr(e, "error", None)
+                is_auth_error = (
+                    getattr(e, "category", None) == ErrorCategory.AUTH
+                    or (isinstance(prov_err, ProviderError) and prov_err.category == ErrorCategory.AUTH)
+                    or (isinstance(nested_err, ProviderError) and nested_err.category == ErrorCategory.AUTH)
+                    or "API_KEY_INVALID" in str(e).upper()
+                    or "API key not found" in str(e)
+                    or getattr(e, "code", None) in (401, 403)
+                )
+                if is_auth_error:
+                    logger.warning(
+                        f"Non-retryable authentication failure encountered for {item.id}; "
+                        "aborting remaining brief generation batch."
+                    )
+                    break
 
             # Respect free-tier limits if there are more items to process
             if rate_limit_delay > 0:

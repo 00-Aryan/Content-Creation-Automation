@@ -1,5 +1,9 @@
 """Service adapter layer for resolving backend services in Streamlit UI."""
 
+from dotenv import load_dotenv
+
+load_dotenv()  # Ensures .env is reliably loaded into process memory across direct subpage accesses
+
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
@@ -36,6 +40,25 @@ class TimedServiceResult:
 
     result: Any
     duration_seconds: float
+
+
+@st.cache_resource
+def ensure_database_initialized() -> bool:
+    """Idempotently bootstrap all 6 subsystem schemas in content_factory.db once per application run."""
+    from content_creation.platform.storage.database import get_db_path, init_content_factory_db
+
+    root_env = os.environ.get("CONTENT_FACTORY_ROOT")
+    if root_env:
+        data_dir = Path(root_env)
+    else:
+        data_dir = Path(__file__).resolve().parent.parent.parent.parent.parent
+        if not (data_dir / "config").exists():
+            data_dir = Path.cwd()
+
+    target_db = get_db_path(data_dir)
+    target_db.parent.mkdir(parents=True, exist_ok=True)
+    init_content_factory_db(target_db)
+    return True
 
 
 @st.cache_resource
@@ -121,6 +144,7 @@ class ServiceClient:
     """Provides UI access to the concrete backend application services."""
 
     def __init__(self) -> None:
+        ensure_database_initialized()
         self.ctx = get_context()
         from content_creation.workflow.workflow_action_executor import WorkflowActionExecutor
         self.executor = WorkflowActionExecutor()

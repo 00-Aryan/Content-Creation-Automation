@@ -564,3 +564,30 @@ def test_format_voiceover_script_and_production_cue_sheet(test_workspace: Path) 
     assert "👁️ VISUAL:  Zoom into glowing GPU die" in cue
     assert "🎙️ SPOKEN:  \"Ever wondered how flash attention works?\"" in cue
 
+
+def test_ensure_database_initialized(test_workspace: Path) -> None:
+    """REL-002: Verify ensure_database_initialized idempotently bootstraps database tables."""
+    from content_creation.ui.services.client import ensure_database_initialized
+    from content_creation.platform.storage.database import get_db_path, create_connection
+
+    ensure_database_initialized.clear()
+    res = ensure_database_initialized()
+    assert res is True
+
+    # Check that tables exist
+    target_db = get_db_path(test_workspace)
+    assert target_db.exists()
+    conn = create_connection(target_db)
+    try:
+        tables = [
+            row["name"]
+            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table';").fetchall()
+        ]
+        assert "jobs" in tables
+        assert "events" in tables
+        assert "notifications" in tables
+        assert "metrics" in tables
+        assert "audit" in tables
+    finally:
+        conn.close()
+
