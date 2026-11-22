@@ -104,7 +104,9 @@ def main() -> None:
                 
             with col2:
                 st.markdown("#### 🔬 Metadata")
-                st.markdown(f"**Review Status:** `{brief.review_status.value if hasattr(brief.review_status, 'value') else brief.review_status}`")
+                raw_status = brief.review_status.value if hasattr(brief.review_status, 'value') else str(brief.review_status)
+                status_display = "Pending review ⏳" if raw_status == "needs_review" else raw_status.replace("_", " ").title()
+                st.markdown(f"**Review Status:** `{status_display}`")
                 if brief.review_notes:
                     st.markdown(f"**Review Notes:** {brief.review_notes}")
                 st.markdown(f"**Target Audience Fit:** {brief.audience_fit}")
@@ -118,29 +120,13 @@ def main() -> None:
             with st.expander("📄 View Raw Brief JSON"):
                 st.json(brief.model_dump())
 
-            # Show brief content before the review decision
-            st.markdown("### 📄 Brief Summary")
-            
-            if hasattr(brief, 'why_it_matters') and brief.why_it_matters:
-                st.info(f"**Why it matters:** {brief.why_it_matters}")
-            
-            if hasattr(brief, 'plain_english_summary') and brief.plain_english_summary:
-                st.markdown("**Plain English Summary:**")
-                for item in brief.plain_english_summary:
-                    st.markdown(f"- {item}")
-            
-            if hasattr(brief, 'student_takeaway') and brief.student_takeaway:
-                st.markdown(f"**Student Takeaway:** {brief.student_takeaway}")
-            
-            if hasattr(brief, 'source_url') and brief.source_url:
-                st.markdown(f"**Source URL:** {brief.source_url}")
-
             # ------------------ REVIEW CONTROLS ------------------
             st.markdown("---")
             st.markdown("### ✅ Brief Review & Approval")
 
             current_status = brief.review_status.value if hasattr(brief.review_status, 'value') else str(brief.review_status)
-            st.markdown(f"**Current Status:** `{current_status}`")
+            status_display = "Pending review ⏳" if current_status == "needs_review" else current_status.replace("_", " ").title()
+            st.markdown(f"**Current Status:** `{status_display}`")
 
             col_review, col_history = st.columns([1, 1])
 
@@ -167,7 +153,7 @@ def main() -> None:
                         "Rejected": ReviewStatus.REJECTED,
                     }
                     st.warning(f"⚠️ You are about to set this brief to **{review_action}**.")
-                    if st.button("Apply Brief Review Decision", type="primary", use_container_width=True):
+                    if st.button("Apply Brief Review Decision", type="primary", width="stretch"):
                         decision = BriefDecision(
                             status=status_map[review_action],
                             notes=review_notes if review_notes else None,
@@ -221,7 +207,7 @@ def main() -> None:
             
             btn_col, _ = st.columns([1, 2])
             with btn_col:
-                gen_btn = st.button("📝 Generate Briefs", type="primary", use_container_width=True)
+                gen_btn = st.button("📝 Generate Briefs", type="primary", width="stretch")
                 
             if gen_btn:
                 if not client.is_generation_available():
@@ -266,6 +252,12 @@ def main() -> None:
                         except Exception as e:
                             status.update(label="Brief generation failed.", state="error")
                             st.error(f"Generate Briefs failed: {e}")
+
+    st.markdown("---")
+    try:
+        st.page_link("pages/4_storyboard.py", label="Next: Generate & View Storyboard ➡️", icon="🎬")
+    except Exception:
+        st.caption("Next: Generate & View Storyboard ➡️ (pages/4_storyboard.py)")
 
 
 if __name__ == "__main__":

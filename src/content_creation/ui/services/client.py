@@ -764,64 +764,66 @@ class ServiceClient:
             running_jobs = q_metrics.get("running_count", 0)
             has_jobs = queued_jobs > 0 or running_jobs > 0
 
-            if not is_worker_running:
-                new_alerts = []
-                for alert in snapshot.alerts:
-                    if alert.rule_id == "WORKER_OFFLINE":
-                        if not has_jobs:
-                            new_alerts.append(
-                                HealthMod.OperationalAlert(
-                                    rule_id=alert.rule_id,
-                                    severity=HealthMod.AlertSeverity.WARNING,
-                                    component=alert.component,
-                                    title="Worker Daemon: Not running (expected in manual operation mode)",
-                                    message="No active workers are running. This is normal when running manually (no jobs are queued).",
-                                    recommended_action="Start the worker daemon if you intend to run background tasks.",
-                                    metrics=alert.metrics,
-                                    timestamp=alert.timestamp,
-                                )
+            new_alerts = []
+            for alert in snapshot.alerts:
+                if alert.rule_id == "WORKER_OFFLINE" and not is_worker_running:
+                    if not has_jobs:
+                        new_alerts.append(
+                            HealthMod.OperationalAlert(
+                                rule_id=alert.rule_id,
+                                severity=HealthMod.AlertSeverity.INFO,
+                                component=alert.component,
+                                title="Worker Daemon: Not running (manual mode)",
+                                message="No active workers are running. This is normal when running manually (no jobs are queued).",
+                                recommended_action="Start the worker daemon if you intend to run background tasks.",
+                                metrics=alert.metrics,
+                                timestamp=alert.timestamp,
                             )
-                        else:
-                            new_alerts.append(alert)
+                        )
                     else:
                         new_alerts.append(alert)
+                else:
+                    new_alerts.append(alert)
 
-                new_components = []
-                for comp in snapshot.components:
-                    if comp.component == HealthMod.ComponentType.WORKER:
-                        if not has_jobs:
-                            new_components.append(
-                                HealthMod.SystemComponentHealth(
-                                    component=comp.component,
-                                    name=comp.name,
-                                    status=HealthMod.HealthStatus.HEALTHY,
-                                    message="Not running (expected in manual operation mode)",
-                                    metrics=comp.metrics,
-                                    last_checked=comp.last_checked,
-                                )
+            new_components = []
+            for comp in snapshot.components:
+                # Exclude retired SSE component
+                if comp.component == HealthMod.ComponentType.SSE:
+                    continue
+                if comp.component == HealthMod.ComponentType.WORKER and not is_worker_running:
+                    if not has_jobs:
+                        new_components.append(
+                            HealthMod.SystemComponentHealth(
+                                component=comp.component,
+                                name=comp.name,
+                                status=HealthMod.HealthStatus.HEALTHY,
+                                message="Not running (expected in manual operation mode)",
+                                metrics=comp.metrics,
+                                last_checked=comp.last_checked,
                             )
-                        else:
-                            new_components.append(
-                                HealthMod.SystemComponentHealth(
-                                    component=comp.component,
-                                    name=comp.name,
-                                    status=HealthMod.HealthStatus.UNHEALTHY,
-                                    message="No active workers but jobs are queued — pipeline may be stalled",
-                                    metrics=comp.metrics,
-                                    last_checked=comp.last_checked,
-                                )
-                            )
+                        )
                     else:
-                        new_components.append(comp)
+                        new_components.append(
+                            HealthMod.SystemComponentHealth(
+                                component=comp.component,
+                                name=comp.name,
+                                status=HealthMod.HealthStatus.UNHEALTHY,
+                                message="No active workers but jobs are queued — pipeline may be stalled",
+                                metrics=comp.metrics,
+                                last_checked=comp.last_checked,
+                            )
+                        )
+                else:
+                    new_components.append(comp)
 
-                overall = ObsServiceMod.ObservabilityService._derive_overall_status(new_components)
+            overall = ObsServiceMod.ObservabilityService._derive_overall_status(new_components)
 
-                snapshot = replace(
-                    snapshot,
-                    components=new_components,
-                    alerts=new_alerts,
-                    overall_status=overall,
-                )
+            snapshot = replace(
+                snapshot,
+                components=new_components,
+                alerts=new_alerts,
+                overall_status=overall,
+            )
 
             return snapshot
         except Exception as e:

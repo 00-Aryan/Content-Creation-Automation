@@ -66,7 +66,10 @@ def main() -> None:
         return
         
     st.markdown("### Select a Brief")
-    brief_options = {f"{title} (ID: {brief.topic_id[:8]})": brief for brief, title in filtered_briefs}
+    brief_options = {
+        f"{'✅' if client.storyboard_file_exists(brief.topic_id) else '⏳'} {title} (ID: {brief.topic_id[:8]})": brief
+        for brief, title in filtered_briefs
+    }
     selected_label = st.selectbox("Brief Selector", list(brief_options.keys()))
     if not selected_label:
         return
@@ -319,11 +322,6 @@ def main() -> None:
                                 st.caption(f"Notes: {entry.notes}")
                     else:
                         st.info("No review history recorded yet.")
-            else:
-                if sb_exists:
-                    st.warning(f"⚠️ Storyboard file is corrupted or empty (0-byte) on disk (ID: {topic_id})")
-                else:
-                    st.info("ℹ️ Storyboard not yet generated for this topic")
     else:
         st.info("Select a topic and run the generators above to view the intelligence and storyboard dashboard.")
 

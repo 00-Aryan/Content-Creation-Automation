@@ -63,15 +63,24 @@ def _render_system_health(snapshot: Any) -> None:
 
     components = getattr(snapshot, "components", None)
     if components:
-        cols = st.columns(min(len(components), 4))
-        for i, comp in enumerate(components):
-            with cols[i % len(cols)]:
-                comp_status = getattr(comp, "status", None)
-                st.metric(
-                    label=f"{_status_color(comp_status)} {comp.name}",
-                    value=getattr(comp_status, "value", str(comp_status)).upper(),
-                    help=comp.message,
-                )
+        # Filter out retired SSE component
+        components = [
+            c for c in components
+            if getattr(c, "component", None) != "sse"
+            and getattr(getattr(c, "component", None), "value", "") != "sse"
+            and getattr(c, "name", "").lower() != "sse"
+            and "sse" not in getattr(c, "name", "").lower()
+        ]
+        if components:
+            cols = st.columns(min(len(components), 4))
+            for i, comp in enumerate(components):
+                with cols[i % len(cols)]:
+                    comp_status = getattr(comp, "status", None)
+                    st.metric(
+                        label=f"{_status_color(comp_status)} {comp.name}",
+                        value=getattr(comp_status, "value", str(comp_status)).upper(),
+                        help=comp.message,
+                    )
 
 
 def _render_queue_monitoring(snapshot: Any) -> None:
@@ -229,8 +238,20 @@ def _render_alerts(snapshot: Any) -> None:
     if not snapshot or not getattr(snapshot, "alerts", None):
         return
 
+    active_alerts = [
+        a for a in snapshot.alerts
+        if getattr(a.severity, "value", str(a.severity)).lower() in ("critical", "warning")
+    ]
+    info_alerts = [
+        a for a in snapshot.alerts
+        if getattr(a.severity, "value", str(a.severity)).lower() == "info"
+    ]
+
+    if not active_alerts and not info_alerts:
+        return
+
     st.subheader("Operational Alerts")
-    for alert in snapshot.alerts:
+    for alert in active_alerts:
         sev = getattr(alert.severity, "value", str(alert.severity)).lower()
         icon = "🔴" if sev == "critical" else "🟡"
         comp_val = getattr(alert.component, "value", str(alert.component))
@@ -240,6 +261,10 @@ def _render_alerts(snapshot: Any) -> None:
             st.markdown(f"**Recommended Action:** {alert.recommended_action}")
             if alert.metrics:
                 st.json(alert.metrics)
+
+    for alert in info_alerts:
+        comp_val = getattr(alert.component, "value", str(alert.component))
+        st.info(f"ℹ️ **[{comp_val.upper()}] {alert.title}:** {alert.message}")
 
 
 def main() -> None:

@@ -55,6 +55,17 @@ def main() -> None:
         st.error(f"Error querying pipeline metrics: {e}")
         render_metric_cards({})
 
+    # Quick stage navigation links
+    nav_col1, nav_col2, nav_col3, nav_col4, nav_col5 = st.columns(5)
+    try:
+        nav_col1.page_link("pages/1_topic_collection.py", label="📥 Staged Topics")
+        nav_col2.page_link("pages/2_topic_pipeline.py", label="⚖️ Scored Topics")
+        nav_col3.page_link("pages/3_brief_viewer.py", label="📝 Briefs")
+        nav_col4.page_link("pages/4_storyboard.py", label="🎬 Storyboards")
+        nav_col5.page_link("pages/5_asset_workshop.py", label="📦 Topic Manifests")
+    except Exception:
+        pass
+
     # 6. Notification Summary Panel (live via native 5s fragment polling per ADR-001)
     render_notification_summary_fragment(client)
     
@@ -66,7 +77,7 @@ def main() -> None:
     with col1:
         st.markdown(
             "Click below to trigger the entire pipeline execution end-to-end "
-            "(Collect $\rightarrow$ Score $\rightarrow$ Briefs $\rightarrow$ CI $\rightarrow$ Storyboards $\rightarrow$ Assets $\rightarrow$ Manifests)."
+            "(Collect → Score → Briefs → CI → Storyboards → Assets → Manifests)."
         )
         top_n = st.number_input("Top items", min_value=1, max_value=20, value=5, step=1)
         source_filter = st.text_input("Source ID Filter (Optional)", value="")

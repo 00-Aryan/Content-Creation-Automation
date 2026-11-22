@@ -212,7 +212,10 @@ def test_get_operations_snapshot_worker_idle_healthy_when_no_jobs(
 
     worker_alert = next((a for a in snapshot.alerts if a.rule_id == "WORKER_OFFLINE"), None)
     if worker_alert:
-        assert worker_alert.severity == AlertSeverity.WARNING
+        assert worker_alert.severity == AlertSeverity.INFO
+
+    # UI-007: SSE component must be excluded from snapshot components
+    assert not any(c.component == ComponentType.SSE for c in snapshot.components)
 
 
 def test_get_operations_snapshot_with_populated_subsystems(test_workspace: Path) -> None:
