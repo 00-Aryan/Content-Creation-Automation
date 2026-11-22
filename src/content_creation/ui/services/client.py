@@ -1,6 +1,8 @@
 """Service adapter layer for resolving backend services in Streamlit UI."""
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
+import hashlib
 import logging
 import os
 from pathlib import Path
@@ -22,6 +24,7 @@ from content_creation.application.pipeline_run_service import PipelineRunService
 from content_creation.application.asset_review_service import AssetReviewService
 from content_creation.application.brief_review_service import BriefReviewService
 from content_creation.application.storyboard_review_service import StoryboardReviewService
+from content_creation.models.topic import TopicCategory, TopicItem, TopicMetadata, TopicStatus
 from content_creation.notifications.sqlite_repository import SQLiteNotificationRepository
 from content_creation.notifications.service import NotificationService
 from content_creation.notifications.maintenance import NotificationMaintenanceService
@@ -31,7 +34,7 @@ from content_creation.notifications.maintenance import NotificationMaintenanceSe
 class TimedServiceResult:
     """UI-facing wrapper for a backend service result and elapsed time."""
 
-    result: object
+    result: Any
     duration_seconds: float
 
 
@@ -397,6 +400,52 @@ class ServiceClient:
 
     def list_staged_topics(self) -> List[Any]:
         return list(self.ctx.storage.list_staged())
+
+    def create_manual_topic(
+        self,
+        title: str,
+        notes: str,
+        url: str = "",
+        source_id: str = "manual",
+    ) -> TopicItem:
+        """Create and persist a manual TopicItem into data/staged/{topic_id}.json."""
+        clean_title = (title or "").strip()
+        if not clean_title:
+            raise ValueError("Topic title cannot be empty.")
+
+        clean_notes = (notes or "").strip()
+        clean_url = (url or "").strip()
+        clean_source = (source_id or "").strip() or "manual"
+
+        seed = clean_url if clean_url else f"{clean_source}:{clean_title}"
+        topic_id = hashlib.sha256(seed.encode("utf-8")).hexdigest()
+
+        item = TopicItem(
+            id=topic_id,
+            title=clean_title,
+            url=clean_url or f"urn:manual:{topic_id[:12]}",
+            source=clean_source,
+            published_at=datetime.now(timezone.utc).isoformat(),
+            author="creator",
+            raw_text=clean_notes if clean_notes else clean_title,
+            excerpt=(clean_notes[:200] if clean_notes else clean_title[:200]),
+            category=TopicCategory.CONCEPT,
+            topic_tags=["manual", "creator_input"],
+            status=TopicStatus.STAGED,
+            metadata=TopicMetadata(
+                source_type="manual",
+                feed_id="creator_ui",
+                published_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            ),
+        )
+
+        staged_dir = getattr(self.ctx.storage, "staged_dir", self.ctx.base_dir / "data" / "staged")
+        staged_dir.mkdir(parents=True, exist_ok=True)
+        target_file = staged_dir / f"{topic_id}.json"
+        with open(target_file, "w", encoding="utf-8") as f:
+            f.write(item.model_dump_json(indent=2))
+
+        return item
 
     def list_scored_topics(self) -> List[Any]:
         return list(self.ctx.storage.list_scored())

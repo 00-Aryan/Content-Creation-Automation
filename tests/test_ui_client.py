@@ -444,3 +444,36 @@ def test_notification_facade_methods(test_workspace: Path) -> None:
     assert summary is not None
     assert hasattr(summary, "total_unread")
 
+
+def test_create_manual_topic_persists_valid_topic(test_workspace: Path) -> None:
+    """Verify ServiceClient.create_manual_topic persists a valid TopicItem to data/staged."""
+    import json
+    from content_creation.models.topic import TopicStatus
+    client = ServiceClient()
+    topic = client.create_manual_topic(
+        title="FlashAttention-3: Ultra Fast Attention",
+        notes="Novel kernel optimizations for hopper architecture.",
+        url="https://arxiv.org/abs/2407.08608",
+        source_id="arxiv",
+    )
+    assert topic.id is not None
+    assert topic.title == "FlashAttention-3: Ultra Fast Attention"
+    assert topic.status == TopicStatus.STAGED
+    assert topic.source == "arxiv"
+    assert topic.url == "https://arxiv.org/abs/2407.08608"
+
+    # Verify presence on disk
+    target_file = test_workspace / "data" / "staged" / f"{topic.id}.json"
+    assert target_file.exists()
+    content = json.loads(target_file.read_text(encoding="utf-8"))
+    assert content["id"] == topic.id
+    assert content["title"] == topic.title
+    assert content["status"] == "staged"
+
+
+def test_create_manual_topic_validation(test_workspace: Path) -> None:
+    """Verify ServiceClient.create_manual_topic rejects empty titles."""
+    client = ServiceClient()
+    with pytest.raises(ValueError, match="title cannot be empty"):
+        client.create_manual_topic(title="   ", notes="Some notes")
+

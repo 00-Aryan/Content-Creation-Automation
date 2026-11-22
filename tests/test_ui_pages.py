@@ -412,3 +412,18 @@ def test_operations_dashboard_snapshot_and_badge_helpers() -> None:
     assert "HEALTHY" in dash_module._status_badge(HealthStatus.HEALTHY)
     assert "DEGRADED" in dash_module._status_badge(HealthStatus.DEGRADED)
 
+
+def test_topic_collection_manual_topic_and_staged_prompt(tmp_path: Path) -> None:
+    """Phase 2D: Verify 1_topic_collection.py renders custom topic form and dynamic prompt."""
+    at = AppTest.from_file("src/content_creation/ui/pages/1_topic_collection.py", default_timeout=15)
+    at.run()
+    assert len(at.exception) == 0, f"Page crashed with: {at.exception}"
+
+    # Verify custom topic form header is present
+    headers = [m.value for m in at.markdown]
+    assert any("Add Custom Topic / Idea" in h for h in headers)
+
+    # When staged is empty, verify notice
+    infos = [i.value for i in at.info]
+    assert any("Run feed collection to download papers" in i for i in infos)
+
