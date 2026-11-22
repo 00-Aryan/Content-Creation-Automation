@@ -1,14 +1,14 @@
 # Error Taxonomy & Failure Catalog: Content Creation Automation
 
 ## 1. Catalog Metadata & Health Overview
-- **Last Updated:** `2026-11-21T20:15:00+05:30`
-- **Active Branch:** `refactor/phase2c-sqlite-consolidation`
-- **Audited Commit (SHA):** `cdc152c` (`cdc152ccacac077a02c7a47633c8c0a407a0e957`)
-- **Pytest Sweep Baseline:** `1417 passed, 6 failed, 0 skipped, 0 xfailed, 0 warnings in 14.60s`
-- **Total Observed Errors (`ERR-xxx`):** `25` (`5 OPEN`, `2 MITIGATED`, `18 RESOLVED`)
+- **Last Updated:** `2026-11-22T13:50:00+05:30`
+- **Active Branch:** `feat/phase2d-creator-usability`
+- **Audited Commit (SHA):** `3a896d0` (`3a896d05b8185a01f5372d4fd5d778e26bbb811e`)
+- **Pytest Sweep Baseline:** `1440 passed, 0 failed, 0 skipped, 0 xfailed in 14.22s`
+- **Total Observed Errors (`ERR-xxx`):** `33` (`5 OPEN`, `1 MITIGATED`, `27 RESOLVED`)
 - **Total Anticipated Risks (`RISK-xxx`):** `6` (`2 COVERED`, `4 UNCOVERED`)
-- **QA Coverage Ratio:** `20/25 (80.00%) Covered` (`2 Partial`, `3 Uncovered`)
-- **QA Audit Verification Status:** `QA_VERDICT: PASS` (+20 passing tests, 0 warnings repository-wide; audited in `docs/audit/qa/refactor-phase2c-sqlite-consolidation.md`).
+- **QA Coverage Ratio:** `20/33 (60.61%) Covered` (`10 Partial`, `3 Uncovered`)
+- **Creator Usability & UI Polish Milestone (`UI-003`..`UI-008`, `REL-001`, `REL-002`):** Resolved 8 creator workflow, reliability, and UI presentation defects on `feat/phase2d-creator-usability`; added fail-fast auth circuit breaker for Gemini 400 `API_KEY_INVALID` errors (`ERR-026`); eliminated hot-path SQLite DDL execution via read-only `sqlite_master` probes (`ERR-027`); modernized deprecated parameters and fixed KaTeX formatting artifacts across Streamlit Pages 0–6 (`ERR-022`, `ERR-028`..`ERR-033`).
 - **SQLite Consolidation Milestone (`ARCH-001`, `UI-002`, `PERF-001`):** Consolidated 6 fragmented discrete SQLite database files into single WAL-mode database `data/content_factory.db` via centralized factory in `platform/storage/database.py`; eliminated all inline DDL schema checks from Streamlit render hot paths (`ServiceClient.get_operations_snapshot()` and `get_notification_connection()`).
 - **Deprecation Warnings Ratchet Milestone:** Completely retired legacy Server-Sent Events (SSE) streaming daemon and connection manager per ADR-001 (`ERR-004`, `DEAD-004`), eliminating all 35 deprecation warnings repository-wide (down to 0 warnings).
 - **Windows Python Hygiene Milestone (`windows-python-hygiene`):** Resolved the final 2 Windows CP1252 file I/O and assertion failures via explicit `encoding="utf-8"` in `DryRunValidator.export_markdown` (`ERR-011`) and `tests/test_youtube_shorts_generation.py:719` (`ERR-012`).
@@ -23,7 +23,7 @@
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Stage 1: Ingestion | 0 | 1 | 2 | 0 | 0 | 0 | 0 | 0 | 3 |
 | Stage 2: Scoring | 0 | 1 | 0 | 2 | 0 | 0 | 0 | 0 | 3 |
-| Stage 3: Briefs | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 1 |
+| Stage 3: Briefs | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 1 | 2 |
 | Stage 4: Intelligence | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 0 | 1 |
 | Stage 5: Storyboard | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | Stage 6: Assets | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 1 |
@@ -37,10 +37,10 @@
 | Stage 14: Audit | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | Stage 15: Jobs | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | Stage 16: Notifications | 0 | 0 | 0 | 0 | 0 | 1 | 0 | 0 | 1 |
-| UI Presentation Tier | 0 | 0 | 0 | 0 | 2 | 0 | 1 | 0 | 3 |
+| UI Presentation Tier | 0 | 1 | 0 | 2 | 4 | 0 | 3 | 0 | 10 |
 | CLI Entrypoint | 0 | 0 | 0 | 0 | 0 | 0 | 3 | 0 | 3 |
 | Infra / Tooling | 0 | 0 | 0 | 0 | 0 | 5 | 0 | 0 | 5 |
-| **Total** | **0** | **5** | **3** | **3** | **3** | **6** | **5** | **0** | **25** |
+| **Total** | **0** | **6** | **3** | **5** | **5** | **6** | **7** | **1** | **33** |
 
 ---
 
@@ -69,10 +69,18 @@
 | `ERR-019` | Windows File Lock Contention on .coverage Database During Pytest Invocations | Infra / Tooling | `ENVIRONMENT_PLATFORM` | Low | `OPEN` | `UNCOVERED` | `f6c3f43` | - |
 | `ERR-020` | Operations Dashboard Direct SQLite Connection and Inline DDL Schema Violations (UI-002, PERF-001) | UI Presentation Tier | `STATE_WORKFLOW_CONCURRENCY` | High | `RESOLVED` | `COVERED` | `5bbee84` | `5ee9e78` |
 | `ERR-021` | Timeline Component Direct Backend SQLite Persistence Coupling (UI-003) | UI Presentation Tier | `STATE_WORKFLOW_CONCURRENCY` | Medium | `RESOLVED` | `COVERED` | `5bbee84` | `c8acfb1` |
-| `ERR-022` | Streamlit Runtime Deprecated Parameters and Legacy Component Warnings (UI-006) | UI Presentation Tier | `CODE_STATIC_TYPING` | Low | `MITIGATED` | `PARTIAL` | `5bbee84` | - |
+| `ERR-022` | Streamlit Runtime Deprecated Parameters and Legacy Component Warnings (UI-006) | UI Presentation Tier | `CODE_STATIC_TYPING` | Low | `RESOLVED` | `PARTIAL` | `5bbee84` | `f97d275` |
 | `ERR-023` | Windows Pytest Cache Lock Contention on .pytest_cache During Rapid Invocations | Infra / Tooling | `ENVIRONMENT_PLATFORM` | Low | `OPEN` | `UNCOVERED` | `1904b6d` | - |
 | `ERR-024` | Unreferenced Dead Code Paths and Deprecated Properties in Workflow Executor, Context, and CLI (DEAD-001, DEAD-002, DEAD-005) | Stage 7: Review | `CODE_STATIC_TYPING` | Low | `RESOLVED` | `COVERED` | `5bbee84` | `ce3f0a0` |
 | `ERR-025` | Windows Mypy Metastore SQLite Lock Contention on .mypy_cache During Type Checking | Infra / Tooling | `ENVIRONMENT_PLATFORM` | Low | `MITIGATED` | `PARTIAL` | `c9343c9` | - |
+| `ERR-026` | Batch LLM Generation Loop Non-Retryable Auth Error Iteration Delay (REL-001) | Stage 3: Briefs | `BUDGET_QUOTA_CONFIG` | High | `RESOLVED` | `PARTIAL` | `5bbee84` | `2284078` |
+| `ERR-027` | Unconditional SQLite DDL Schema Execution on Application Hot Paths (REL-002, PERF-001) | UI Presentation Tier | `STATE_WORKFLOW_CONCURRENCY` | High | `RESOLVED` | `PARTIAL` | `5bbee84` | `121e944` |
+| `ERR-028` | Streamlit Markdown KaTeX Math Parse Failure on Arrow Escape Sequences (UI-003) | UI Presentation Tier | `QUALITY_GROUNDING` | Low | `RESOLVED` | `PARTIAL` | `5bbee84` | `f97d275` |
+| `ERR-029` | Non-Functional Scoring Weight Controls Obscuring Primary Pipeline Actions (UI-004) | UI Presentation Tier | `CODE_STATIC_TYPING` | Low | `RESOLVED` | `PARTIAL` | `5bbee84` | `f97d275` |
+| `ERR-030` | Redundant Stacked Brief Summary Display in Editorial Review Console (UI-005) | UI Presentation Tier | `QUALITY_GROUNDING` | Low | `RESOLVED` | `PARTIAL` | `5bbee84` | `f97d275` |
+| `ERR-031` | Raw Python List Representation Leaked for Manifest Blocking Reasons (UI-006) | UI Presentation Tier | `SCHEMA_VALIDATION` | Low | `RESOLVED` | `PARTIAL` | `5bbee84` | `e222f19` |
+| `ERR-032` | Retired SSE Streaming Subsystem Retained in Operations Health Check (UI-007) | UI Presentation Tier | `CODE_STATIC_TYPING` | Low | `RESOLVED` | `PARTIAL` | `5bbee84` | `f97d275` |
+| `ERR-033` | False-Positive Worker Daemon Offline Warning in Manual Operating Mode (UI-008) | UI Presentation Tier | `STATE_WORKFLOW_CONCURRENCY` | Low | `RESOLVED` | `PARTIAL` | `5bbee84` | `f97d275` |
 
 ---
 
@@ -176,7 +184,7 @@
 - **Stage / Scope:** Stage 3: Briefs
 - **Error Class:** `QUALITY_GROUNDING`
 - **Severity:** Medium
-- **Status:** `RESOLVED` (`resolved_in_commit: 775cea2`) (`mitigated_in_commit: aabeeeb`)
+- **Status:** `RESOLVED` (`resolved_in_commit: 775cea2`)
 - **Source Evidence:** `docs/audit/handoffs/fix-phase1a-core-defects.md:26-30, 97-100`, `docs/audit/verification/fix-phase1a-core-defects-f738dc9.md:93-97, 127-130`, `docs/audit/handoffs/fix-phase1b-data-and-schemas.md:18-19, 81-84`, `docs/audit/verification/fix-phase1b-data-and-schemas-a0a799b.md:78-81`, `docs/audit/qa/fix-phase1b-data-and-schemas.md:16-17`
 - **Exception / Symptom:** Brief fallback sets recommended_formats=['needs_review'], causing downstream manifest builder to warn on unknown format and fallback to short_video
 - **Root Cause Location:** `src/content_creation/generation/brief.py:71`, `src/content_creation/manifest.py:189-195`
@@ -565,9 +573,9 @@
 - **Stage / Scope:** UI Presentation Tier
 - **Error Class:** `CODE_STATIC_TYPING`
 - **Severity:** Low
-- **Status:** `MITIGATED` (`mitigated_in_commit: 4dc3426`)
-- **Source Evidence:** `docs/refactor/tasks/phase2b-ui-and-fragments.md:45-47, 54 (UI-006)`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:23, 25-26, 89`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:103, 151`, `docs/audit/qa/refactor-phase2b-ui-and-fragments.md:54, 132-135`, `docs/audit/verification/refactor-phase2c-sqlite-consolidation-21d9b27.md:145-149`
-- **Exception / Symptom:** Streamlit runtime emits deprecation warnings for use_container_width=True (deprecated in Streamlit 1.58 in favor of width='stretch') and st.components.v1.html (scheduled for removal). Mitigated on app.py and pages 4, 5, 6; pages 1-3 cosmetic parameter cleanup deferred to Phase 2D/3 to honor source module touch limits.
+- **Status:** `RESOLVED` (`resolved_in_commit: f97d275`)
+- **Source Evidence:** `docs/refactor/tasks/phase2b-ui-and-fragments.md:45-47, 54 (UI-006)`, `docs/audit/handoffs/refactor-phase2b-ui-and-fragments.md:23, 25-26, 89`, `docs/audit/verification/refactor-phase2b-ui-and-fragments-a13ff82.md:103, 151`, `docs/audit/qa/refactor-phase2b-ui-and-fragments.md:54, 132-135`, `docs/audit/verification/refactor-phase2c-sqlite-consolidation-21d9b27.md:145-149`, `docs/audit/handoffs/feat-phase2d-creator-usability.md:68`, `docs/audit/verification/feat-phase2d-creator-usability-44141bb.md:139-140`
+- **Exception / Symptom:** Streamlit runtime emits deprecation warnings for use_container_width=True (deprecated in Streamlit 1.58 in favor of width='stretch') and st.components.v1.html (scheduled for removal). Mitigated on app.py and pages 4, 5, 6 in commit 4dc3426; fully resolved across pages 1, 2, 3 in commits 3be85b4 and f97d275 with width='stretch' replacing all use_container_width occurrences, eliminating all deprecation warnings.
 - **Root Cause Location:** `src/content_creation/ui/pages/4_storyboard.py:145`, `src/content_creation/ui/pages/5_asset_workshop.py:79, 126, 140, 162, 178, 226, 276`, `src/content_creation/ui/app.py:84`, `src/content_creation/ui/pages/1_topic_collection.py`, `src/content_creation/ui/pages/2_topic_pipeline.py`, `src/content_creation/ui/pages/3_brief_viewer.py`
 - **Affected Tests / Callsites:**
   - `tests/test_ui_pages.py:test_all_pages_render_without_exceptions`
@@ -627,16 +635,157 @@
 
 ---
 
+### `ERR-026`: Batch LLM Generation Loop Non-Retryable Auth Error Iteration Delay (REL-001)
+- **Stage / Scope:** Stage 3: Briefs
+- **Error Class:** `BUDGET_QUOTA_CONFIG`
+- **Severity:** High
+- **Status:** `RESOLVED` (`resolved_in_commit: 2284078`)
+- **Source Evidence:** `docs/audit/handoffs/feat-phase2d-creator-usability.md:57 (REL-001)`, `docs/refactor/tasks/phase2d-creator-usability-and-ui-polish.md:59-60, 77`, `docs/audit/verification/feat-phase2d-creator-usability-44141bb.md:118-119, 169`
+- **Exception / Symptom:** Google GenAI HTTP 400 error containing API_KEY_INVALID payload was misclassified as INVALID_REQUEST instead of ErrorCategory.AUTH. In BriefGenerationService.run(), unhandled non-retryable auth exceptions caused the service to log an error and sleep for rate_limit_delay (5.0s) per topic, retrying across all remaining items in the batch rather than failing fast. Resolved in commit 2284078 by classifying 400 API_KEY_INVALID as ErrorCategory.AUTH and aborting the batch loop immediately on auth error.
+- **Root Cause Location:** `src/content_creation/inference/providers/gemini.py:34-41`, `src/content_creation/application/brief_generation_service.py:104-118`
+- **Affected Tests / Callsites:**
+  - `tests/test_inference_gemini_auth.py:test_classify_client_error_api_key_invalid`
+  - `tests/test_inference_gemini_auth.py:test_brief_generation_aborts_immediately_on_auth_error`
+  - `tests/test_inference_gemini_auth.py:test_brief_generation_continues_on_transient_error`
+- **Reproduction Command:** `uv run python -m pytest tests/test_inference_gemini_auth.py -o addopts="" -v`
+- **Recommended Runtime Policy:** `FAIL_FAST_NO_RETRY`
+- **QA Coverage Status:** `PARTIAL`
+- **QA Test Directive:** Verify GeminiProvider._classify_client_error maps 400 API_KEY_INVALID to ErrorCategory.AUTH with retryable=False, and assert BriefGenerationService.run aborts batch execution on the first topic failure without iterating remaining items.
+
+---
+
+### `ERR-027`: Unconditional SQLite DDL Schema Execution on Application Hot Paths (REL-002, PERF-001)
+- **Stage / Scope:** UI Presentation Tier
+- **Error Class:** `STATE_WORKFLOW_CONCURRENCY`
+- **Severity:** High
+- **Status:** `RESOLVED` (`resolved_in_commit: 121e944`)
+- **Source Evidence:** `docs/audit/handoffs/feat-phase2d-creator-usability.md:58 (REL-002, PERF-001)`, `docs/refactor/tasks/phase2d-creator-usability-and-ui-polish.md:58, 78`, `docs/audit/verification/feat-phase2d-creator-usability-44141bb.md:114-116, 163-164`
+- **Exception / Symptom:** Database startup self-heal in ensure_database_initialized() unconditionally executed 35 DDL statements (CREATE TABLE IF NOT EXISTS, CREATE INDEX IF NOT EXISTS) during UI operations and hot queries such as get_operations_snapshot(), violating ADR-003 and zero-DDL invariants. Remediated in commit 121e944 by performing a fast read-only table probe against sqlite_master that verifies all 6 required subsystem tables exist before falling back to full DDL initialization.
+- **Root Cause Location:** `src/content_creation/ui/services/client.py:57-81`, `src/content_creation/ui/app.py:27`
+- **Affected Tests / Callsites:**
+  - `tests/test_content_factory_db.py:test_get_operations_snapshot_zero_ddl`
+  - `tests/test_ui_client.py:test_ensure_database_initialized`
+- **Reproduction Command:** `uv run python -m pytest tests/test_content_factory_db.py -k test_get_operations_snapshot_zero_ddl -o addopts="" -v`
+- **Recommended Runtime Policy:** `DETERMINISTIC_STATE_FIX`
+- **QA Coverage Status:** `PARTIAL`
+- **QA Test Directive:** Execute get_operations_snapshot() against an initialized content_factory.db and assert 0 DDL statements are executed against SQLite connection handle.
+
+---
+
+### `ERR-028`: Streamlit Markdown KaTeX Math Parse Failure on Arrow Escape Sequences (UI-003)
+- **Stage / Scope:** UI Presentation Tier
+- **Error Class:** `QUALITY_GROUNDING`
+- **Severity:** Low
+- **Status:** `RESOLVED` (`resolved_in_commit: f97d275`)
+- **Source Evidence:** `docs/refactor/tasks/phase2d-creator-usability-and-ui-polish.md:63, 71 (UI-003)`, `docs/audit/handoffs/feat-phase2d-creator-usability.md:51`, `docs/audit/verification/feat-phase2d-creator-usability-44141bb.md:139-140`
+- **Exception / Symptom:** Pipeline flow caption string in app.py used LaTeX math delimiter $\rightarrow$, causing Streamlit KaTeX parser failure that rendered malformed text 'ightarrow' in the application header. Resolved in commit f97d275 by replacing LaTeX notation with clean Unicode arrow character '→'.
+- **Root Cause Location:** `src/content_creation/ui/app.py:68`
+- **Affected Tests / Callsites:**
+  - `tests/test_ui_pages.py:test_app_page_latex_escape_and_navigation`
+- **Reproduction Command:** `uv run python -m pytest tests/test_ui_pages.py -k test_app_page_latex_escape_and_navigation -o addopts="" -v`
+- **Recommended Runtime Policy:** `ENRICHMENT_OR_CRITIC_LOOP`
+- **QA Coverage Status:** `PARTIAL`
+- **QA Test Directive:** AppTest renders app.py headlessly and asserts rendered markdown caption contains '→' and does not contain 'ightarrow' or raw LaTeX math delimiters.
+
+---
+
+### `ERR-029`: Non-Functional Scoring Weight Controls Obscuring Primary Pipeline Actions (UI-004)
+- **Stage / Scope:** UI Presentation Tier
+- **Error Class:** `CODE_STATIC_TYPING`
+- **Severity:** Low
+- **Status:** `RESOLVED` (`resolved_in_commit: f97d275`)
+- **Source Evidence:** `docs/refactor/tasks/phase2d-creator-usability-and-ui-polish.md:64, 72 (UI-004)`, `docs/audit/handoffs/feat-phase2d-creator-usability.md:52`, `docs/audit/verification/feat-phase2d-creator-usability-44141bb.md:139-140`
+- **Exception / Symptom:** Page 2 displayed 5 interactive st.slider widgets for scoring weights (Technical Depth, Practical Utility, Market Viability, Pedagogical Value, Novelty & Virality) that had zero binding or effect on backend scoring configuration (config/scoring.yaml), pushing Score Topics and the scored topic table below the fold. Resolved in commit f97d275 by replacing sliders with a compact read-only expander displaying current configuration weights.
+- **Root Cause Location:** `src/content_creation/ui/pages/2_topic_pipeline.py:25-46`
+- **Affected Tests / Callsites:**
+  - `tests/test_ui_pages.py:test_topic_pipeline_read_only_expander_and_priority_tier_badges`
+- **Reproduction Command:** `uv run python -m pytest tests/test_ui_pages.py -k test_topic_pipeline_read_only_expander_and_priority_tier_badges -o addopts="" -v`
+- **Recommended Runtime Policy:** `CODE_REFACTOR_FIX`
+- **QA Coverage Status:** `PARTIAL`
+- **QA Test Directive:** AppTest renders 2_topic_pipeline.py headlessly and asserts that no st.slider widgets exist and the read-only expander renders scoring weights from config/scoring.yaml.
+
+---
+
+### `ERR-030`: Redundant Stacked Brief Summary Display in Editorial Review Console (UI-005)
+- **Stage / Scope:** UI Presentation Tier
+- **Error Class:** `QUALITY_GROUNDING`
+- **Severity:** Low
+- **Status:** `RESOLVED` (`resolved_in_commit: f97d275`)
+- **Source Evidence:** `docs/refactor/tasks/phase2d-creator-usability-and-ui-polish.md:65, 73 (UI-005)`, `docs/audit/handoffs/feat-phase2d-creator-usability.md:53`, `docs/audit/verification/feat-phase2d-creator-usability-44141bb.md:139-140`
+- **Exception / Symptom:** Page 3 rendered a duplicate stacked Brief Summary section above the review decision container that duplicated plain English summaries and key concepts already displayed in the main brief card. Resolved in commit f97d275 by pruning the duplicate stacked card and formatting raw needs_review statuses as muted Pending review ⏳ badges.
+- **Root Cause Location:** `src/content_creation/ui/pages/3_brief_viewer.py:107-144`
+- **Affected Tests / Callsites:**
+  - `tests/test_ui_pages.py:test_brief_viewer_status_badge_and_no_duplicate_summary`
+- **Reproduction Command:** `uv run python -m pytest tests/test_ui_pages.py -k test_brief_viewer_status_badge_and_no_duplicate_summary -o addopts="" -v`
+- **Recommended Runtime Policy:** `ENRICHMENT_OR_CRITIC_LOOP`
+- **QA Coverage Status:** `PARTIAL`
+- **QA Test Directive:** AppTest renders 3_brief_viewer.py headlessly with staged briefs and verifies that exactly one Brief Summary container renders and needs_review displays as Pending review ⏳.
+
+---
+
+### `ERR-031`: Raw Python List Representation Leaked for Manifest Blocking Reasons (UI-006)
+- **Stage / Scope:** UI Presentation Tier
+- **Error Class:** `SCHEMA_VALIDATION`
+- **Severity:** Low
+- **Status:** `RESOLVED` (`resolved_in_commit: e222f19`)
+- **Source Evidence:** `docs/refactor/tasks/phase2d-creator-usability-and-ui-polish.md:54, 74 (UI-006)`, `docs/audit/handoffs/feat-phase2d-creator-usability.md:54`, `docs/audit/verification/feat-phase2d-creator-usability-44141bb.md:139-140`
+- **Exception / Symptom:** In 5_asset_workshop.py, manifest.blocking_reasons was rendered as a raw Python list representation (e.g., ['script: missing']) in warning callouts, leaking unformatted internal collection strings to creators. Resolved in commit e222f19 by formatting each blocking reason into an individual UI badge 🚫 <reason>.
+- **Root Cause Location:** `src/content_creation/ui/pages/5_asset_workshop.py:125-185`
+- **Affected Tests / Callsites:**
+  - `tests/test_ui_pages.py:test_asset_workshop_blocking_reasons_and_cue_blocks`
+- **Reproduction Command:** `uv run python -m pytest tests/test_ui_pages.py -k test_asset_workshop_blocking_reasons_and_cue_blocks -o addopts="" -v`
+- **Recommended Runtime Policy:** `GUIDED_SCHEMA_REPAIR`
+- **QA Coverage Status:** `PARTIAL`
+- **QA Test Directive:** AppTest renders 5_asset_workshop.py headlessly with a blocked manifest and asserts that raw Python list bracket repr does not appear in markdown text and blocking reasons render as individual badges.
+
+---
+
+### `ERR-032`: Retired SSE Streaming Subsystem Retained in Operations Health Check (UI-007)
+- **Stage / Scope:** UI Presentation Tier
+- **Error Class:** `CODE_STATIC_TYPING`
+- **Severity:** Low
+- **Status:** `RESOLVED` (`resolved_in_commit: f97d275`)
+- **Source Evidence:** `docs/refactor/tasks/phase2d-creator-usability-and-ui-polish.md:67, 75 (UI-007)`, `docs/audit/handoffs/feat-phase2d-creator-usability.md:55`, `docs/audit/verification/feat-phase2d-creator-usability-44141bb.md:139-140`
+- **Exception / Symptom:** In client.py:get_operations_snapshot(), ComponentType.SSE remained in the active component checklist despite the SSE subsystem being retired in Phase 2C, causing Page 6 to display a confusing ⚪ SSE Streaming: UNKNOWN health status card. Resolved in commit f97d275 by removing ComponentType.SSE from get_operations_snapshot() components and filtering out retired SSE entries from the dashboard.
+- **Root Cause Location:** `src/content_creation/ui/services/client.py:616-640`, `src/content_creation/ui/pages/6_operations_dashboard.py:54-75`
+- **Affected Tests / Callsites:**
+  - `tests/test_ui_client.py:test_get_operations_snapshot_excludes_retired_sse_and_downgrades_worker_alert`
+  - `tests/test_ui_pages.py:test_operations_dashboard_snapshot_and_badge_helpers`
+- **Reproduction Command:** `uv run python -m pytest tests/test_ui_client.py -k test_get_operations_snapshot_excludes_retired_sse_and_downgrades_worker_alert -o addopts="" -v`
+- **Recommended Runtime Policy:** `CODE_REFACTOR_FIX`
+- **QA Coverage Status:** `PARTIAL`
+- **QA Test Directive:** Verify ServiceClient.get_operations_snapshot().components contains only active components (DATABASE, WORKER_DAEMON, LOCK_MANAGER, EVENT_STORE, NOTIFICATION_CENTER) and does not include ComponentType.SSE.
+
+---
+
+### `ERR-033`: False-Positive Worker Daemon Offline Warning in Manual Operating Mode (UI-008)
+- **Stage / Scope:** UI Presentation Tier
+- **Error Class:** `STATE_WORKFLOW_CONCURRENCY`
+- **Severity:** Low
+- **Status:** `RESOLVED` (`resolved_in_commit: f97d275`)
+- **Source Evidence:** `docs/refactor/tasks/phase2d-creator-usability-and-ui-polish.md:67, 76 (UI-008)`, `docs/audit/handoffs/feat-phase2d-creator-usability.md:56`, `docs/audit/verification/feat-phase2d-creator-usability-44141bb.md:139-140`
+- **Exception / Symptom:** When running the platform in standard manual/synchronous mode, the operations health checker evaluated an inactive background worker daemon as an active system issue, firing a yellow warning alert expander (Worker Daemon: Not running (manual mode)). Resolved in commit f97d275 by checking if queued background jobs exist; if the queue is empty, the notification is downgraded to AlertSeverity.INFO and omitted from the active warnings expander.
+- **Root Cause Location:** `src/content_creation/ui/services/client.py:642-665`, `src/content_creation/ui/pages/6_operations_dashboard.py:227-244`
+- **Affected Tests / Callsites:**
+  - `tests/test_ui_client.py:test_get_operations_snapshot_worker_idle_healthy_when_no_jobs`
+  - `tests/test_ui_client.py:test_get_operations_snapshot_excludes_retired_sse_and_downgrades_worker_alert`
+- **Reproduction Command:** `uv run python -m pytest tests/test_ui_client.py -k test_get_operations_snapshot_worker_idle_healthy_when_no_jobs -o addopts="" -v`
+- **Recommended Runtime Policy:** `DETERMINISTIC_STATE_FIX`
+- **QA Coverage Status:** `PARTIAL`
+- **QA Test Directive:** Assert ServiceClient.get_operations_snapshot() returns AlertSeverity.INFO with message 'Worker Daemon: Not running (manual mode)' when no queued jobs exist, and AlertSeverity.WARNING when pending jobs exist.
+
+---
+
 ## 5. Anticipated Stage Risks
 
 ### `RISK-001`: Live LLM Provider Quota Exhaustion & Rate Limits
-- **Stage / Scope:** Stage 3: Briefs, Stage 4: Content Intelligence, Stage 6: Asset Generation
+- **Stage / Scope:** Stage 3: Briefs
 - **Error Class:** `TRANSPORT_TRANSIENT`
 - **Likelihood:** High | **Impact:** High
 - **Anchored Code Path:** `src/content_creation/inference/manager.py:70`, `src/content_creation/inference/providers/gemini.py:71`
 - **Risk Description:** High-concurrency generation bursts without rate-limiting delays trigger HTTP 429 quota exhaustion on Gemini API endpoints.
 - **Recommended Policy:** `RETRY_BACKOFF_FALLBACK`
-- **QA Coverage Status:** `COVERED` (verified by `tests/test_content_factory_db.py` and `tests/test_sqlite_wal_concurrency.py`)
+- **QA Coverage Status:** `COVERED` (verified by `tests/test_content_factory_db.py`, `tests/test_sqlite_wal_concurrency.py`)
 - **QA Test Directive:** Mock 429 response from GeminiProvider and assert failover to OpenRouter without pipeline abort.
 
 ---
@@ -644,7 +793,7 @@
 ### `RISK-002`: Malformed Markdown Code Fences in LLM Synthesis Outputs
 - **Stage / Scope:** Stage 4: Content Intelligence
 - **Error Class:** `SCHEMA_VALIDATION`
-- **Likelihood:** Medium | **Impact:** Medium
+- **Likelihood:** High | **Impact:** High
 - **Anchored Code Path:** `src/content_creation/generation/brief.py:46`, `src/content_creation/domains/content_intelligence/generator.py:48`, `src/content_creation/domains/storyboard/generator.py:53`
 - **Risk Description:** LLM outputting JSON wrapped in markdown fences (```json ... ```) or conversational commentary triggers json.JSONDecodeError in generator parsing.
 - **Recommended Policy:** `GUIDED_SCHEMA_REPAIR`
@@ -668,7 +817,7 @@
 ### `RISK-004`: In-Memory Event Bus Isolation Across Worker Daemon Subprocesses
 - **Stage / Scope:** Stage 12: Event Store
 - **Error Class:** `STATE_WORKFLOW_CONCURRENCY`
-- **Likelihood:** Medium | **Impact:** Medium
+- **Likelihood:** High | **Impact:** High
 - **Anchored Code Path:** `src/content_creation/events/bus.py:11`, `src/content_creation/jobs/worker_daemon.py:35`
 - **Risk Description:** Process-bound singleton _EVENT_BUS in background worker processes drops event delivery to UI subscriber threads and SSE streaming server.
 - **Recommended Policy:** `DETERMINISTIC_STATE_FIX`
@@ -680,7 +829,7 @@
 ### `RISK-005`: POSIX Signal Handling Incompatibility in Windows Background Worker Daemon
 - **Stage / Scope:** Stage 15: Jobs
 - **Error Class:** `ENVIRONMENT_PLATFORM`
-- **Likelihood:** Medium | **Impact:** Medium
+- **Likelihood:** High | **Impact:** High
 - **Anchored Code Path:** `src/content_creation/jobs/worker_daemon.py:35`
 - **Risk Description:** Signal handlers using SIGTERM or SIGQUIT fail on Windows OS process termination, leaving stale resource locks in data/content_factory.db (consolidated database).
 - **Recommended Policy:** `CROSS_PLATFORM_GUARD`
@@ -692,7 +841,7 @@
 ### `RISK-006`: SQLite WAL File Accumulation and Busy Timeout Under Concurrent Background Workers
 - **Stage / Scope:** Stage 15: Jobs
 - **Error Class:** `STATE_WORKFLOW_CONCURRENCY`
-- **Likelihood:** Medium | **Impact:** Medium
+- **Likelihood:** High | **Impact:** High
 - **Anchored Code Path:** `src/content_creation/platform/storage/database.py:37`, `src/content_creation/platform/storage/database.py:115`
 - **Risk Description:** High-volume concurrent background tasks executing write transactions on content_factory.db may trigger sqlite3.OperationalError: database is locked if long-running read transactions block WAL checkpointing beyond the 5000ms busy_timeout threshold on Windows.
 - **Recommended Policy:** `DETERMINISTIC_STATE_FIX`
