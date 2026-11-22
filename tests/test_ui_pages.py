@@ -450,3 +450,179 @@ def test_asset_workshop_blocking_reasons_and_cue_blocks(tmp_path: Path) -> None:
     assert "🚫 `script: missing`" in all_markdown
     assert "🚫 `carousel: review_rejected`" in all_markdown
 
+
+def test_app_page_latex_escape_and_navigation(tmp_path: Path) -> None:
+    """UI-003 & Phase 2D: Verify app.py renders clean arrow characters and stage navigation."""
+    at = AppTest.from_file("src/content_creation/ui/app.py", default_timeout=15)
+    at.run()
+    assert len(at.exception) == 0, f"Page crashed with: {at.exception}"
+
+    all_markdown = " ".join(m.value for m in at.markdown)
+    # Verify LaTeX escape $\rightarrow$ is fixed to clean Unicode arrow →
+    assert r"$\rightarrow$" not in all_markdown
+    assert r"\rightarrow" not in all_markdown
+    assert "Collect → Score → Briefs → CI → Storyboards → Assets → Manifests" in all_markdown
+
+    # Verify app.py contains st.page_link calls for stage navigation
+    app_source = Path("src/content_creation/ui/app.py").read_text(encoding="utf-8")
+    assert "page_link" in app_source
+    assert "pages/1_topic_collection.py" in app_source
+    assert "pages/2_topic_pipeline.py" in app_source
+    assert "pages/3_brief_viewer.py" in app_source
+    assert "pages/4_storyboard.py" in app_source
+    assert "pages/5_asset_workshop.py" in app_source
+
+
+def test_topic_pipeline_read_only_expander_and_priority_tier_badges(tmp_path: Path) -> None:
+    """UI-004 & Phase 2D: Verify 2_topic_pipeline.py uses read-only weights expander and tier badges."""
+    # Seed scored topics in test workspace
+    scored_dir = tmp_path / "data" / "scored"
+    scored_dir.mkdir(parents=True, exist_ok=True)
+    item_dict = {
+        "id": "topic-tier-test-1",
+        "title": "High Priority Research Paper",
+        "url": "https://example.com/p1",
+        "source": "arxiv",
+        "published_at": "2026-11-22T00:00:00Z",
+        "author": "Test Author",
+        "raw_text": "Sample raw text content " * 10,
+        "summary": "Summary",
+        "category": "paper",
+        "status": "scored",
+        "validation_flags": [],
+        "priority_score": 85.0,
+        "novelty_score": 8.0,
+        "student_usefulness_score": 9.0,
+        "credibility_score": 8.5,
+        "explainability_score": 8.0,
+        "hook_potential_score": 8.0,
+        "scoring_rules_fired": ["rule1"],
+        "scored_at": "2026-11-22T00:00:00Z",
+    }
+    (scored_dir / "topic-tier-test-1.json").write_text(json.dumps(item_dict), encoding="utf-8")
+
+    at = AppTest.from_file("src/content_creation/ui/pages/2_topic_pipeline.py", default_timeout=15)
+    at.run()
+    assert len(at.exception) == 0, f"Page crashed with: {at.exception}"
+
+    # Verify expander label exists
+    expanders = [e.label for e in at.expander]
+    assert any("Current Scoring Weights (config/scoring.yaml)" in exp for exp in expanders)
+
+    # Sliders should NOT exist on Page 2 anymore
+    assert len(at.slider) == 0
+
+    # Verify forward page_link to Page 3 exists in source
+    p2_source = Path("src/content_creation/ui/pages/2_topic_pipeline.py").read_text(encoding="utf-8")
+    assert 'page_link("pages/3_brief_viewer.py"' in p2_source
+
+
+def test_brief_viewer_status_badge_and_no_duplicate_summary(tmp_path: Path) -> None:
+    """UI-005 & Phase 2D: Verify 3_brief_viewer.py formats needs_review and removes duplicate summary."""
+    topic_id = "topic-brief-ui-test"
+    # Seed scored topic so selectbox populates
+    scored_dir = tmp_path / "data" / "scored"
+    scored_dir.mkdir(parents=True, exist_ok=True)
+    item_dict = {
+        "id": topic_id,
+        "title": "Needs Review Paper",
+        "url": "https://example.com/p2",
+        "source": "arxiv",
+        "published_at": "2026-11-22T00:00:00Z",
+        "raw_text": "Sample research text " * 10,
+        "category": "paper",
+        "status": "scored",
+        "priority_score": 75.0,
+        "validation_flags": [],
+    }
+    (scored_dir / f"{topic_id}.json").write_text(json.dumps(item_dict), encoding="utf-8")
+
+    brief_dict = _make_brief_dict(topic_id)
+    brief_dict["review_status"] = "needs_review"
+    (tmp_path / "data" / "briefs" / f"{topic_id}.json").write_text(
+        json.dumps(brief_dict), encoding="utf-8"
+    )
+
+    at = AppTest.from_file("src/content_creation/ui/pages/3_brief_viewer.py", default_timeout=15)
+    at.run()
+    assert len(at.exception) == 0, f"Page crashed with: {at.exception}"
+
+    all_markdown = " ".join(m.value for m in at.markdown)
+    # Verify status is rendered as "Pending review ⏳" rather than raw "needs_review"
+    assert "Pending review ⏳" in all_markdown
+
+    # Verify duplicate "Brief Summary" header is removed
+    assert "### 📄 Brief Summary" not in all_markdown
+
+    # Verify forward page_link to Page 4 exists in source
+    p3_source = Path("src/content_creation/ui/pages/3_brief_viewer.py").read_text(encoding="utf-8")
+    assert 'page_link("pages/4_storyboard.py"' in p3_source
+
+
+def test_storyboard_selector_readiness_indicator(tmp_path: Path) -> None:
+    """Phase 2D: Verify 4_storyboard.py shows readiness emojis in selector."""
+    topic_id = "topic-sb-ready-test"
+    (tmp_path / "data" / "briefs" / f"{topic_id}.json").write_text(
+        json.dumps(_make_brief_dict(topic_id)), encoding="utf-8"
+    )
+    (tmp_path / "data" / "storyboards" / f"{topic_id}.json").write_text(
+        json.dumps(_make_storyboard_dict(topic_id)), encoding="utf-8"
+    )
+
+    at = AppTest.from_file("src/content_creation/ui/pages/4_storyboard.py", default_timeout=15)
+    at.run()
+    assert len(at.exception) == 0, f"Page crashed with: {at.exception}"
+
+    # Verify Brief Selector has the ✅ icon indicating storyboard readiness
+    brief_selector = next((sb for sb in at.selectbox if "Brief Selector" in sb.label), None)
+    assert brief_selector is not None
+    assert any("✅" in opt for opt in brief_selector.options)
+
+    # Verify forward page_link to Page 5 exists in source
+    p4_source = Path("src/content_creation/ui/pages/4_storyboard.py").read_text(encoding="utf-8")
+    assert 'page_link("pages/5_asset_workshop.py"' in p4_source
+
+
+def test_all_ui_files_ast_zero_direct_layer_violations() -> None:
+    """Architectural Guardrail: Verify all UI files have 0 direct imports of DB or storage repos."""
+    import ast
+
+    ui_files = [
+        Path("src/content_creation/ui/app.py"),
+        Path("src/content_creation/ui/pages/1_topic_collection.py"),
+        Path("src/content_creation/ui/pages/2_topic_pipeline.py"),
+        Path("src/content_creation/ui/pages/3_brief_viewer.py"),
+        Path("src/content_creation/ui/pages/4_storyboard.py"),
+        Path("src/content_creation/ui/pages/5_asset_workshop.py"),
+        Path("src/content_creation/ui/pages/6_operations_dashboard.py"),
+    ]
+
+    forbidden_prefixes = [
+        "sqlite3",
+        "content_creation.platform.storage.local",
+        "content_creation.platform.storage.database",
+        "content_creation.jobs",
+        "content_creation.events.store",
+        "content_creation.metrics",
+        "content_creation.audit",
+        "content_creation.inference.providers",
+    ]
+
+    for file_path in ui_files:
+        assert file_path.exists(), f"Missing UI file: {file_path}"
+        tree = ast.parse(file_path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    for forbidden in forbidden_prefixes:
+                        assert not alias.name.startswith(forbidden), (
+                            f"Prohibited import '{alias.name}' found in {file_path}"
+                        )
+            elif isinstance(node, ast.ImportFrom):
+                mod = node.module or ""
+                for forbidden in forbidden_prefixes:
+                    assert not mod.startswith(forbidden), (
+                        f"Prohibited 'from {mod} import ...' found in {file_path}"
+                    )
+
+

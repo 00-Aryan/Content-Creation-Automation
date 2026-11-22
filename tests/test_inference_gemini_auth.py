@@ -89,3 +89,39 @@ def test_brief_generation_aborts_immediately_on_auth_error(tmp_path: Path) -> No
     assert len(result.failures) == 1
     assert result.failures[0].topic_id == "topic-1"
     assert "API_KEY_INVALID" in result.failures[0].error
+
+
+def test_brief_generation_continues_on_transient_error(tmp_path: Path) -> None:
+    """Verify BriefGenerationService continues across items when encountering transient/standard errors."""
+    ctx = ApplicationContext.create(tmp_path)
+    for i in range(1, 3):
+        item = ScoredTopicItem(
+            id=f"topic-transient-{i}",
+            title=f"Paper Title {i}",
+            url=f"https://arxiv.org/abs/240{i}.000",
+            source="arxiv",
+            published_at="2026-11-22T00:00:00Z",
+            raw_text="A" * 200,
+            status=TopicStatus.SCORED,
+            priority_score=80.0,
+        )
+        ctx.storage.save_scored(item)
+
+    service = BriefGenerationService()
+    call_count = 0
+
+    def mock_generate_brief(item: ScoredTopicItem, prompt_registry: object, api_key: object) -> None:
+        nonlocal call_count
+        call_count += 1
+        raise ValueError(f"Temporary parsing glitch for {item.id}")
+
+    with patch(
+        "content_creation.application.brief_generation_service.generate_brief",
+        side_effect=mock_generate_brief,
+    ):
+        result = service.run(ctx, top_n=2, rate_limit_delay=0.0)
+
+    # Must process both items since this is not an auth circuit breaker condition
+    assert call_count == 2
+    assert len(result.failures) == 2
+

@@ -594,3 +594,25 @@ def test_ensure_database_initialized(test_workspace: Path) -> None:
     finally:
         conn.close()
 
+
+def test_get_operations_snapshot_excludes_retired_sse_and_downgrades_worker_alert(
+    test_workspace: Path,
+) -> None:
+    """UI-007 & UI-008: Operations snapshot excludes SSE component and downgrades worker offline alert to INFO."""
+    from content_creation.platform.observability.health import ComponentType, AlertSeverity
+
+    client = ServiceClient()
+    snapshot = client.get_operations_snapshot()
+    assert snapshot is not None
+
+    # UI-007: SSE component must be completely absent from snapshot components
+    assert not any(c.component == ComponentType.SSE for c in snapshot.components)
+    assert not any(c.name.lower() == "sse" for c in snapshot.components)
+
+    # UI-008: In manual operation mode without jobs, WORKER_OFFLINE is INFO severity
+    worker_alert = next((a for a in snapshot.alerts if a.rule_id == "WORKER_OFFLINE"), None)
+    if worker_alert:
+        assert worker_alert.severity == AlertSeverity.INFO
+        assert "manual mode" in worker_alert.title
+
+
