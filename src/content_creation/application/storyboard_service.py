@@ -41,11 +41,16 @@ class StoryboardService:
         top_n: int = 5,
         api_key: Optional[str] = None,
         rate_limit_delay: float = 5.0,
+        topic_id: Optional[str] = None,
     ) -> StoryboardGenerationResult:
         """Generates Storyboards for content intelligence items that don't have them yet."""
         generator = StoryboardGenerator(api_key, ctx.prompt_registry)
 
         ci_list = ctx.storage.list_content_intelligence()
+        if topic_id:
+            target_ci = next((ci for ci in ci_list if ci.topic_id == topic_id), None)
+            ci_list = [target_ci] if target_ci else []
+
         if not ci_list:
             return StoryboardGenerationResult(
                 generated_count=0,
@@ -75,8 +80,9 @@ class StoryboardService:
             )
 
         # Sort candidates descending by priority score and slice to top_n
-        candidates.sort(key=lambda x: x["priority_score"], reverse=True)
-        candidates = candidates[:top_n]
+        if not topic_id:
+            candidates.sort(key=lambda x: x["priority_score"], reverse=True)
+            candidates = candidates[:top_n]
 
         generated_items = []
         failures = []
@@ -114,6 +120,19 @@ class StoryboardService:
             try:
                 # 4. Generate storyboard
                 sb = generator.generate(brief=brief, ci=ci)
+
+                # Ensure manual topics always include short_video in formats_planned
+                topic_item = ctx.storage.get_scored(topic_id) or ctx.storage.get_staged(topic_id)
+                is_manual = False
+                if topic_item:
+                    is_manual = (
+                        getattr(topic_item, "source", None) == "manual"
+                        or "manual" in getattr(topic_item, "topic_tags", [])
+                        or (hasattr(topic_item, "metadata") and topic_item.metadata and getattr(topic_item.metadata, "source_type", None) == "manual")
+                    )
+                if is_manual or "script" in getattr(brief, "recommended_formats", []):
+                    if "short_video" not in sb.formats_planned:
+                        sb.formats_planned.append("short_video")
                 
                 # 5. Save storyboard
                 ctx.storage.save_storyboard(sb)

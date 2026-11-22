@@ -983,4 +983,147 @@ def test_ensure_database_initialized_corrupted_header_fallback(
     assert any("Failed to inspect sqlite_master" in r.message for r in caplog.records)
 
 
+def test_generate_ci_action_id_alignment(test_workspace: Path) -> None:
+    """Verify ServiceClient.generate_content_intelligence dispatches action_id='generate_ci'."""
+    from unittest.mock import MagicMock
+    from content_creation.workflow.workflow_action_executor import ActionExecutionResult, ActionExecutionStatus
+
+    client = ServiceClient()
+    mock_res = ActionExecutionResult(
+        action_id="generate_ci",
+        success=True,
+        execution_status=ActionExecutionStatus.SUCCESS,
+        affected_artifacts={},
+        warnings=[],
+        blocking_reasons=[],
+        execution_time=0.1,
+        emitted_events=[],
+        raw_result=MagicMock(generated_count=1, skipped_count=0, failures=[]),
+    )
+    client.executor.execute = MagicMock(return_value=mock_res)
+
+    timed = client.generate_content_intelligence(topic_id="topic-align-test")
+    assert timed.result is not None
+
+    client.executor.execute.assert_called_once()
+    call_args = client.executor.execute.call_args
+    assert call_args[0][1] == "generate_ci"
+    assert call_args[0][2] == "content_intelligence"
+    assert call_args[0][3] == "topic-align-test"
+    assert call_args[0][4]["topic_id"] == "topic-align-test"
+
+
+def test_generation_methods_target_selected_topic_id(test_workspace: Path) -> None:
+    """Verify ServiceClient generation methods pass selected topic_id to WorkflowActionExecutor."""
+    from unittest.mock import MagicMock
+    from content_creation.workflow.workflow_action_executor import ActionExecutionResult, ActionExecutionStatus
+
+    client = ServiceClient()
+    mock_res = ActionExecutionResult(
+        action_id="test",
+        success=True,
+        execution_status=ActionExecutionStatus.SUCCESS,
+        affected_artifacts={},
+        warnings=[],
+        blocking_reasons=[],
+        execution_time=0.1,
+        emitted_events=[],
+        raw_result=MagicMock(generated_count=1, skipped_count=0, failures=[], counts={}, failed_count=0),
+    )
+    client.executor.execute = MagicMock(return_value=mock_res)
+
+    # 1. Brief generation with topic_id
+    client.generate_briefs(topic_id="topic-brief-target")
+    assert client.executor.execute.call_args[0][1] == "generate_briefs"
+    assert client.executor.execute.call_args[0][3] == "topic-brief-target"
+    assert client.executor.execute.call_args[0][4]["topic_id"] == "topic-brief-target"
+
+    # 2. Storyboard generation with topic_id
+    client.generate_storyboards(topic_id="topic-sb-target")
+    assert client.executor.execute.call_args[0][1] == "generate_storyboards"
+    assert client.executor.execute.call_args[0][3] == "topic-sb-target"
+    assert client.executor.execute.call_args[0][4]["topic_id"] == "topic-sb-target"
+
+    # 3. Asset suite generation with topic_id auto-compiles manifest
+    client.build_manifest = MagicMock()
+    client.generate_asset_suite(topic_id="topic-asset-target")
+    assert client.executor.execute.call_args[0][1] == "generate_assets"
+    assert client.executor.execute.call_args[0][3] == "topic-asset-target"
+    assert client.executor.execute.call_args[0][4]["topic_id"] == "topic-asset-target"
+    client.build_manifest.assert_called_once_with("topic-asset-target")
+
+
+def test_format_production_cue_sheet_newline_formatting(test_workspace: Path) -> None:
+    """Verify format_production_cue_sheet formats clean newlines without carriage returns."""
+    import json
+    client = ServiceClient()
+    topic_id = "test-newlines-cue"
+
+    scripts_dir = test_workspace / "data" / "scripts"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+    script_payload = {
+        "topic_id": topic_id,
+        "format": "short_video",
+        "hook": "Hook\r\n",
+        "script_sections": ["Section 1\r"],
+        "cta": "CTA\r\n",
+        "claims_used": ["claim 1"],
+        "source_links": [],
+        "review_status": "draft",
+        "generated_at": "2026-11-22T00:00:00Z",
+        "shorts_segments": [
+            {
+                "section": "hook\r\n",
+                "time_range": "0:00-0:05\r",
+                "visual": "Visual direction line\r\n",
+                "audio": "Audio cue line\r\n",
+                "spoken": "Spoken line\r",
+            }
+        ],
+    }
+    (scripts_dir / f"{topic_id}.json").write_text(json.dumps(script_payload), encoding="utf-8")
+
+    storyboards_dir = test_workspace / "data" / "storyboards"
+    storyboards_dir.mkdir(parents=True, exist_ok=True)
+    sb_payload = {
+        "topic_id": topic_id,
+        "generated_at": "2026-11-22T00:00:00Z",
+        "formats_planned": ["short_video"],
+        "script_hook": "Hook",
+        "script_cta": "CTA",
+        "script_claims": ["claim 1"],
+        "carousel_hook": "Hook",
+        "carousel_cta": "CTA",
+        "carousel_claims": ["claim 1"],
+        "newsletter_hook": "Hook",
+        "newsletter_cta": "CTA",
+        "newsletter_claims": ["claim 1"],
+        "thumbnail_hook": "Thumb",
+        "visual_metaphor": "Metaphor line\r\n",
+        "visual_style": "clean_minimal",
+    }
+    (storyboards_dir / f"{topic_id}.json").write_text(json.dumps(sb_payload), encoding="utf-8")
+
+    cue = client.format_production_cue_sheet(topic_id)
+    # No carriage return characters should remain
+    assert "\r" not in cue
+
+    # Verify clean newlines separating header metadata lines
+    lines = cue.split("\n")
+    topic_id_idx = next(i for i, line in enumerate(lines) if line.startswith("Topic ID:"))
+    assert topic_id_idx > 0
+    assert lines[topic_id_idx - 1].startswith("# 🎬 PRODUCTION CUE SHEET:")
+
+    meta_idx = next(i for i, line in enumerate(lines) if line.startswith("Visual Metaphor:"))
+    assert lines[meta_idx - 1].startswith("Visual Style:")
+
+    # Verify scene field lines have clean separation
+    visual_idx = next(i for i, line in enumerate(lines) if "👁️ VISUAL:" in line)
+    spoken_idx = next(i for i, line in enumerate(lines) if "🎙️ SPOKEN:" in line)
+    audio_idx = next(i for i, line in enumerate(lines) if "🎵 AUDIO:" in line)
+    assert spoken_idx == visual_idx + 1
+    assert audio_idx == spoken_idx + 1
+
+
+
 

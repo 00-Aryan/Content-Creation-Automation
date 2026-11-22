@@ -218,6 +218,7 @@ def main() -> None:
                             timed = client.generate_briefs(
                                 top_n=20,
                                 rate_limit_delay=rate_limit_delay,
+                                topic_id=selected_topic.id,
                             )
                             res = timed.result
                             st.write(f"Duration: `{timed.duration_seconds:.2f}s`")

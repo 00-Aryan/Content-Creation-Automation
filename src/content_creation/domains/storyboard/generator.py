@@ -37,6 +37,7 @@ _FORMAT_NORMALIZE = {
     "research seminar": "short_video",
     "theoretical lecture": "short_video",
     "concept deep dive": "short_video",
+    "script": "short_video",
     "case study": "carousel",
     "infographic": "carousel",
     "visual guide": "carousel",

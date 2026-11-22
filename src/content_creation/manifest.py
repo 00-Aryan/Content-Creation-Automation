@@ -13,6 +13,7 @@ REVIEW_STATUS_VALUES: frozenset[str] = frozenset(s.value for s in ReviewStatus)
 
 FORMAT_TO_ASSET: Dict[str, str] = {
     "short_video": "script",
+    "script": "script",
     "carousel": "carousel",
     "newsletter": "newsletter",
 }
@@ -22,6 +23,7 @@ FREETEXT_TO_FORMAT: Dict[str, str] = {
     "video": "short_video",
     "short video": "short_video",
     "technical deep dive": "short_video",
+    "script": "short_video",
     "case study": "carousel",
     "infographic": "carousel",
     "visual guide": "carousel",

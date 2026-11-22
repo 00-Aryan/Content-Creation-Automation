@@ -1,0 +1,258 @@
+- generic [ref=f7e2]:
+  - generic [ref=f7e7]:
+    - button "keyboard_double_arrow_left" [ref=f7e10] [cursor=pointer]
+    - list [ref=f7e14]:
+      - listitem [ref=f7e15]:
+        - link [ref=f7e17] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/
+          - paragraph [ref=f7e20]: app
+      - listitem [ref=f7e21]:
+        - link [ref=f7e23] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/topic_collection
+          - paragraph [ref=f7e26]: topic collection
+      - listitem [ref=f7e27]:
+        - link [ref=f7e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/topic_pipeline
+          - paragraph [ref=f7e32]: topic pipeline
+      - listitem [ref=f7e33]:
+        - link [ref=f7e35] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/brief_viewer
+          - paragraph [ref=f7e38]: brief viewer
+      - listitem [ref=f7e39]:
+        - link [ref=f7e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/storyboard
+          - paragraph [ref=f7e44]: storyboard
+      - listitem [ref=f7e45]:
+        - link [ref=f7e47] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/asset_workshop
+          - paragraph [ref=f7e50]: asset workshop
+      - listitem [ref=f7e51]:
+        - link [active] [ref=f7e53] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/operations_dashboard
+          - paragraph [ref=f7e56]: operations dashboard
+  - generic [ref=f7e3]:
+    - banner [ref=f7e60]:
+      - generic [ref=f7e63]:
+        - button "Deploy" [ref=f7e65] [cursor=pointer]
+        - button "Main menu" [ref=f7e69] [cursor=pointer]
+    - generic [ref=f7e73]:
+      - heading "📊 Operations Dashboard" [level=1] [ref=f7e78]:
+        - text: 📊 Operations Dashboard
+        - generic [ref=f7e79]:
+          - link "Link to heading":
+            - /url: "#operations-dashboard"
+      - paragraph [ref=f7e84]: "Last refreshed: 2026-11-21 15:56:27 UTC"
+      - heading "System Health" [level=3] [ref=f7e89]:
+        - text: System Health
+        - generic [ref=f7e90]:
+          - link "Link to heading":
+            - /url: "#system-health"
+      - paragraph [ref=f7e95]:
+        - strong [ref=f7e96]: "Overall Status:"
+        - text: 🟢 HEALTHY
+      - generic [ref=f7e98]:
+        - generic [ref=f7e100]:
+          - generic [ref=f7e103]:
+            - generic [ref=f7e104]:
+              - paragraph [ref=f7e106]: ⚪ Queue Engine
+              - button "Help for ⚪ Queue Engine" [ref=f7e110] [cursor=pointer]
+            - paragraph [ref=f7e116]: UNKNOWN
+          - generic [ref=f7e119]:
+            - generic [ref=f7e120]:
+              - paragraph [ref=f7e122]: ⚪ Notifications
+              - button "Help for ⚪ Notifications" [ref=f7e126] [cursor=pointer]
+            - paragraph [ref=f7e132]: UNKNOWN
+        - generic [ref=f7e134]:
+          - generic [ref=f7e137]:
+            - generic [ref=f7e138]:
+              - paragraph [ref=f7e140]: 🟢 Worker Daemon
+              - button "Help for 🟢 Worker Daemon" [ref=f7e144] [cursor=pointer]
+            - paragraph [ref=f7e150]: HEALTHY
+          - generic [ref=f7e153]:
+            - generic [ref=f7e154]:
+              - paragraph [ref=f7e156]: 🟢 Metrics Store
+              - button "Help for 🟢 Metrics Store" [ref=f7e160] [cursor=pointer]
+            - paragraph [ref=f7e166]: HEALTHY
+        - generic [ref=f7e168]:
+          - generic [ref=f7e171]:
+            - generic [ref=f7e172]:
+              - paragraph [ref=f7e174]: ⚪ Lock Manager
+              - button "Help for ⚪ Lock Manager" [ref=f7e178] [cursor=pointer]
+            - paragraph [ref=f7e184]: UNKNOWN
+          - generic [ref=f7e187]:
+            - generic [ref=f7e188]:
+              - paragraph [ref=f7e190]: 🟢 Audit Trail
+              - button "Help for 🟢 Audit Trail" [ref=f7e194] [cursor=pointer]
+            - paragraph [ref=f7e200]: HEALTHY
+        - generic [ref=f7e202]:
+          - generic [ref=f7e205]:
+            - generic [ref=f7e206]:
+              - paragraph [ref=f7e208]: 🟢 Event Store
+              - button "Help for 🟢 Event Store" [ref=f7e212] [cursor=pointer]
+            - paragraph [ref=f7e218]: HEALTHY
+          - generic [ref=f7e221]:
+            - generic [ref=f7e222]:
+              - paragraph [ref=f7e224]: ⚪ SSE Streaming
+              - button "Help for ⚪ SSE Streaming" [ref=f7e228] [cursor=pointer]
+            - paragraph [ref=f7e234]: UNKNOWN
+      - separator [ref=f7e239]
+      - heading "Operational Alerts" [level=3] [ref=f7e244]:
+        - text: Operational Alerts
+        - generic [ref=f7e245]:
+          - link "Link to heading":
+            - /url: "#operational-alerts"
+      - group [ref=f7e248]:
+        - 'generic "keyboard_arrow_down 🟡 [WARNING] Worker Daemon: Not running (expected in manual operation mode)" [ref=f7e249] [cursor=pointer]':
+          - generic [ref=f7e250]:
+            - generic [ref=f7e251]: keyboard_arrow_down
+            - paragraph [ref=f7e255]: "🟡 [WARNING] Worker Daemon: Not running (expected in manual operation mode)"
+        - generic [ref=f7e257]:
+          - paragraph [ref=f7e262]:
+            - strong [ref=f7e263]: "Message:"
+            - text: No active workers are running. This is normal when running manually (no jobs are queued).
+          - paragraph [ref=f7e268]:
+            - strong [ref=f7e269]: "Component:"
+            - text: worker
+          - paragraph [ref=f7e274]:
+            - strong [ref=f7e275]: "Recommended Action:"
+            - text: Start the worker daemon if you intend to run background tasks.
+          - generic [ref=f7e281]:
+            - generic [ref=f7e282]: "{"
+            - generic [ref=f7e291]:
+              - generic [ref=f7e292]:
+                - generic [ref=f7e293]:
+                  - text: "\""
+                  - generic [ref=f7e294]: active_workers
+                  - text: "\""
+                - generic [ref=f7e295]: ":"
+              - generic [ref=f7e296] [cursor=pointer]: "0"
+            - generic [ref=f7e298]: "}"
+      - generic [ref=f7e301]:
+        - generic [ref=f7e303]:
+          - heading "Queue Monitoring" [level=3] [ref=f7e308]:
+            - text: Queue Monitoring
+            - generic [ref=f7e309]:
+              - link "Link to heading":
+                - /url: "#queue-monitoring"
+          - status [ref=f7e312]:
+            - paragraph [ref=f7e316]: Queue engine not available.
+        - generic [ref=f7e318]:
+          - heading "Worker Monitoring" [level=3] [ref=f7e323]:
+            - text: Worker Monitoring
+            - generic [ref=f7e324]:
+              - link "Link to heading":
+                - /url: "#worker-monitoring"
+          - status [ref=f7e327]:
+            - paragraph [ref=f7e331]: Worker daemon not available.
+      - separator [ref=f7e336]
+      - generic [ref=f7e338]:
+        - generic [ref=f7e340]:
+          - heading "Lock Monitoring" [level=3] [ref=f7e345]:
+            - text: Lock Monitoring
+            - generic [ref=f7e346]:
+              - link "Link to heading":
+                - /url: "#lock-monitoring"
+          - status [ref=f7e349]:
+            - paragraph [ref=f7e353]: Lock manager not available.
+        - generic [ref=f7e355]:
+          - heading "Event Monitoring" [level=3] [ref=f7e360]:
+            - text: Event Monitoring
+            - generic [ref=f7e361]:
+              - link "Link to heading":
+                - /url: "#event-monitoring"
+          - generic [ref=f7e363]:
+            - generic [ref=f7e368]:
+              - paragraph [ref=f7e371]: Total Events
+              - paragraph [ref=f7e374]: "0"
+            - generic [ref=f7e379]:
+              - paragraph [ref=f7e382]: Workflow
+              - paragraph [ref=f7e385]: "0"
+            - generic [ref=f7e390]:
+              - paragraph [ref=f7e393]: Job Events
+              - paragraph [ref=f7e396]: "0"
+          - generic [ref=f7e398]:
+            - generic [ref=f7e403]:
+              - paragraph [ref=f7e406]: Review
+              - paragraph [ref=f7e409]: "0"
+            - generic [ref=f7e414]:
+              - paragraph [ref=f7e417]: Lock
+              - paragraph [ref=f7e420]: "0"
+            - generic [ref=f7e425]:
+              - paragraph [ref=f7e428]: Pipeline
+              - paragraph [ref=f7e431]: "0"
+      - separator [ref=f7e436]
+      - generic [ref=f7e438]:
+        - generic [ref=f7e440]:
+          - heading "Notification Monitoring" [level=3] [ref=f7e445]:
+            - text: Notification Monitoring
+            - generic [ref=f7e446]:
+              - link "Link to heading":
+                - /url: "#notification-monitoring"
+          - status [ref=f7e449]:
+            - paragraph [ref=f7e453]: Notification service not available.
+        - generic [ref=f7e455]:
+          - heading "Audit Monitoring" [level=3] [ref=f7e460]:
+            - text: Audit Monitoring
+            - generic [ref=f7e461]:
+              - link "Link to heading":
+                - /url: "#audit-monitoring"
+          - generic [ref=f7e468]:
+            - paragraph [ref=f7e471]: Total Audit Records
+            - paragraph [ref=f7e474]: "0"
+      - separator [ref=f7e481]
+      - heading "Metrics / KPIs" [level=3] [ref=f7e486]:
+        - text: Metrics / KPIs
+        - generic [ref=f7e487]:
+          - link "Link to heading":
+            - /url: "#metrics-kpis"
+      - paragraph [ref=f7e492]:
+        - strong [ref=f7e493]: "Workflow KPIs:"
+      - generic [ref=f7e495]:
+        - generic [ref=f7e500]:
+          - paragraph [ref=f7e503]: Briefs Generated
+          - paragraph [ref=f7e506]: 0.0 count
+        - generic [ref=f7e511]:
+          - paragraph [ref=f7e514]: Storyboards Generated
+          - paragraph [ref=f7e517]: 0.0 count
+        - generic [ref=f7e522]:
+          - paragraph [ref=f7e525]: Assets Generated
+          - paragraph [ref=f7e528]: 0.0 count
+        - generic [ref=f7e533]:
+          - paragraph [ref=f7e536]: Approval Rate
+          - paragraph [ref=f7e539]: 0.0 %
+        - generic [ref=f7e544]:
+          - paragraph [ref=f7e547]: Rejection Rate
+          - paragraph [ref=f7e550]: 100.0 %
+      - paragraph [ref=f7e555]:
+        - strong [ref=f7e556]: "Job KPIs:"
+      - generic [ref=f7e558]:
+        - generic [ref=f7e563]:
+          - paragraph [ref=f7e566]: Jobs Started
+          - paragraph [ref=f7e569]: 0.0 count
+        - generic [ref=f7e574]:
+          - paragraph [ref=f7e577]: Jobs Completed
+          - paragraph [ref=f7e580]: 0.0 count
+        - generic [ref=f7e585]:
+          - paragraph [ref=f7e588]: Jobs Failed
+          - paragraph [ref=f7e591]: 0.0 count
+        - generic [ref=f7e596]:
+          - paragraph [ref=f7e599]: Job Success Rate
+          - paragraph [ref=f7e602]: 0.0 %
+        - generic [ref=f7e607]:
+          - paragraph [ref=f7e610]: Job Retries
+          - paragraph [ref=f7e613]: 0.0 count
+        - generic [ref=f7e618]:
+          - paragraph [ref=f7e621]: Average Job Runtime
+          - paragraph [ref=f7e624]: 0.0 seconds
+      - paragraph [ref=f7e629]:
+        - strong [ref=f7e630]: "System KPIs:"
+      - generic [ref=f7e632]:
+        - generic [ref=f7e637]:
+          - paragraph [ref=f7e640]: Lock Contentions
+          - paragraph [ref=f7e643]: 0.0 count
+        - generic [ref=f7e648]:
+          - paragraph [ref=f7e651]: Zombie Recoveries
+          - paragraph [ref=f7e654]: 0.0 count
+        - generic [ref=f7e659]:
+          - paragraph [ref=f7e662]: Stale Lock Expirations
+          - paragraph [ref=f7e665]: 0.0 count

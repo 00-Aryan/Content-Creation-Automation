@@ -1,0 +1,261 @@
+- generic [ref=f7e2]:
+  - generic [ref=f7e7]:
+    - button "keyboard_double_arrow_left" [ref=f7e10] [cursor=pointer]
+    - list [ref=f7e14]:
+      - listitem [ref=f7e15]:
+        - link [active] [ref=f7e17] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/
+          - paragraph [ref=f7e20]: app
+      - listitem [ref=f7e21]:
+        - link [ref=f7e23] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/topic_collection
+          - paragraph [ref=f7e26]: topic collection
+      - listitem [ref=f7e27]:
+        - link [ref=f7e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/topic_pipeline
+          - paragraph [ref=f7e32]: topic pipeline
+      - listitem [ref=f7e33]:
+        - link [ref=f7e35] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/brief_viewer
+          - paragraph [ref=f7e38]: brief viewer
+      - listitem [ref=f7e39]:
+        - link [ref=f7e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/storyboard
+          - paragraph [ref=f7e44]: storyboard
+      - listitem [ref=f7e45]:
+        - link [ref=f7e47] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/asset_workshop
+          - paragraph [ref=f7e50]: asset workshop
+      - listitem [ref=f7e51]:
+        - link [ref=f7e53] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/operations_dashboard
+          - paragraph [ref=f7e56]: operations dashboard
+    - generic [ref=f7e668]:
+      - heading "🔑 System Health" [level=3] [ref=f7e1968]
+      - status [ref=f7e1971]:
+        - paragraph [ref=f7e1975]: "Generation Service: Available"
+      - generic [ref=f7e1981]:
+        - heading "🔔 Notifications" [level=3] [ref=f7e1982]
+        - paragraph [ref=f7e1983]: No unread notifications
+  - generic [ref=f7e3]:
+    - banner [ref=f7e60]:
+      - generic [ref=f7e63]:
+        - button "Deploy" [ref=f7e65] [cursor=pointer]
+        - button "Main menu" [ref=f7e69] [cursor=pointer]
+    - generic [ref=f7e73]:
+      - heading "🚀 Editorial Content Pipeline Dashboard" [level=1] [ref=f7e1989]:
+        - text: 🚀 Editorial Content Pipeline Dashboard
+        - generic [ref=f7e1990]:
+          - link "Link to heading":
+            - /url: "#editorial-content-pipeline-dashboard"
+      - separator [ref=f7e1995]
+      - heading "📊 Pipeline Queue Metrics" [level=3] [ref=f7e2001]:
+        - text: 📊 Pipeline Queue Metrics
+        - generic [ref=f7e2002]:
+          - link "Link to heading":
+            - /url: "#pipeline-queue-metrics"
+      - generic [ref=f7e2004]:
+        - generic [ref=f7e2009]:
+          - paragraph [ref=f7e2012]: Staged Topics
+          - paragraph [ref=f7e2015]: "2077"
+        - generic [ref=f7e2020]:
+          - paragraph [ref=f7e2023]: Scored Topics
+          - paragraph [ref=f7e2026]: "2051"
+        - generic [ref=f7e2031]:
+          - paragraph [ref=f7e2034]: Briefs
+          - paragraph [ref=f7e2037]: "5"
+        - generic [ref=f7e2042]:
+          - paragraph [ref=f7e2045]: Storyboards
+          - paragraph [ref=f7e2048]: "5"
+        - generic [ref=f7e2053]:
+          - paragraph [ref=f7e2056]: Topic Manifests
+          - paragraph [ref=f7e2059]: "5"
+      - alert [ref=f7e2064]:
+        - paragraph [ref=f7e2068]: "Notification summary unavailable: no such table: notifications"
+      - separator [ref=f7e2073]
+      - heading "🎛️ E2E Pipeline Orchestration" [level=3] [ref=f7e2079]:
+        - text: 🎛️ E2E Pipeline Orchestration
+        - generic [ref=f7e2080]:
+          - link "Link to heading":
+            - /url: "#e2-e-pipeline-orchestration"
+      - generic [ref=f7e2082]:
+        - generic [ref=f7e2084]:
+          - paragraph [ref=f7e2089]:
+            - text: Click below to trigger the entire pipeline execution end-to-end (Collect
+            - code [ref=f7e2090]: ightarrow
+            - text: Score
+            - code [ref=f7e2091]: ightarrow
+            - text: Briefs
+            - code [ref=f7e2092]: ightarrow
+            - text: CI
+            - code [ref=f7e2093]: ightarrow
+            - text: Storyboards
+            - code [ref=f7e2094]: ightarrow
+            - text: Assets
+            - code [ref=f7e2095]: ightarrow
+            - text: Manifests).
+          - generic [ref=f7e2097]:
+            - paragraph [ref=f7e2101]: Top items
+            - generic [ref=f7e2102]:
+              - spinbutton "Top items" [ref=f7e2105]: "5"
+              - generic [ref=f7e2106]:
+                - button [ref=f7e2107] [cursor=pointer]
+                - button [ref=f7e2110] [cursor=pointer]
+          - generic [ref=f7e2114]:
+            - paragraph [ref=f7e2118]: Source ID Filter (Optional)
+            - textbox "Source ID Filter (Optional)" [ref=f7e2121]:
+              - /placeholder: ""
+          - button [ref=f7e2124] [cursor=pointer]:
+            - paragraph [ref=f7e2128]: ▶ Run Full Pipeline
+        - generic [ref=f7e2130]:
+          - paragraph [ref=f7e2135]: Console output will appear here after triggering execution.
+          - code [ref=f7e2140]: No pipeline run active.
+      - separator [ref=f7e2145]
+      - heading "📈 Workflow Status Summaries" [level=3] [ref=f7e2151]:
+        - text: 📈 Workflow Status Summaries
+        - generic [ref=f7e2152]:
+          - link "Link to heading":
+            - /url: "#workflow-status-summaries"
+      - generic [ref=f7e2157]:
+        - button "Show/hide columns" [ref=f7e2161] [cursor=pointer]
+        - button "Download as CSV" [ref=f7e2167] [cursor=pointer]
+        - button "Search" [ref=f7e2173] [cursor=pointer]
+        - button "Fullscreen" [ref=f7e2179] [cursor=pointer]
+      - separator [ref=f7e2191]
+      - heading "🕒 Recent Pipeline Activity" [level=3] [ref=f7e2197]:
+        - text: 🕒 Recent Pipeline Activity
+        - generic [ref=f7e2198]:
+          - link "Link to heading":
+            - /url: "#recent-pipeline-activity"
+      - table [ref=f7e2202]:
+        - rowgroup [ref=f7e2203]:
+          - row [ref=f7e2204]:
+            - columnheader "Timestamp" [ref=f7e2205]:
+              - paragraph [ref=f7e2207]: Timestamp
+            - columnheader "Topic ID" [ref=f7e2208]:
+              - paragraph [ref=f7e2210]: Topic ID
+            - columnheader "Stage" [ref=f7e2211]:
+              - paragraph [ref=f7e2213]: Stage
+            - columnheader "Status" [ref=f7e2214]:
+              - paragraph [ref=f7e2216]: Status
+        - rowgroup [ref=f7e2217]:
+          - row [ref=f7e2218]:
+            - cell [ref=f7e2219]:
+              - paragraph [ref=f7e2221]: N/A
+            - cell [ref=f7e2222]:
+              - paragraph [ref=f7e2224]: 0554cdd0
+            - cell [ref=f7e2225]:
+              - paragraph [ref=f7e2227]: Storyboard
+            - cell [ref=f7e2228]:
+              - paragraph [ref=f7e2230]: Failed 🔴
+          - row [ref=f7e2231]:
+            - cell [ref=f7e2232]:
+              - paragraph [ref=f7e2234]: N/A
+            - cell [ref=f7e2235]:
+              - paragraph [ref=f7e2237]: 0d7a8d8e
+            - cell [ref=f7e2238]:
+              - paragraph [ref=f7e2240]: Storyboard
+            - cell [ref=f7e2241]:
+              - paragraph [ref=f7e2243]: Failed 🔴
+          - row [ref=f7e2244]:
+            - cell [ref=f7e2245]:
+              - paragraph [ref=f7e2247]: N/A
+            - cell [ref=f7e2248]:
+              - paragraph [ref=f7e2250]: 304f23a9
+            - cell [ref=f7e2251]:
+              - paragraph [ref=f7e2253]: Storyboard
+            - cell [ref=f7e2254]:
+              - paragraph [ref=f7e2256]: Failed 🔴
+          - row [ref=f7e2257]:
+            - cell [ref=f7e2258]:
+              - paragraph [ref=f7e2260]: N/A
+            - cell [ref=f7e2261]:
+              - paragraph [ref=f7e2263]: 3f3164d6
+            - cell [ref=f7e2264]:
+              - paragraph [ref=f7e2266]: Storyboard
+            - cell [ref=f7e2267]:
+              - paragraph [ref=f7e2269]: Failed 🔴
+          - row [ref=f7e2270]:
+            - cell [ref=f7e2271]:
+              - paragraph [ref=f7e2273]: N/A
+            - cell [ref=f7e2274]:
+              - paragraph [ref=f7e2276]: 792941c5
+            - cell [ref=f7e2277]:
+              - paragraph [ref=f7e2279]: Storyboard
+            - cell [ref=f7e2280]:
+              - paragraph [ref=f7e2282]: Failed 🔴
+          - row [ref=f7e2283]:
+            - cell [ref=f7e2284]:
+              - paragraph [ref=f7e2286]: 2026-11-21T10:00:51.176804+00:00
+            - cell [ref=f7e2287]:
+              - paragraph [ref=f7e2289]: 792941c5
+            - cell [ref=f7e2290]:
+              - paragraph [ref=f7e2292]: Content Intelligence
+            - cell [ref=f7e2293]:
+              - paragraph [ref=f7e2295]: Success 🟢
+          - row [ref=f7e2296]:
+            - cell [ref=f7e2297]:
+              - paragraph [ref=f7e2299]: 2026-11-20T14:47:33.664810+00:00
+            - cell [ref=f7e2300]:
+              - paragraph [ref=f7e2302]: 3f3164d6
+            - cell [ref=f7e2303]:
+              - paragraph [ref=f7e2305]: Content Intelligence
+            - cell [ref=f7e2306]:
+              - paragraph [ref=f7e2308]: Success 🟢
+          - row [ref=f7e2309]:
+            - cell [ref=f7e2310]:
+              - paragraph [ref=f7e2312]: 2026-11-20T14:47:28.662810+00:00
+            - cell [ref=f7e2313]:
+              - paragraph [ref=f7e2315]: 304f23a9
+            - cell [ref=f7e2316]:
+              - paragraph [ref=f7e2318]: Content Intelligence
+            - cell [ref=f7e2319]:
+              - paragraph [ref=f7e2321]: Success 🟢
+          - row [ref=f7e2322]:
+            - cell [ref=f7e2323]:
+              - paragraph [ref=f7e2325]: 2026-11-20T14:47:23.661005+00:00
+            - cell [ref=f7e2326]:
+              - paragraph [ref=f7e2328]: 0d7a8d8e
+            - cell [ref=f7e2329]:
+              - paragraph [ref=f7e2331]: Content Intelligence
+            - cell [ref=f7e2332]:
+              - paragraph [ref=f7e2334]: Success 🟢
+          - row [ref=f7e2335]:
+            - cell [ref=f7e2336]:
+              - paragraph [ref=f7e2338]: 2026-11-20T14:47:18.655724+00:00
+            - cell [ref=f7e2339]:
+              - paragraph [ref=f7e2341]: 0554cdd0
+            - cell [ref=f7e2342]:
+              - paragraph [ref=f7e2344]: Content Intelligence
+            - cell [ref=f7e2345]:
+              - paragraph [ref=f7e2347]: Success 🟢
+      - separator [ref=f7e2352]
+      - heading "🔔 Notification Center" [level=3] [ref=f7e2358]:
+        - text: 🔔 Notification Center
+        - generic [ref=f7e2359]:
+          - link "Link to heading":
+            - /url: "#notification-center"
+      - generic [ref=f7e2361]:
+        - generic [ref=f7e2365]:
+          - paragraph [ref=f7e2369]: Status
+          - generic [ref=f7e2371]:
+            - generic [ref=f7e2372]:
+              - generic [ref=f7e2373]: All
+              - combobox "Selected All. Status" [ref=f7e2375]
+            - img "open" [ref=f7e2377]
+        - generic [ref=f7e2382]:
+          - paragraph [ref=f7e2386]: Category
+          - generic [ref=f7e2388]:
+            - generic [ref=f7e2389]:
+              - generic [ref=f7e2390]: All
+              - combobox "Selected All. Category" [ref=f7e2392]
+            - img "open" [ref=f7e2394]
+        - generic [ref=f7e2399]:
+          - paragraph [ref=f7e2403]: Severity
+          - generic [ref=f7e2405]:
+            - generic [ref=f7e2406]:
+              - generic [ref=f7e2407]: All
+              - combobox "Selected All. Severity" [ref=f7e2409]
+            - img "open" [ref=f7e2411]
+      - alert [ref=f7e2415]:
+        - paragraph [ref=f7e2419]: "Notification center unavailable: no such table: notifications"

@@ -87,6 +87,7 @@ def main() -> None:
                     timed = client.generate_asset_suite(
                         top_n=20,
                         rate_limit_delay=5.0,
+                        topic_id=topic_id,
                     )
                     res = timed.result
                     st.write(f"Duration: `{timed.duration_seconds:.2f}s`")
@@ -427,6 +428,16 @@ def main() -> None:
             st.info("No asset review history recorded yet.")
     else:
         st.info("No manifest compiled for this topic. Run asset generation first.")
+        if st.button("📋 Compile Manifest", type="secondary"):
+            with st.status("Compiling manifest...", expanded=True) as status:
+                try:
+                    timed = client.build_manifest(topic_id)
+                    status.update(label="Manifest compiled.", state="complete")
+                    st.success("Manifest compiled successfully.")
+                    st.rerun()
+                except Exception as e:
+                    status.update(label="Failed to compile manifest.", state="error")
+                    st.error(f"Failed to compile manifest: {e}")
 
 
 if __name__ == "__main__":

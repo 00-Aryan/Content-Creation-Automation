@@ -42,16 +42,24 @@ class BriefGenerationService:
         top_n: int = 5,
         api_key: Optional[str] = None,
         rate_limit_delay: float = 5.0,
+        topic_id: Optional[str] = None,
     ) -> BriefGenerationResult:
         """Generates briefs for top scored topics that don't have them yet."""
         scored_items = ctx.storage.list_scored()
 
         # Filter and sort
-        items_to_process = [
-            item for item in scored_items if item.status == TopicStatus.SCORED
-        ]
-        items_to_process.sort(key=lambda x: x.priority_score, reverse=True)
-        items_to_process = items_to_process[:top_n]
+        if topic_id:
+            items_to_process = [item for item in scored_items if item.id == topic_id]
+            if not items_to_process:
+                target = ctx.storage.get_scored(topic_id) or ctx.storage.get_staged(topic_id)
+                if target:
+                    items_to_process = [target]
+        else:
+            items_to_process = [
+                item for item in scored_items if item.status == TopicStatus.SCORED
+            ]
+            items_to_process.sort(key=lambda x: x.priority_score, reverse=True)
+            items_to_process = items_to_process[:top_n]
 
         if not items_to_process:
             return BriefGenerationResult(
@@ -79,7 +87,18 @@ class BriefGenerationService:
 
             try:
                 brief = generate_brief(item, ctx.prompt_registry, api_key)
-                
+
+                # Ensure manual topics always include script in recommended_formats
+                is_manual = (
+                    getattr(item, "source", None) == "manual"
+                    or "manual" in getattr(item, "topic_tags", [])
+                    or (hasattr(item, "metadata") and item.metadata and getattr(item.metadata, "source_type", None) == "manual")
+                )
+                if is_manual:
+                    has_script = any(fmt in {"script", "short_video", "video"} for fmt in brief.recommended_formats)
+                    if not has_script:
+                        brief.recommended_formats.append("script")
+
                 # Check topic_id mismatch
                 if brief.topic_id != item.id:
                     failures.append(

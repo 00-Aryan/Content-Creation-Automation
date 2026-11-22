@@ -98,6 +98,7 @@ def main() -> None:
                             timed = client.generate_content_intelligence(
                                 top_n=20,
                                 rate_limit_delay=5.0,
+                                topic_id=topic_id,
                             )
                             res = timed.result
                             st.write(f"Duration: `{timed.duration_seconds:.2f}s`")
@@ -143,6 +144,7 @@ def main() -> None:
                             timed = client.generate_storyboards(
                                 top_n=20,
                                 rate_limit_delay=5.0,
+                                topic_id=topic_id,
                             )
                             res = timed.result
                             st.write(f"Duration: `{timed.duration_seconds:.2f}s`")

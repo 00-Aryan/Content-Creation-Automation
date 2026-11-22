@@ -34,11 +34,18 @@ class AssetGenerationService:
         top_n: int = 5,
         api_key: Optional[str] = None,
         rate_limit_delay: float = 5.0,
+        topic_id: Optional[str] = None,
     ) -> AssetGenerationResult:
         """Generates thumbnails, scripts, newsletters, and carousels for the top briefs."""
         briefs = ctx.storage.list_briefs()
-        briefs.sort(key=lambda b: b.generated_at, reverse=True)
-        briefs = briefs[:top_n]
+        if topic_id:
+            target_brief = next((b for b in briefs if b.topic_id == topic_id), None)
+            if not target_brief:
+                target_brief = ctx.storage.get_brief(topic_id)
+            briefs = [target_brief] if target_brief else []
+        else:
+            briefs.sort(key=lambda b: b.generated_at, reverse=True)
+            briefs = briefs[:top_n]
 
         if not briefs:
             return AssetGenerationResult(
@@ -111,6 +118,17 @@ class AssetGenerationService:
                         mapped_formats.add(mapped)
                     else:
                         mapped_formats.add("short_video")
+
+            topic_item = ctx.storage.get_scored(brief.topic_id) or ctx.storage.get_staged(brief.topic_id)
+            is_manual = False
+            if topic_item:
+                is_manual = (
+                    getattr(topic_item, "source", None) == "manual"
+                    or "manual" in getattr(topic_item, "topic_tags", [])
+                    or (hasattr(topic_item, "metadata") and topic_item.metadata and getattr(topic_item.metadata, "source_type", None) == "manual")
+                )
+            if is_manual or "script" in getattr(brief, "recommended_formats", []):
+                mapped_formats.add("short_video")
 
             # Iterate recommended formats
             for fmt in mapped_formats:

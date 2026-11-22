@@ -44,11 +44,18 @@ class ContentIntelligenceService:
         top_n: int = 5,
         api_key: Optional[str] = None,
         rate_limit_delay: float = 5.0,
+        topic_id: Optional[str] = None,
     ) -> ContentIntelligenceGenerationResult:
         """Generates Content Intelligence for briefs that don't have them yet."""
         generator = ContentIntelligenceGenerator(api_key, ctx.prompt_registry)
 
         briefs = ctx.storage.list_briefs()
+        if topic_id:
+            target_brief = next((b for b in briefs if getattr(b, "topic_id", None) == topic_id), None)
+            if not target_brief:
+                target_brief = ctx.storage.get_brief(topic_id)
+            briefs = [target_brief] if target_brief else []
+
         if not briefs:
             return ContentIntelligenceGenerationResult(
                 generated_count=0,
@@ -117,8 +124,9 @@ class ContentIntelligenceService:
             )
 
         # Sort candidates descending by priority score and slice to top_n
-        candidates.sort(key=lambda x: x["priority_score"], reverse=True)
-        candidates = candidates[:top_n]
+        if not topic_id:
+            candidates.sort(key=lambda x: x["priority_score"], reverse=True)
+            candidates = candidates[:top_n]
 
         generated_items = []
         failures = []

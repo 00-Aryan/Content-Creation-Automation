@@ -1,0 +1,139 @@
+- generic [ref=e2]:
+  - generic [ref=e7]:
+    - button "keyboard_double_arrow_left" [ref=e563] [cursor=pointer]
+    - list [ref=e10]:
+      - listitem [ref=e11]:
+        - link [ref=e13] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/
+          - paragraph [ref=e16]: app
+      - listitem [ref=e17]:
+        - link [ref=e19] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/topic_collection
+          - paragraph [ref=e22]: topic collection
+      - listitem [ref=e23]:
+        - link [active] [ref=e25] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/topic_pipeline
+          - paragraph [ref=e28]: topic pipeline
+      - listitem [ref=e29]:
+        - link [ref=e31] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/brief_viewer
+          - paragraph [ref=e34]: brief viewer
+      - listitem [ref=e35]:
+        - link [ref=e37] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/storyboard
+          - paragraph [ref=e40]: storyboard
+      - listitem [ref=e41]:
+        - link [ref=e43] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/asset_workshop
+          - paragraph [ref=e46]: asset workshop
+      - listitem [ref=e47]:
+        - link [ref=e49] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/operations_dashboard
+          - paragraph [ref=e52]: operations dashboard
+    - generic [ref=e56]:
+      - heading "🔑 System Health" [level=3] [ref=e690]
+      - status [ref=e693]:
+        - paragraph [ref=e697]: "Generation Service: Available"
+  - generic [ref=e3]:
+    - banner [ref=e79]:
+      - generic [ref=e82]:
+        - generic [ref=e699]:
+          - img "Running..." [ref=e700]
+          - button "Stop" [ref=e705] [cursor=pointer]
+        - button "Deploy" [ref=e84] [cursor=pointer]
+        - button "Main menu" [ref=e88] [cursor=pointer]
+    - generic [ref=e92]:
+      - heading "⚖️ Topic Prioritization & Pipeline Triage" [level=1] [ref=e711]:
+        - text: ⚖️ Topic Prioritization & Pipeline Triage
+        - generic [ref=e712]:
+          - link "Link to heading":
+            - /url: "#topic-prioritization-and-pipeline-triage"
+      - separator [ref=e717]
+      - heading "🎛️ Weight Configuration Preview" [level=3] [ref=e723]:
+        - text: 🎛️ Weight Configuration Preview
+        - generic [ref=e724]:
+          - link "Link to heading":
+            - /url: "#weight-configuration-preview"
+      - paragraph [ref=e729]:
+        - text: These sliders display the current scoring weights from
+        - code [ref=e730]: config/scoring.yaml
+        - text: . Adjusting them does not affect scoring at runtime. See BACKLOG-001 for future implementation.
+      - generic [ref=e732]:
+        - generic [ref=e737]:
+          - paragraph [ref=e741]: Usefulness
+          - generic [ref=e742]:
+            - slider "Usefulness" [ref=e746]:
+              - generic:
+                - generic:
+                  - paragraph: "0.30"
+            - generic:
+              - generic:
+                - paragraph: "0.00"
+              - generic:
+                - paragraph: "1.00"
+        - generic [ref=e752]:
+          - paragraph [ref=e756]: Novelty
+          - generic [ref=e757]:
+            - slider "Novelty" [ref=e761]:
+              - generic:
+                - generic:
+                  - paragraph: "0.25"
+            - generic:
+              - generic:
+                - paragraph: "0.00"
+              - generic:
+                - paragraph: "1.00"
+        - generic [ref=e767]:
+          - paragraph [ref=e771]: Credibility
+          - generic [ref=e772]:
+            - slider "Credibility" [ref=e776]:
+              - generic:
+                - generic:
+                  - paragraph: "0.20"
+            - generic:
+              - generic:
+                - paragraph: "0.00"
+              - generic:
+                - paragraph: "1.00"
+        - generic [ref=e782]:
+          - paragraph [ref=e786]: Explainability
+          - generic [ref=e787]:
+            - slider "Explainability" [ref=e791]:
+              - generic:
+                - generic:
+                  - paragraph: "0.15"
+            - generic:
+              - generic:
+                - paragraph: "0.00"
+              - generic:
+                - paragraph: "1.00"
+        - generic [ref=e797]:
+          - paragraph [ref=e801]: Hook Potential
+          - generic [ref=e802]:
+            - slider "Hook Potential" [ref=e806]:
+              - generic:
+                - generic:
+                  - paragraph: "0.10"
+            - generic:
+              - generic:
+                - paragraph: "0.00"
+              - generic:
+                - paragraph: "1.00"
+      - status [ref=e810]:
+        - paragraph [ref=e814]:
+          - text: Preview weights sum to 1.00. Actual scoring weights are read from
+          - code [ref=e815]: config/scoring.yaml
+          - text: .
+      - heading "Prioritization Actions" [level=3] [ref=e821]:
+        - text: Prioritization Actions
+        - generic [ref=e822]:
+          - link "Link to heading":
+            - /url: "#prioritization-actions"
+      - button [ref=e825] [cursor=pointer]:
+        - paragraph [ref=e829]: ⚖️ Score Topics
+      - separator [ref=e834]
+      - heading "📊 Scored Topics" [level=3] [ref=e840]:
+        - text: 📊 Scored Topics
+        - generic [ref=e841]:
+          - link "Link to heading":
+            - /url: "#scored-topics"

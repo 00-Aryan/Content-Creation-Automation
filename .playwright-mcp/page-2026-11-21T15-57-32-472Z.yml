@@ -1,0 +1,148 @@
+- generic [ref=f7e2]:
+  - generic [ref=f7e7]:
+    - button "keyboard_double_arrow_left" [ref=f7e10] [cursor=pointer]
+    - list [ref=f7e14]:
+      - listitem [ref=f7e15]:
+        - link [ref=f7e17] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/
+          - paragraph [ref=f7e20]: app
+      - listitem [ref=f7e21]:
+        - link [ref=f7e23] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/topic_collection
+          - paragraph [ref=f7e26]: topic collection
+      - listitem [ref=f7e27]:
+        - link [ref=f7e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/topic_pipeline
+          - paragraph [ref=f7e32]: topic pipeline
+      - listitem [ref=f7e33]:
+        - link [ref=f7e35] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/brief_viewer
+          - paragraph [ref=f7e38]: brief viewer
+      - listitem [ref=f7e39]:
+        - link [ref=f7e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/storyboard
+          - paragraph [ref=f7e44]: storyboard
+      - listitem [ref=f7e45]:
+        - link [active] [ref=f7e47] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/asset_workshop
+          - paragraph [ref=f7e50]: asset workshop
+      - listitem [ref=f7e51]:
+        - link [ref=f7e53] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/operations_dashboard
+          - paragraph [ref=f7e56]: operations dashboard
+    - generic [ref=f7e668]:
+      - heading "🔑 System Health" [level=3] [ref=f7e1697]
+      - status [ref=f7e1700]:
+        - paragraph [ref=f7e1704]: "Generation Service: Available"
+  - generic [ref=f7e3]:
+    - banner [ref=f7e60]:
+      - generic [ref=f7e63]:
+        - button "Deploy" [ref=f7e65] [cursor=pointer]
+        - button "Main menu" [ref=f7e69] [cursor=pointer]
+    - generic [ref=f7e73]:
+      - heading "🛠️ Asset Generation & Review Workshop" [level=1] [ref=f7e1710]:
+        - text: 🛠️ Asset Generation & Review Workshop
+        - generic [ref=f7e1711]:
+          - link "Link to heading":
+            - /url: "#asset-generation-and-review-workshop"
+      - separator [ref=f7e1716]
+      - heading "🔍 Filter and Search Manifests & Assets" [level=3] [ref=f7e1722]:
+        - text: 🔍 Filter and Search Manifests & Assets
+        - generic [ref=f7e1723]:
+          - link "Link to heading":
+            - /url: "#filter-and-search-manifests-and-assets"
+      - generic [ref=f7e1725]:
+        - generic [ref=f7e1729]:
+          - paragraph [ref=f7e1733]: Search Title or Content
+          - textbox "Search Title or Content" [ref=f7e1736]:
+            - /placeholder: ""
+        - generic [ref=f7e1740]:
+          - paragraph [ref=f7e1744]: Filter by Manifest Status
+          - generic [ref=f7e1746]:
+            - generic [ref=f7e1747]:
+              - generic [ref=f7e1748]: All
+              - combobox "Selected All. Filter by Manifest Status" [ref=f7e1750]
+            - img "open" [ref=f7e1752]
+      - heading "Select Topic/Brief to Manage Assets" [level=3] [ref=f7e1759]:
+        - text: Select Topic/Brief to Manage Assets
+        - generic [ref=f7e1760]:
+          - link "Link to heading":
+            - /url: "#select-topic-brief-to-manage-assets"
+      - generic [ref=f7e1762]:
+        - paragraph [ref=f7e1766]: Brief Selector
+        - generic [ref=f7e1768]:
+          - generic [ref=f7e1769]:
+            - generic [ref=f7e1770]: "Business World Model (ID: 0554cdd0)"
+            - 'combobox "Selected Business World Model (ID: 0554cdd0). Brief Selector" [ref=f7e1772]'
+          - img "open" [ref=f7e1774]
+      - heading "⚡ Generation Action" [level=3] [ref=f7e1781]:
+        - text: ⚡ Generation Action
+        - generic [ref=f7e1782]:
+          - link "Link to heading":
+            - /url: "#generation-action"
+      - button [ref=f7e1789] [cursor=pointer]:
+        - paragraph [ref=f7e1793]: ⚡ Generate Asset Suite
+      - separator [ref=f7e1800]
+      - heading "📋 Compiled Topic Manifest" [level=3] [ref=f7e1806]:
+        - text: 📋 Compiled Topic Manifest
+        - generic [ref=f7e1807]:
+          - link "Link to heading":
+            - /url: "#compiled-topic-manifest"
+      - generic [ref=f7e1809]:
+        - generic [ref=f7e1814]:
+          - paragraph [ref=f7e1817]: Overall Status
+          - paragraph [ref=f7e1820]: Blocked
+        - generic [ref=f7e1825]:
+          - paragraph [ref=f7e1828]: Ready for Planner?
+          - paragraph [ref=f7e1831]: "NO"
+        - paragraph [ref=f7e1838]:
+          - strong [ref=f7e1839]: "Blocking Reasons:"
+          - text: "['script: missing', 'thumbnail: missing']"
+      - heading "📁 Manifest Artifact References" [level=4] [ref=f7e1845]:
+        - text: 📁 Manifest Artifact References
+        - generic [ref=f7e1846]:
+          - link "Link to heading":
+            - /url: "#manifest-artifact-references"
+      - generic [ref=f7e1851]:
+        - button "Show/hide columns" [ref=f7e1855] [cursor=pointer]
+        - button "Download as CSV" [ref=f7e1861] [cursor=pointer]
+        - button "Search" [ref=f7e1867] [cursor=pointer]
+        - button "Fullscreen" [ref=f7e1873] [cursor=pointer]
+      - group [ref=f7e1883]:
+        - generic "keyboard_arrow_right 📄 View Raw Manifest JSON" [ref=f7e1884] [cursor=pointer]:
+          - generic [ref=f7e1885]:
+            - generic [ref=f7e1886]: keyboard_arrow_right
+            - paragraph [ref=f7e1890]: 📄 View Raw Manifest JSON
+      - separator [ref=f7e1895]
+      - heading "📂 Assets Tabbed Editor & Audit Toolbar" [level=3] [ref=f7e1901]:
+        - text: 📂 Assets Tabbed Editor & Audit Toolbar
+        - generic [ref=f7e1902]:
+          - link "Link to heading":
+            - /url: "#assets-tabbed-editor-and-audit-toolbar"
+      - generic [ref=f7e1903]:
+        - generic [ref=f7e1904]:
+          - tablist [ref=f7e1906]:
+            - tab [selected] [ref=f7e1907] [cursor=pointer]:
+              - paragraph [ref=f7e1909]: 🎥 Video Script
+            - tab [ref=f7e1910] [cursor=pointer]:
+              - paragraph [ref=f7e1912]: 📊 Carousel Slides
+            - tab [ref=f7e1913] [cursor=pointer]:
+              - paragraph [ref=f7e1915]: ✉️ Newsletter Copy
+            - tab [ref=f7e1916] [cursor=pointer]:
+              - paragraph [ref=f7e1918]: 🖼️ Thumbnail Prompt
+          - tabpanel "🎥 Video Script" [ref=f7e1921]:
+            - status [ref=f7e1925]:
+              - paragraph [ref=f7e1929]: No Video Script generated for this topic.
+        - button "Scroll tabs right" [ref=f7e1930] [cursor=pointer]
+      - alert [ref=f7e1936]:
+        - generic [ref=f7e1938]:
+          - generic [aria-hidden] [ref=f7e1941]: ⚠️
+          - paragraph [ref=f7e1943]: "Storyboard file is corrupted or empty (0-byte) on disk (ID: 0554cdd07a7355d5698d0a834a24624c335a76289c8df19ec37434595105d049)"
+      - separator [ref=f7e1948]
+      - heading "📜 Asset Review History" [level=3] [ref=f7e1954]:
+        - text: 📜 Asset Review History
+        - generic [ref=f7e1955]:
+          - link "Link to heading":
+            - /url: "#asset-review-history"
+      - status [ref=f7e1958]:
+        - paragraph [ref=f7e1962]: No asset review history recorded yet.

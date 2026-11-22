@@ -492,40 +492,48 @@ class WorkflowActionExecutor:
         elif action_id == "generate_briefs":
             from content_creation.application.brief_generation_service import BriefGenerationService
             service = BriefGenerationService()
+            target_topic_id = payload.get("topic_id") or (target_artifact_id if target_artifact_id != "all" else None)
             result = service.run(
                 ctx,
                 top_n=payload.get("top_n", 5),
                 api_key=payload.get("api_key"),
+                topic_id=target_topic_id,
             )
             return {"generated_count": str(result.generated_count), "failures": str(len(result.failures))}, result
 
         elif action_id == "generate_ci":
             from content_creation.application.content_intelligence_service import ContentIntelligenceService
             service = ContentIntelligenceService()
+            target_topic_id = payload.get("topic_id") or (target_artifact_id if target_artifact_id != "all" else None)
             result = service.run(
                 ctx,
                 top_n=payload.get("top_n", 5),
                 api_key=payload.get("api_key"),
+                topic_id=target_topic_id,
             )
             return {"generated_count": str(result.generated_count), "failures": str(len(result.failures))}, result
 
         elif action_id == "generate_storyboards":
             from content_creation.application.storyboard_service import StoryboardService
             service = StoryboardService()
+            target_topic_id = payload.get("topic_id") or (target_artifact_id if target_artifact_id != "all" else None)
             result = service.run(
                 ctx,
                 top_n=payload.get("top_n", 5),
                 api_key=payload.get("api_key"),
+                topic_id=target_topic_id,
             )
             return {"generated_count": str(result.generated_count), "failures": str(len(result.failures))}, result
 
         elif action_id == "generate_assets":
             from content_creation.application.asset_generation_service import AssetGenerationService
             service = AssetGenerationService()
+            target_topic_id = payload.get("topic_id") or (target_artifact_id if target_artifact_id != "all" else None)
             result = service.run(
                 ctx,
                 top_n=payload.get("top_n", 5),
                 api_key=payload.get("api_key"),
+                topic_id=target_topic_id,
             )
             return {"counts": str(result.counts), "failed_count": str(result.failed_count)}, result
 

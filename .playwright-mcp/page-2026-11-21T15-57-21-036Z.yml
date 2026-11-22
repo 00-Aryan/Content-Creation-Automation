@@ -1,0 +1,149 @@
+- generic [ref=f7e2]:
+  - generic [ref=f7e7]:
+    - button "keyboard_double_arrow_left" [ref=f7e10] [cursor=pointer]
+    - list [ref=f7e14]:
+      - listitem [ref=f7e15]:
+        - link [ref=f7e17] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/
+          - paragraph [ref=f7e20]: app
+      - listitem [ref=f7e21]:
+        - link [ref=f7e23] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/topic_collection
+          - paragraph [ref=f7e26]: topic collection
+      - listitem [ref=f7e27]:
+        - link [ref=f7e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/topic_pipeline
+          - paragraph [ref=f7e32]: topic pipeline
+      - listitem [ref=f7e33]:
+        - link [ref=f7e35] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/brief_viewer
+          - paragraph [ref=f7e38]: brief viewer
+      - listitem [ref=f7e39]:
+        - link [active] [ref=f7e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/storyboard
+          - paragraph [ref=f7e44]: storyboard
+      - listitem [ref=f7e45]:
+        - link [ref=f7e47] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/asset_workshop
+          - paragraph [ref=f7e50]: asset workshop
+      - listitem [ref=f7e51]:
+        - link [ref=f7e53] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/operations_dashboard
+          - paragraph [ref=f7e56]: operations dashboard
+    - generic [ref=f7e668]:
+      - heading "🔑 System Health" [level=3] [ref=f7e1428]
+      - status [ref=f7e1431]:
+        - paragraph [ref=f7e1435]: "Generation Service: Available"
+  - generic [ref=f7e3]:
+    - banner [ref=f7e60]:
+      - generic [ref=f7e63]:
+        - button "Deploy" [ref=f7e65] [cursor=pointer]
+        - button "Main menu" [ref=f7e69] [cursor=pointer]
+    - generic [ref=f7e73]:
+      - heading "🎨 Content Intelligence & Coordinated Storyboard" [level=1] [ref=f7e1441]:
+        - text: 🎨 Content Intelligence & Coordinated Storyboard
+        - generic [ref=f7e1442]:
+          - link "Link to heading":
+            - /url: "#content-intelligence-and-coordinated-storyboard"
+      - separator [ref=f7e1447]
+      - heading "🔍 Filter and Search Storyboards/CI" [level=3] [ref=f7e1453]:
+        - text: 🔍 Filter and Search Storyboards/CI
+        - generic [ref=f7e1454]:
+          - link "Link to heading":
+            - /url: "#filter-and-search-storyboards-ci"
+      - generic [ref=f7e1456]:
+        - generic [ref=f7e1460]:
+          - paragraph [ref=f7e1464]: Search Title or Metaphor
+          - textbox "Search Title or Metaphor" [ref=f7e1467]:
+            - /placeholder: ""
+        - generic [ref=f7e1471]:
+          - paragraph [ref=f7e1475]: Filter by Visual Style
+          - generic [ref=f7e1477]:
+            - generic [ref=f7e1478]:
+              - generic [ref=f7e1479]: All
+              - combobox "Selected All. Filter by Visual Style" [ref=f7e1481]
+            - img "open" [ref=f7e1483]
+      - heading "Select a Brief" [level=3] [ref=f7e1490]:
+        - text: Select a Brief
+        - generic [ref=f7e1491]:
+          - link "Link to heading":
+            - /url: "#select-a-brief"
+      - generic [ref=f7e1493]:
+        - paragraph [ref=f7e1497]: Brief Selector
+        - generic [ref=f7e1499]:
+          - generic [ref=f7e1500]:
+            - generic [ref=f7e1501]: "Business World Model (ID: 0554cdd0)"
+            - 'combobox "Selected Business World Model (ID: 0554cdd0). Brief Selector" [ref=f7e1503]'
+          - img "open" [ref=f7e1505]
+      - generic [ref=f7e1508]:
+        - status [ref=f7e1513]:
+          - paragraph [ref=f7e1517]: ✓ Content Intelligence exists for this topic.
+        - generic [ref=f7e1519]:
+          - alert [ref=f7e1522]:
+            - generic [ref=f7e1524]:
+              - generic [aria-hidden] [ref=f7e1527]: ⚠️
+              - paragraph [ref=f7e1529]: "Storyboard file is corrupted or empty (0-byte) on disk (ID: 0554cdd07a7355d5698d0a834a24624c335a76289c8df19ec37434595105d049)"
+          - button [ref=f7e1532] [cursor=pointer]:
+            - paragraph [ref=f7e1536]: 📋 Generate Storyboards
+      - separator [ref=f7e1541]
+      - generic [ref=f7e1543]:
+        - generic [ref=f7e1545]:
+          - heading "🧠 Content Intelligence Insights" [level=3] [ref=f7e1551]:
+            - text: 🧠 Content Intelligence Insights
+            - generic [ref=f7e1552]:
+              - link "Link to heading":
+                - /url: "#content-intelligence-insights"
+          - paragraph [ref=f7e1557]:
+            - strong [ref=f7e1558]: "Topic Type:"
+            - code [ref=f7e1559]: paper
+          - paragraph [ref=f7e1564]:
+            - strong [ref=f7e1565]: "Emotional Register:"
+            - code [ref=f7e1566]: clarity
+          - group [ref=f7e1569]:
+            - generic "keyboard_arrow_down 🔍 Curiosity Gap & Story Angle" [ref=f7e1570] [cursor=pointer]:
+              - generic [ref=f7e1571]:
+                - generic [ref=f7e1572]: keyboard_arrow_down
+                - paragraph [ref=f7e1576]: 🔍 Curiosity Gap & Story Angle
+            - generic [ref=f7e1578]:
+              - paragraph [ref=f7e1583]:
+                - strong [ref=f7e1584]: "Curiosity Gap:"
+                - text: needs_review
+              - paragraph [ref=f7e1589]:
+                - strong [ref=f7e1590]: "Story Angle:"
+                - text: needs_review
+          - group [ref=f7e1593]:
+            - generic "keyboard_arrow_down ⚖️ Contrast Pair (Before vs After)" [ref=f7e1594] [cursor=pointer]:
+              - generic [ref=f7e1595]:
+                - generic [ref=f7e1596]: keyboard_arrow_down
+                - paragraph [ref=f7e1600]: ⚖️ Contrast Pair (Before vs After)
+            - generic [ref=f7e1604]:
+              - generic [ref=f7e1609]:
+                - paragraph [ref=f7e1612]: Before / Old Way
+                - paragraph [ref=f7e1615]: needs_review
+              - generic [ref=f7e1620]:
+                - paragraph [ref=f7e1623]: After / New Way
+                - paragraph [ref=f7e1626]: needs_review
+          - group [ref=f7e1629]:
+            - generic "keyboard_arrow_down 🪝 Generated Psychological Hooks" [ref=f7e1630] [cursor=pointer]:
+              - generic [ref=f7e1631]:
+                - generic [ref=f7e1632]: keyboard_arrow_down
+                - paragraph [ref=f7e1636]: 🪝 Generated Psychological Hooks
+            - generic [ref=f7e1638]:
+              - paragraph [ref=f7e1643]:
+                - strong [ref=f7e1644]: "Primary Hook (bold_claim):"
+              - status [ref=f7e1647]:
+                - paragraph [ref=f7e1651]: needs_review
+              - paragraph [ref=f7e1656]:
+                - strong [ref=f7e1657]: "Secondary Hook (question):"
+              - status [ref=f7e1660]:
+                - paragraph [ref=f7e1664]: needs_review
+          - separator [ref=f7e1669]
+          - group [ref=f7e1672]:
+            - generic "keyboard_arrow_right 📄 View Raw Content Intelligence JSON" [ref=f7e1673] [cursor=pointer]:
+              - generic [ref=f7e1674]:
+                - generic [ref=f7e1675]: keyboard_arrow_right
+                - paragraph [ref=f7e1679]: 📄 View Raw Content Intelligence JSON
+        - alert [ref=f7e1684]:
+          - generic [ref=f7e1686]:
+            - generic [aria-hidden] [ref=f7e1689]: ⚠️
+            - paragraph [ref=f7e1691]: "Storyboard file is corrupted or empty (0-byte) on disk (ID: 0554cdd07a7355d5698d0a834a24624c335a76289c8df19ec37434595105d049)"

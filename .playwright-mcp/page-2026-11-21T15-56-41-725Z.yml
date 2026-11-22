@@ -1,0 +1,74 @@
+- generic [ref=f7e2]:
+  - generic [ref=f7e7]:
+    - button "keyboard_double_arrow_left" [ref=f7e10] [cursor=pointer]
+    - list [ref=f7e14]:
+      - listitem [ref=f7e15]:
+        - link [ref=f7e17] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/
+          - paragraph [ref=f7e20]: app
+      - listitem [ref=f7e21]:
+        - link [active] [ref=f7e23] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/topic_collection
+          - paragraph [ref=f7e26]: topic collection
+      - listitem [ref=f7e27]:
+        - link [ref=f7e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/topic_pipeline
+          - paragraph [ref=f7e32]: topic pipeline
+      - listitem [ref=f7e33]:
+        - link [ref=f7e35] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/brief_viewer
+          - paragraph [ref=f7e38]: brief viewer
+      - listitem [ref=f7e39]:
+        - link [ref=f7e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/storyboard
+          - paragraph [ref=f7e44]: storyboard
+      - listitem [ref=f7e45]:
+        - link [ref=f7e47] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/asset_workshop
+          - paragraph [ref=f7e50]: asset workshop
+      - listitem [ref=f7e51]:
+        - link [ref=f7e53] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/operations_dashboard
+          - paragraph [ref=f7e56]: operations dashboard
+    - generic [ref=f7e668]:
+      - heading "🔑 System Health" [level=3] [ref=f7e673]
+      - status [ref=f7e676]:
+        - paragraph [ref=f7e680]: "Generation Service: Available"
+  - generic [ref=f7e3]:
+    - banner [ref=f7e60]:
+      - generic [ref=f7e63]:
+        - button "Deploy" [ref=f7e65] [cursor=pointer]
+        - button "Main menu" [ref=f7e69] [cursor=pointer]
+    - generic [ref=f7e73]:
+      - heading "📡 Topic Ingestion & Collection" [level=1] [ref=f7e686]:
+        - text: 📡 Topic Ingestion & Collection
+        - generic [ref=f7e687]:
+          - link "Link to heading":
+            - /url: "#topic-ingestion-and-collection"
+      - separator [ref=f7e692]
+      - heading "Ingestion Actions" [level=3] [ref=f7e698]:
+        - text: Ingestion Actions
+        - generic [ref=f7e699]:
+          - link "Link to heading":
+            - /url: "#ingestion-actions"
+      - generic [ref=f7e701]:
+        - generic [ref=f7e703]:
+          - generic [ref=f7e705]:
+            - paragraph [ref=f7e709]: Source ID Filter (Optional)
+            - textbox "Source ID Filter (Optional)" [ref=f7e712]:
+              - /placeholder: ""
+          - button [ref=f7e715] [cursor=pointer]:
+            - paragraph [ref=f7e719]: 📡 Collect Topics
+        - status [ref=f7e724]:
+          - paragraph [ref=f7e728]: Run feed collection to download papers.
+      - separator [ref=f7e733]
+      - heading "📥 Staged Topic Items" [level=3] [ref=f7e739]:
+        - text: 📥 Staged Topic Items
+        - generic [ref=f7e740]:
+          - link "Link to heading":
+            - /url: "#staged-topic-items"
+      - generic [ref=f7e745]:
+        - button "Show/hide columns" [ref=f7e749] [cursor=pointer]
+        - button "Download as CSV" [ref=f7e755] [cursor=pointer]
+        - button "Search" [ref=f7e761] [cursor=pointer]
+        - button "Fullscreen" [ref=f7e767] [cursor=pointer]

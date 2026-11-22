@@ -1,0 +1,210 @@
+- generic [ref=f7e2]:
+  - generic [ref=f7e7]:
+    - button "keyboard_double_arrow_left" [ref=f7e10] [cursor=pointer]
+    - list [ref=f7e14]:
+      - listitem [ref=f7e15]:
+        - link [ref=f7e17] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/
+          - paragraph [ref=f7e20]: app
+      - listitem [ref=f7e21]:
+        - link [ref=f7e23] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/topic_collection
+          - paragraph [ref=f7e26]: topic collection
+      - listitem [ref=f7e27]:
+        - link [ref=f7e29] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/topic_pipeline
+          - paragraph [ref=f7e32]: topic pipeline
+      - listitem [ref=f7e33]:
+        - link [active] [ref=f7e35] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/brief_viewer
+          - paragraph [ref=f7e38]: brief viewer
+      - listitem [ref=f7e39]:
+        - link [ref=f7e41] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/storyboard
+          - paragraph [ref=f7e44]: storyboard
+      - listitem [ref=f7e45]:
+        - link [ref=f7e47] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/asset_workshop
+          - paragraph [ref=f7e50]: asset workshop
+      - listitem [ref=f7e51]:
+        - link [ref=f7e53] [cursor=pointer]:
+          - /url: http://127.0.0.1:8501/operations_dashboard
+          - paragraph [ref=f7e56]: operations dashboard
+    - generic [ref=f7e668]:
+      - heading "🔑 System Health" [level=3] [ref=f7e1074]
+      - status [ref=f7e1077]:
+        - paragraph [ref=f7e1081]: "Generation Service: Available"
+  - generic [ref=f7e3]:
+    - banner [ref=f7e60]:
+      - generic [ref=f7e63]:
+        - button "Deploy" [ref=f7e65] [cursor=pointer]
+        - button "Main menu" [ref=f7e69] [cursor=pointer]
+    - generic [ref=f7e73]:
+      - heading "📝 Brief Synthesis & Viewer" [level=1] [ref=f7e1087]:
+        - text: 📝 Brief Synthesis & Viewer
+        - generic [ref=f7e1088]:
+          - link "Link to heading":
+            - /url: "#brief-synthesis-and-viewer"
+      - separator [ref=f7e1093]
+      - heading "🔍 Filter and Search Briefs" [level=3] [ref=f7e1099]:
+        - text: 🔍 Filter and Search Briefs
+        - generic [ref=f7e1100]:
+          - link "Link to heading":
+            - /url: "#filter-and-search-briefs"
+      - generic [ref=f7e1102]:
+        - generic [ref=f7e1106]:
+          - paragraph [ref=f7e1110]: Search Title, Takeaway, or Analogy
+          - textbox "Search Title, Takeaway, or Analogy" [ref=f7e1113]:
+            - /placeholder: ""
+        - generic [ref=f7e1117]:
+          - paragraph [ref=f7e1121]: Filter by Review Status
+          - generic [ref=f7e1123]:
+            - generic [ref=f7e1124]:
+              - generic [ref=f7e1125]: All
+              - combobox "Selected All. Filter by Review Status" [ref=f7e1127]
+            - img "open" [ref=f7e1129]
+      - heading "Select Topic to View/Generate Brief" [level=3] [ref=f7e1136]:
+        - text: Select Topic to View/Generate Brief
+        - generic [ref=f7e1137]:
+          - link "Link to heading":
+            - /url: "#select-topic-to-view-generate-brief"
+      - generic [ref=f7e1139]:
+        - paragraph [ref=f7e1143]: Topic Selector
+        - generic [ref=f7e1145]:
+          - generic [ref=f7e1146]:
+            - generic [ref=f7e1147]: "[PAPER] Business World Model (Score: 96.5)"
+            - 'combobox "Selected [PAPER] Business World Model (Score: 96.5). Topic Selector" [ref=f7e1149]'
+          - img "open" [ref=f7e1151]
+      - status [ref=f7e1155]:
+        - paragraph [ref=f7e1159]: "✓ Brief found (Generated at: November 20, 2026, 02:46 PM UTC)"
+      - generic [ref=f7e1161]:
+        - generic [ref=f7e1163]:
+          - heading "📖 Plain English Summary" [level=4] [ref=f7e1169]:
+            - text: 📖 Plain English Summary
+            - generic [ref=f7e1170]:
+              - link "Link to heading":
+                - /url: "#plain-english-summary"
+          - list [ref=f7e1175]:
+            - listitem [ref=f7e1176]: needs_review
+          - list [ref=f7e1181]:
+            - listitem [ref=f7e1182]: needs_review
+          - list [ref=f7e1187]:
+            - listitem [ref=f7e1188]: needs_review
+          - heading "💡 Why It Matters" [level=4] [ref=f7e1194]:
+            - text: 💡 Why It Matters
+            - generic [ref=f7e1195]:
+              - link "Link to heading":
+                - /url: "#why-it-matters"
+          - paragraph [ref=f7e1200]: needs_review
+          - heading "🎓 Student Takeaway" [level=4] [ref=f7e1206]:
+            - text: 🎓 Student Takeaway
+            - generic [ref=f7e1207]:
+              - link "Link to heading":
+                - /url: "#student-takeaway"
+          - paragraph [ref=f7e1212]: needs_review
+          - heading "🪵 Analogy" [level=4] [ref=f7e1218]:
+            - text: 🪵 Analogy
+            - generic [ref=f7e1219]:
+              - link "Link to heading":
+                - /url: "#analogy"
+          - paragraph [ref=f7e1224]: needs_review
+          - heading "🛑 Limitation" [level=4] [ref=f7e1230]:
+            - text: 🛑 Limitation
+            - generic [ref=f7e1231]:
+              - link "Link to heading":
+                - /url: "#limitation"
+          - paragraph [ref=f7e1236]: needs_review
+        - generic [ref=f7e1238]:
+          - heading "🔬 Metadata" [level=4] [ref=f7e1244]:
+            - text: 🔬 Metadata
+            - generic [ref=f7e1245]:
+              - link "Link to heading":
+                - /url: "#metadata"
+          - paragraph [ref=f7e1250]:
+            - strong [ref=f7e1251]: "Review Status:"
+            - code [ref=f7e1252]: approved
+          - paragraph [ref=f7e1257]:
+            - strong [ref=f7e1258]: "Target Audience Fit:"
+            - text: needs_review
+          - paragraph [ref=f7e1263]:
+            - strong [ref=f7e1264]: "Source URL:"
+            - link "Read Paper/Link" [ref=f7e1265] [cursor=pointer]:
+              - /url: https://arxiv.org/abs/2606.10044
+          - heading "🛠️ Recommended Formats" [level=4] [ref=f7e1271]:
+            - text: 🛠️ Recommended Formats
+            - generic [ref=f7e1272]:
+              - link "Link to heading":
+                - /url: "#recommended-formats"
+          - list [ref=f7e1277]:
+            - listitem [ref=f7e1278]:
+              - code [ref=f7e1279]: needs_review
+      - separator [ref=f7e1284]
+      - group [ref=f7e1287]:
+        - generic "keyboard_arrow_right 📄 View Raw Brief JSON" [ref=f7e1288] [cursor=pointer]:
+          - generic [ref=f7e1289]:
+            - generic [ref=f7e1290]: keyboard_arrow_right
+            - paragraph [ref=f7e1294]: 📄 View Raw Brief JSON
+      - heading "📄 Brief Summary" [level=3] [ref=f7e1300]:
+        - text: 📄 Brief Summary
+        - generic [ref=f7e1301]:
+          - link "Link to heading":
+            - /url: "#brief-summary"
+      - status [ref=f7e1304]:
+        - paragraph [ref=f7e1308]:
+          - strong [ref=f7e1309]: "Why it matters:"
+          - text: needs_review
+      - paragraph [ref=f7e1314]:
+        - strong [ref=f7e1315]: "Plain English Summary:"
+      - list [ref=f7e1320]:
+        - listitem [ref=f7e1321]: needs_review
+      - list [ref=f7e1326]:
+        - listitem [ref=f7e1327]: needs_review
+      - list [ref=f7e1332]:
+        - listitem [ref=f7e1333]: needs_review
+      - paragraph [ref=f7e1338]:
+        - strong [ref=f7e1339]: "Student Takeaway:"
+        - text: needs_review
+      - paragraph [ref=f7e1344]:
+        - strong [ref=f7e1345]: "Source URL:"
+        - link "https://arxiv.org/abs/2606.10044" [ref=f7e1346] [cursor=pointer]:
+          - /url: https://arxiv.org/abs/2606.10044
+      - separator [ref=f7e1351]
+      - heading "✅ Brief Review & Approval" [level=3] [ref=f7e1357]:
+        - text: ✅ Brief Review & Approval
+        - generic [ref=f7e1358]:
+          - link "Link to heading":
+            - /url: "#brief-review-and-approval"
+      - paragraph [ref=f7e1363]:
+        - strong [ref=f7e1364]: "Current Status:"
+        - code [ref=f7e1365]: approved
+      - generic [ref=f7e1367]:
+        - generic [ref=f7e1369]:
+          - heading "Review Action" [level=4] [ref=f7e1375]:
+            - text: Review Action
+            - generic [ref=f7e1376]:
+              - link "Link to heading":
+                - /url: "#review-action"
+          - generic [ref=f7e1378]:
+            - paragraph [ref=f7e1382]: Set Review Status
+            - generic [ref=f7e1384]:
+              - generic [ref=f7e1385]:
+                - generic [ref=f7e1386]: No Action
+                - combobox "Selected No Action. Set Review Status" [ref=f7e1388]
+              - img "open" [ref=f7e1390]
+          - generic [ref=f7e1393]:
+            - paragraph [ref=f7e1397]: Review Notes (optional)
+            - textbox "Review Notes (optional)" [ref=f7e1400]:
+              - /placeholder: ""
+        - generic [ref=f7e1402]:
+          - heading "Review History" [level=4] [ref=f7e1408]:
+            - text: Review History
+            - generic [ref=f7e1409]:
+              - link "Link to heading":
+                - /url: "#review-history"
+          - paragraph [ref=f7e1414]:
+            - strong [ref=f7e1415]: November 20, 2026, 02:58 PM UTC
+            - text: —
+            - code [ref=f7e1416]: needs_review
+            - text: →
+            - code [ref=f7e1417]: approved
+          - paragraph [ref=f7e1422]: "Notes: Batch approved via WorkflowActionExecutor"

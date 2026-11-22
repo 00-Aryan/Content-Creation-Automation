@@ -262,6 +262,7 @@ class ServiceClient:
         self,
         top_n: int = 5,
         rate_limit_delay: float = 5.0,
+        topic_id: Optional[str] = None,
     ) -> TimedServiceResult:
         """Runs brief generation through BriefGenerationService."""
         def _run() -> Any:
@@ -269,9 +270,10 @@ class ServiceClient:
                 self.ctx,
                 "generate_briefs",
                 "brief",
-                "all",
+                topic_id or "all",
                 {
                     "top_n": top_n,
+                    "topic_id": topic_id,
                     "api_key": os.environ.get("GEMINI_API_KEY"),
                 }
             )
@@ -284,16 +286,18 @@ class ServiceClient:
         self,
         top_n: int = 5,
         rate_limit_delay: float = 5.0,
+        topic_id: Optional[str] = None,
     ) -> TimedServiceResult:
         """Runs content intelligence generation."""
         def _run() -> Any:
             res = self.executor.execute(
                 self.ctx,
-                "generate_content_intelligence",
+                "generate_ci",
                 "content_intelligence",
-                "all",
+                topic_id or "all",
                 {
                     "top_n": top_n,
+                    "topic_id": topic_id,
                     "api_key": os.environ.get("GEMINI_API_KEY"),
                 }
             )
@@ -306,6 +310,7 @@ class ServiceClient:
         self,
         top_n: int = 5,
         rate_limit_delay: float = 5.0,
+        topic_id: Optional[str] = None,
     ) -> TimedServiceResult:
         """Runs storyboard generation."""
         def _run() -> Any:
@@ -313,9 +318,10 @@ class ServiceClient:
                 self.ctx,
                 "generate_storyboards",
                 "storyboard",
-                "all",
+                topic_id or "all",
                 {
                     "top_n": top_n,
+                    "topic_id": topic_id,
                     "api_key": os.environ.get("GEMINI_API_KEY"),
                 }
             )
@@ -328,6 +334,7 @@ class ServiceClient:
         self,
         top_n: int = 5,
         rate_limit_delay: float = 5.0,
+        topic_id: Optional[str] = None,
     ) -> TimedServiceResult:
         """Runs storyboard-first asset generation through AssetGenerationService."""
         def _run() -> Any:
@@ -335,14 +342,38 @@ class ServiceClient:
                 self.ctx,
                 "generate_assets",
                 "assets",
-                "all",
+                topic_id or "all",
                 {
                     "top_n": top_n,
+                    "topic_id": topic_id,
                     "api_key": os.environ.get("GEMINI_API_KEY"),
                 }
             )
             if not res.success:
                 raise RuntimeError(f"Asset generation failed: {res.blocking_reasons}")
+
+            target_id = topic_id
+            if target_id:
+                try:
+                    self.build_manifest(target_id)
+                except Exception as ex:
+                    logger.warning("Auto-compiling manifest for %s failed: %s", target_id, ex)
+
+            return res.raw_result
+        return self._timed(_run)
+
+    def build_manifest(self, topic_id: str) -> TimedServiceResult:
+        """Builds or rebuilds the manifest for a specific topic."""
+        def _run() -> Any:
+            res = self.executor.execute(
+                self.ctx,
+                "build_manifest",
+                "manifest",
+                topic_id,
+                {},
+            )
+            if not res.success:
+                raise RuntimeError(f"Build manifest failed: {res.blocking_reasons}")
             return res.raw_result
         return self._timed(_run)
 
@@ -481,6 +512,7 @@ class ServiceClient:
                 source_type="manual",
                 feed_id="creator_ui",
                 published_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                recommended_formats=["script", "carousel", "newsletter"],
             ),
         )
 
@@ -582,24 +614,32 @@ class ServiceClient:
         scored_topic = self.get_scored_topic(topic_id)
         title = scored_topic.title if scored_topic else f"Topic {topic_id[:8]}"
 
+        clean_title = (title or "").strip().replace("\r", "")
+        clean_topic_id = (topic_id or "").strip().replace("\r", "")
+
         output: List[str] = []
-        output.append(f"# 🎬 PRODUCTION CUE SHEET: {title}")
-        output.append(f"Topic ID: {topic_id}")
+        output.append(f"# 🎬 PRODUCTION CUE SHEET: {clean_title}")
+        output.append(f"Topic ID: {clean_topic_id}")
         if storyboard:
-            output.append(f"Visual Style: {getattr(storyboard, 'visual_style', 'N/A')}")
-            output.append(f"Visual Metaphor: {getattr(storyboard, 'visual_metaphor', 'N/A')}")
+            v_style = str(getattr(storyboard, "visual_style", "N/A") or "N/A").strip().replace("\r", "")
+            v_meta = str(getattr(storyboard, "visual_metaphor", "N/A") or "N/A").strip().replace("\r", "")
+            output.append(f"Visual Style: {v_style}")
+            output.append(f"Visual Metaphor: {v_meta}")
         output.append("=" * 60)
 
         shorts_segments = getattr(script, "shorts_segments", None) if script else None
         if shorts_segments:
             for idx, seg in enumerate(shorts_segments, start=1):
-                section_name = getattr(seg, "section", "segment").upper()
-                time_range = getattr(seg, "time_range", "")
+                section_name = str(getattr(seg, "section", "segment") or "segment").upper().strip().replace("\r", "")
+                time_range = str(getattr(seg, "time_range", "") or "").strip().replace("\r", "")
                 time_header = f" [{time_range}]" if time_range else ""
+                visual_text = str(getattr(seg, "visual", "") or "").strip().replace("\r", "")
+                spoken_text = str(getattr(seg, "spoken", "") or "").strip().replace("\r", "")
+                audio_text = str(getattr(seg, "audio", "") or "").strip().replace("\r", "")
                 output.append(f"SCENE {idx}:{time_header} - {section_name}")
-                output.append(f"  👁️ VISUAL:  {getattr(seg, 'visual', '')}")
-                output.append(f"  🎙️ SPOKEN:  \"{getattr(seg, 'spoken', '')}\"")
-                output.append(f"  🎵 AUDIO:   {getattr(seg, 'audio', '')}")
+                output.append(f"  👁️ VISUAL:  {visual_text}")
+                output.append(f"  🎙️ SPOKEN:  \"{spoken_text}\"")
+                output.append(f"  🎵 AUDIO:   {audio_text}")
                 output.append("-" * 40)
         elif script:
             output.append("SCENE 1: HOOK")
